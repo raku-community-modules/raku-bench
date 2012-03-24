@@ -1,0 +1,171 @@
+#!/usr/bin/env perl
+
+# ABSTRACT: Benchmark and compare perl5 and various Perl 6 implementations
+
+use 5.010;
+use strict;
+use warnings;
+use Time::HiRes 'time';
+use List::Util  'min', 'max';
+
+
+my %DEFAULT = (
+               TEST_COUNT => 5,
+              );
+my @PERL5   = (
+               {
+                name => 'perl5',
+                cmd  => [qw( perl )],
+               },
+              );
+my @PERL5_E = (
+               {
+                name => 'perl5',
+                cmd  => [qw( perl -E )],
+               },
+              );
+my @PERL6   = (
+               {
+                name => 'rakudo',
+                cmd  => [qw( perl6 )],
+               },
+               {
+                name => 'niecza',
+                cmd  => [qw( mono-sgen run/Niecza.exe )],
+               },
+              );
+my @PERL6_E = (
+               {
+                name => 'rakudo',
+                cmd  => [qw( perl6 -e )],
+               },
+               {
+                name => 'niecza',
+                cmd  => [qw( mono-sgen run/Niecza.exe -e )],
+               },
+              );
+my @TESTS_E = (
+               {
+                name  => 'empty',
+                perl5 => '',
+                perl6 => '',
+               },
+               {
+                name  => 'zero',
+                perl5 => '0',
+                perl6 => '0',
+               },
+               {
+                name  => 'hello',
+                perl5 => 'say "Hello, World!"',
+                perl6 => 'say "Hello, World!"',
+               },
+              );
+MAIN();
+
+sub MAIN {
+    my $times = run_tests_e();
+
+    summarize_results($times);
+}
+
+sub run_tests_e {
+    my @times;
+
+    for my $test (@TESTS_E) {
+        my $name  = $test->{name};
+        say "Testing $name ...";
+        my $raw_times = time_e(%$test);
+        my $best      = best_times($raw_times);
+        my $compared  = compare_times($best);
+        push @times, {
+                      name    => $name,
+                      raw     => $raw_times,
+                      best    => $best,
+                      compare => $compared,
+                     };
+    }
+
+    return \@times;
+}
+
+sub time_e {
+    my %opt = @_;
+    my %times;
+
+    for my $perl (@PERL5_E) {
+        my @cmd = (@{$perl->{cmd}}, $opt{perl5});
+
+        $times{$perl->{name}} = time_command(\@cmd, $opt{count});
+    }
+
+    for my $perl (@PERL6_E) {
+        my @cmd = (@{$perl->{cmd}}, $opt{perl6});
+
+        $times{$perl->{name}} = time_command(\@cmd, $opt{count});
+    }
+
+    return \%times;
+}
+
+sub time_command {
+    my ($cmd, $count) = @_;
+    $count ||= $DEFAULT{TEST_COUNT};
+
+    my @times;
+    for my $i (1 .. $count) {
+        my $start = time;
+        system @$cmd and die "Failed to run command: @$cmd\n";
+        push @times, time - $start;
+    }
+
+    return \@times;
+}
+
+sub best_times {
+    my $raw_times = shift;
+    my %best;
+
+    while (my ($perl, $times) = each %$raw_times) {
+        $best{$perl} = min @$times;
+    }
+
+    return \%best;
+}
+
+sub compare_times {
+    my $times = shift;
+    my %relative;
+
+    my @sorted   = sort {$times->{$a} <=> $times->{$b}} keys %$times;
+    my $shortest = $times->{$sorted[0]} || 1e-6;
+    for my $perl (@sorted) {
+        $relative{$perl} = $times->{$perl} / $shortest;
+    }
+
+    return \%relative;
+}
+
+sub summarize_results {
+    my $times = shift;
+
+    say '';
+
+    my @test_names   = map { $_->{name} } @$times;
+    my $longest_test = max map { length } @test_names;
+
+    my @perl_names   = map { $_->{name} } @PERL5_E, @PERL6_E;
+    my $longest_perl = max map { length } @perl_names;
+
+    my $spacer = '   ';
+    my $format = join $spacer => "%-${longest_test}s", (("%-${longest_perl}s") x @perl_names);
+    printf "$format\n", 'TEST', @perl_names;
+
+    for my $test (@$times) {
+        printf "%-${longest_test}s", $test->{name};
+        for my $perl (@perl_names) {
+            printf "$spacer%${longest_perl}.3f", $test->{best}{$perl};
+        }
+        print "\n";
+    }
+}
