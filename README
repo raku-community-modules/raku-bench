@@ -1,0 +1,14 @@
+perl6-bench: A tool to benchmark and compare Perl 6 implementations against perl5
+
+This is a FIRST RELEASE, and represents concept-as-code.  No attempt has been
+made to bulletproof the tool.  Run as:
+
+    perl path/to/bench
+
+You will need at least perl5 5.10.x.
+
+I ran this successfully with Rakudo installed as 'perl6' and in my path, a recent
+build of 'mono-sgen' in my path, and cd'ed in the top level of a recently built
+Niecza checkout.  YMMV.
+
+Enjoy!
