@@ -21,7 +21,7 @@ Compilers tested so far:
     Perl 5
         perl5
         perlito5.pl
-        perlito5.js      # Can appear successful even with syntax errors
+        perlito5.js
     Perl 6
         perl6 (Rakudo)
         niecza
