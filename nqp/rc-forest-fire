@@ -16,17 +16,27 @@ class Forest {
     has $!f;
 
     method new($height, $width, $p=0.01, $f=0.001) {
-        my $c := self.bless(*, :$height, :$width, :$p, :$f);
-        $c!init-grid;
-        $c!init-neighbors;
+        my $c := self.bless(:$height, :$width, :$p, :$f);
+        $c.init-grid;
+        $c.init-neighbors;
         return $c;
     }
 
-    method !init-grid {
-        @!grid := [ (Bool.pick ?? $Tree !! $Empty) xx $!width ] xx $!height;
+    method init-grid () {
+        # @!grid := [ (pir::rand__NN(1.0) < .5 ?? $Tree !! $Empty) xx $!width ] xx $!height;
+        my $i := 0;
+        while $i < $!height {
+            @!grid.push([]);
+            my $j := 0;
+            while $j < $!width {
+                @!grid[$i].push(pir::rand__NN(1.0) < .5 ?? $Tree !! $Empty);
+                $j++;
+            }
+            $i++;
+        }
     }
 
-    method !init-neighbors {
+    method init-neighbors () {
         @!neighbors := [ ] xx $!height; # XXX rakudo doesn't autoviv yet
         for ^$!height X ^$!width -> $i, $j {
             @!neighbors[$i][$j] := gather for
@@ -39,14 +49,14 @@ class Forest {
         }
     }
 
-    method step {
+    method step () {
         my @new;
         @new := [] xx $!height;   # XXX rakudo doesn't autoviv yet
         for ^$!height X ^$!width -> $i, $j {
             given @!grid[$i][$j] {
-                when $Empty   { @new[$i][$j] := rand < $!p ?? $Tree !! $Empty }
+                when $Empty   { @new[$i][$j] := pir::rand__NN(1.0) < $!p ?? $Tree !! $Empty }
                 when $Tree    { @new[$i][$j] :=
-                     (@!neighbors[$i][$j].any === $Burning or rand < $!f) ?? $Burning !! $Tree;
+                     (@!neighbors[$i][$j].any === $Burning or pir::rand__NN(1.0) < $!f) ?? $Burning !! $Tree;
                 }
                 when $Burning { @new[$i][$j] := $Empty }
             }
@@ -56,7 +66,7 @@ class Forest {
         }
     }
 
-    method Str {
+    method Str () {
         join '', gather for ^$!height -> $i {
             take @show[@!grid[$i].list], "\n";
         }
