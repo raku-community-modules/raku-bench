@@ -8,11 +8,17 @@ use warnings;
 use Time::HiRes 'time';
 use List::Util  'min', 'max';
 use FindBin;
+use Cwd;
 
 
 my %DEFAULT = (
                TEST_COUNT => 5,
               );
+my %DEFAULT_DIRS = (
+                    'niecza' => 'BENCH/../niecza',
+                    'rakudo' => 'BENCH/../rakudo-ref',
+                    'perl5'  => 'BENCH',
+                   );
 my @PERL5_F = (
                {
                 name => 'perl5',
@@ -109,17 +115,8 @@ sub time_e {
     my %opt = @_;
     my %times;
 
-    for my $perl (@PERL5_E) {
-        my @cmd = (@{$perl->{cmd}}, $opt{perl5});
-
-        $times{$perl->{name}} = time_command(\@cmd, $opt{count});
-    }
-
-    for my $perl (@PERL6_E) {
-        my @cmd = (@{$perl->{cmd}}, $opt{perl6});
-
-        $times{$perl->{name}} = time_command(\@cmd, $opt{count});
-    }
+    time_group(perl5 => \@PERL5_E, \%times, \%opt);
+    time_group(perl6 => \@PERL6_E, \%times, \%opt);
 
     return \%times;
 }
@@ -148,21 +145,35 @@ sub time_f {
     my %opt = @_;
     my %times;
 
-    for my $perl (@PERL5_F) {
-        my @cmd = (@{$perl->{cmd}}, @{$opt{perl5}});
-        s/\bBENCH\b/$FindBin::Bin/g for @cmd;
-
-        $times{$perl->{name}} = time_command(\@cmd, $opt{count});
-    }
-
-    for my $perl (@PERL6_F) {
-        my @cmd = (@{$perl->{cmd}}, @{$opt{perl6}});
-        s/\bBENCH\b/$FindBin::Bin/g for @cmd;
-
-        $times{$perl->{name}} = time_command(\@cmd, $opt{count});
-    }
+    time_group(perl5 => \@PERL5_F, \%times, \%opt);
+    time_group(perl6 => \@PERL6_F, \%times, \%opt);
 
     return \%times;
+}
+
+sub time_group {
+    my ($group_name, $group_perls, $times, $opt) = @_;
+
+    my $cwd = cwd;
+
+    for my $perl (@$group_perls) {
+        my $name = $perl->{name};
+        my $dir  = $DEFAULT_DIRS{$name} || 'BENCH';
+        my $args = $opt->{$group_name};
+        my $cmd  = $perl->{cmd};
+        my @args = ref $args ? @$args : ($args);
+        my @cmd  = (@$cmd, @args);
+
+        s/\bBENCH\b/$FindBin::Bin/g for $dir, @cmd;
+
+        if ($dir) {
+            chdir $dir or die "Could not change to $name directory '$dir': $!";
+        }
+
+        $times->{$name} = time_command(\@cmd, $opt->{count});
+    }
+
+    chdir $cwd;
 }
 
 sub time_command {
