@@ -40,8 +40,8 @@ my %COMPILERS = (
                            {
                             name  => 'rakudo',
                             dir   => 'BENCH/../rakudo',
-                            f_cmd => [qw( perl6    )],
-                            e_cmd => [qw( perl6 -e )],
+                            f_cmd => [qw( install/bin/perl6    )],
+                            e_cmd => [qw( install/bin/perl6 -e )],
                            },
                            {
                             name  => 'niecza',
