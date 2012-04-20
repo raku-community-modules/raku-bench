@@ -54,8 +54,8 @@ my %COMPILERS = (
                            {
                             name  => 'nqp',
                             dir   => 'BENCH/../nqp',
-                            f_cmd => [qw( install/bin/nqp    )],
-                            e_cmd => [qw( install/bin/nqp -e )],
+                            f_cmd => [qw( install/bin/nqp --vmlibs=math_ops    )],
+                            e_cmd => [qw( install/bin/nqp --vmlibs=math_ops -e )],
                            },
                           ],
                 );
