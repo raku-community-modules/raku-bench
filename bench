@@ -40,13 +40,13 @@ my %COMPILERS = (
                            {
                             name  => 'rakudo',
                             dir   => 'BENCH/../rakudo',
-                            f_cmd => [qw( perl6 )],
+                            f_cmd => [qw( perl6    )],
                             e_cmd => [qw( perl6 -e )],
                            },
                            {
                             name  => 'niecza',
                             dir   => 'BENCH/../niecza',
-                            f_cmd => [qw( mono-sgen run/Niecza.exe )],
+                            f_cmd => [qw( mono-sgen run/Niecza.exe    )],
                             e_cmd => [qw( mono-sgen run/Niecza.exe -e )],
                            },
                           ],
