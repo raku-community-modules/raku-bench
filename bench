@@ -14,52 +14,37 @@ use Cwd;
 my %DEFAULT = (
                TEST_COUNT => 5,
               );
-my %DEFAULT_DIRS = (
-                    'p5.pl'  => 'BENCH/../Perlito',
-                    'niecza' => 'BENCH/../niecza',
-                    'rakudo' => 'BENCH/../rakudo-ref',
-                    'perl5'  => 'BENCH',
-                   );
-my @PERL5_F = (
-               {
-                name => 'perl5',
-                cmd  => [qw( perl )],
-               },
-               {
-                name => 'p5.pl',
-                cmd  => [qw( perl -Ilib5 perlito5.pl -I./src5/lib )],
-               },
-              );
-my @PERL5_E = (
-               {
-                name => 'perl5',
-                cmd  => [qw( perl -E )],
-               },
-               {
-                name => 'p5.pl',
-                cmd  => [qw( perl -Ilib5 perlito5.pl -I./src5/lib -e )],
-               },
-              );
-my @PERL6_F = (
-               {
-                name => 'rakudo',
-                cmd  => [qw( perl6 )],
-               },
-               {
-                name => 'niecza',
-                cmd  => [qw( mono-sgen run/Niecza.exe )],
-               },
-              );
-my @PERL6_E = (
-               {
-                name => 'rakudo',
-                cmd  => [qw( perl6 -e )],
-               },
-               {
-                name => 'niecza',
-                cmd  => [qw( mono-sgen run/Niecza.exe -e )],
-               },
-              );
+my @GROUPS    = qw( perl5 perl6 );
+my %COMPILERS = (
+                 perl5 => [
+                           {
+                            name  => 'perl5',
+                            dir   => 'BENCH',
+                            f_cmd => [qw( perl    )],
+                            e_cmd => [qw( perl -E )],
+                           },
+                           {
+                            name  => 'p5.pl',
+                            dir   => 'BENCH/../Perlito',
+                            f_cmd => [qw( perl -Ilib5 perlito5.pl -I./src5/lib    )],
+                            e_cmd => [qw( perl -Ilib5 perlito5.pl -I./src5/lib -e )],
+                           },
+                          ],
+                 perl6 => [
+                           {
+                            name  => 'rakudo',
+                            dir   => 'BENCH/../rakudo-ref',
+                            f_cmd => [qw( perl6 )],
+                            e_cmd => [qw( perl6 -e )],
+                           },
+                           {
+                            name  => 'niecza',
+                            dir   => 'BENCH/../niecza',
+                            f_cmd => [qw( mono-sgen run/Niecza.exe )],
+                            e_cmd => [qw( mono-sgen run/Niecza.exe -e )],
+                           },
+                          ],
+                );
 my @TESTS_E = (
                {
                 name  => 'empty',
@@ -106,7 +91,7 @@ sub run_tests_e {
     for my $test (@TESTS_E) {
         my $name  = $test->{name};
         say "Testing $name ...";
-        my $raw_times = time_e(%$test);
+        my $raw_times = time_all_compilers(e => %$test);
         my $best      = best_times($raw_times);
         my $compared  = compare_times($best);
         push @times, {
@@ -118,16 +103,6 @@ sub run_tests_e {
     }
 
     return \@times;
-}
-
-sub time_e {
-    my %opt = @_;
-    my %times;
-
-    time_group(perl5 => \@PERL5_E, \%times, \%opt);
-    time_group(perl6 => \@PERL6_E, \%times, \%opt);
-
-    return \%times;
 }
 
 sub run_tests_f {
@@ -136,7 +111,7 @@ sub run_tests_f {
     for my $test (@TESTS_F) {
         my $name  = $test->{name};
         say "Testing $name ...";
-        my $raw_times = time_f(%$test);
+        my $raw_times = time_all_compilers(f => %$test);
         my $best      = best_times($raw_times);
         my $compared  = compare_times($best);
         push @times, {
@@ -150,26 +125,27 @@ sub run_tests_f {
     return \@times;
 }
 
-sub time_f {
-    my %opt = @_;
+sub time_all_compilers {
+    my ($test_type, %opt) = @_;
     my %times;
 
-    time_group(perl5 => \@PERL5_F, \%times, \%opt);
-    time_group(perl6 => \@PERL6_F, \%times, \%opt);
+    for my $group (@GROUPS) {
+        time_group($group, $test_type, $COMPILERS{$group}, \%times, \%opt);
+    }
 
     return \%times;
 }
 
 sub time_group {
-    my ($group_name, $group_perls, $times, $opt) = @_;
+    my ($group_name, $test_type, $group_perls, $times, $opt) = @_;
 
     my $cwd = cwd;
 
     for my $perl (@$group_perls) {
         my $name = $perl->{name};
-        my $dir  = $DEFAULT_DIRS{$name} || 'BENCH';
+        my $dir  = $perl->{dir} || 'BENCH';
+        my $cmd  = $perl->{"${test_type}_cmd"};
         my $args = $opt->{$group_name};
-        my $cmd  = $perl->{cmd};
         my @args = ref $args ? @$args : ($args);
         my @cmd  = (@$cmd, @args);
 
@@ -241,7 +217,7 @@ sub summarize_results {
     my @test_names   = map { $_->{name} } @$times;
     my $longest_test = max 8, map { length } @test_names;
 
-    my @perl_names   = map { $_->{name} } @PERL5_E, @PERL6_E;
+    my @perl_names   = map { $_->{name} } map { @{$COMPILERS{$_}} } @GROUPS;
     my $longest_perl = max 8, map { length } @perl_names;
 
     my $spacer = '   ';
