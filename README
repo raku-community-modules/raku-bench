@@ -1,14 +1,28 @@
 perl6-bench: A tool to benchmark and compare Perl 6 implementations against perl5
 
-This is a FIRST RELEASE, and represents concept-as-code.  No attempt has been
-made to bulletproof the tool.  Run as:
+This is a VERY EARLY RELEASE, and represents concept-as-code.  No attempt has
+been made to bulletproof the tool.  Run as:
 
     perl path/to/bench
 
-You will need at least perl5 5.10.x.
+You will need at least perl5 5.10.x, and you may need to have some extra
+items in your PATH, such as a recent version of mono-sgen for Niecza.  YMMV.
 
-I ran this successfully with Rakudo installed as 'perl6' and in my path, a recent
-build of 'mono-sgen' in my path, and cd'ed in the top level of a recently built
-Niecza checkout.  YMMV.
+Paths to the proper working directory for each compiler (usually the root
+directory of its Git checkout) can be set in the %COMPILERS hash at the top
+of the bench script.  The default directories are assumed to be parallel
+checkouts at the same directory level as the perl6-bench checkout.  For
+example, Perlito's directory is assumed to be ../Perlito/ relative to the
+bench directory.
+
+Compilers tested so far:
+
+    Perl 5
+        perl5
+        perlito5.pl
+        perlito5.js      # Can appear successful even with syntax errors
+    Perl 6
+        perl6 (Rakudo)
+        niecza
 
 Enjoy!

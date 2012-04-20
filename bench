@@ -39,7 +39,7 @@ my %COMPILERS = (
                  perl6 => [
                            {
                             name  => 'rakudo',
-                            dir   => 'BENCH/../rakudo-ref',
+                            dir   => 'BENCH/../rakudo',
                             f_cmd => [qw( perl6 )],
                             e_cmd => [qw( perl6 -e )],
                            },
