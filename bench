@@ -26,8 +26,14 @@ my %COMPILERS = (
                            {
                             name  => 'p5.pl',
                             dir   => 'BENCH/../Perlito',
-                            f_cmd => [qw( perl -Ilib5 perlito5.pl -I./src5/lib    )],
-                            e_cmd => [qw( perl -Ilib5 perlito5.pl -I./src5/lib -e )],
+                            f_cmd => [qw( perl -Ilib5 perlito5.pl -Isrc5/lib    )],
+                            e_cmd => [qw( perl -Ilib5 perlito5.pl -Isrc5/lib -e )],
+                           },
+                           {
+                            name  => 'p5.js',
+                            dir   => 'BENCH/../Perlito',
+                            f_cmd => [qw( node perlito5.js -Isrc5/lib    )],
+                            e_cmd => [qw( node perlito5.js -Isrc5/lib -e )],
                            },
                           ],
                  perl6 => [
