@@ -25,5 +25,7 @@ Compilers tested so far:
     Perl 6
         perl6 (Rakudo)
         niecza
+    NQP
+        nqp (github perl6/nqp)
 
 Enjoy!

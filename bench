@@ -14,7 +14,7 @@ use Cwd;
 my %DEFAULT = (
                TEST_COUNT => 5,
               );
-my @GROUPS    = qw( perl5 perl6 );
+my @GROUPS    = qw( perl5 nqp perl6 );
 my %COMPILERS = (
                  perl5 => [
                            {
@@ -50,27 +50,39 @@ my %COMPILERS = (
                             e_cmd => [qw( mono-sgen run/Niecza.exe -e )],
                            },
                           ],
+                 nqp   => [
+                           {
+                            name  => 'nqp',
+                            dir   => 'BENCH/../nqp',
+                            f_cmd => [qw( install/bin/nqp    )],
+                            e_cmd => [qw( install/bin/nqp -e )],
+                           },
+                          ],
                 );
 my @TESTS_E = (
                {
                 name  => 'empty',
                 perl5 => '',
                 perl6 => '',
+                nqp   => '',
                },
                {
                 name  => 'zero',
                 perl5 => '0',
                 perl6 => '0',
+                nqp   => '0',
                },
                {
                 name  => 'hello',
                 perl5 => 'say "Hello, World!"',
                 perl6 => 'say "Hello, World!"',
+                nqp   => 'say("Hello, World!")',
                },
                {
                 name  => 'empty_loop_1e5',
                 perl5 => '1 for 1 .. 100000',
                 perl6 => '1 for 1 .. 100000',
+                nqp   => 'my $i := 1; while $i <= 100000 { $i++; 1 }',
                },
               );
 my @TESTS_F = (
@@ -78,6 +90,7 @@ my @TESTS_F = (
                 name  => 'rc-forest-fire',
                 perl5 => [qw( BENCH/perl5/rc-forest-fire 30 20 10 )],
                 perl6 => [qw( BENCH/perl6/rc-forest-fire 30 20 10 )],
+                nqp   => [qw( BENCH/nqp/rc-forest-fire 30 20 10 )],
                },
               );
 
