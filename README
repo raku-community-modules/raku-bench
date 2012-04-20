@@ -6,7 +6,8 @@ been made to bulletproof the tool.  Run as:
     perl path/to/bench
 
 You will need at least perl5 5.10.x, and you may need to have some extra
-items in your PATH, such as a recent version of mono-sgen for Niecza.  YMMV.
+items in your PATH, such as a recent version of mono-sgen for Niecza and node
+for perlito5.js.  YMMV.
 
 Paths to the proper working directory for each compiler (usually the root
 directory of its Git checkout) can be set in the %COMPILERS hash at the top
