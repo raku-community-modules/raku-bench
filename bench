@@ -63,8 +63,8 @@ my @TESTS_E = (
                },
                {
                 name  => 'empty_loop_1e5',
-                perl5 => '1 for 1 .. 100_000',
-                perl6 => '1 for 1 .. 100_000',
+                perl5 => '1 for 1 .. 100000',
+                perl6 => '1 for 1 .. 100000',
                },
               );
 my @TESTS_F = (
