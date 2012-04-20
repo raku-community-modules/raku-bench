@@ -15,6 +15,7 @@ my %DEFAULT = (
                TEST_COUNT => 5,
               );
 my %DEFAULT_DIRS = (
+                    'p5.pl'  => 'BENCH/../Perlito',
                     'niecza' => 'BENCH/../niecza',
                     'rakudo' => 'BENCH/../rakudo-ref',
                     'perl5'  => 'BENCH',
@@ -24,11 +25,19 @@ my @PERL5_F = (
                 name => 'perl5',
                 cmd  => [qw( perl )],
                },
+               {
+                name => 'p5.pl',
+                cmd  => [qw( perl -Ilib5 perlito5.pl -I./src5/lib )],
+               },
               );
 my @PERL5_E = (
                {
                 name => 'perl5',
                 cmd  => [qw( perl -E )],
+               },
+               {
+                name => 'p5.pl',
+                cmd  => [qw( perl -Ilib5 perlito5.pl -I./src5/lib -e )],
                },
               );
 my @PERL6_F = (
