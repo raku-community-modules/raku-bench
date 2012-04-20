@@ -182,9 +182,13 @@ sub time_command {
 
     my @times;
     for my $i (1 .. $count) {
-        my $start = time;
-        system @$cmd and die "Failed to run command: @$cmd\n";
+        my $start  = time;
+        my $status = system @$cmd;
         push @times, time - $start;
+        if ($status) {
+            warn "Failed to run command: @$cmd\n";
+            return undef;
+        }
     }
 
     return \@times;
@@ -195,7 +199,7 @@ sub best_times {
     my %best;
 
     while (my ($perl, $times) = each %$raw_times) {
-        $best{$perl} = min @$times;
+        $best{$perl} = $times ? min(@$times) : undef;
     }
 
     return \%best;
@@ -205,7 +209,8 @@ sub compare_times {
     my $times = shift;
     my %relative;
 
-    my @sorted   = sort {$times->{$a} <=> $times->{$b}} keys %$times;
+    my @sorted   = sort { $times->{$a} <=> $times->{$b} }
+                        grep { defined $times->{$_} } keys %$times;
     my $shortest = $times->{$sorted[0]} || 1e-6;
     for my $perl (@sorted) {
         $relative{$perl} = $times->{$perl} / $shortest;
@@ -237,17 +242,28 @@ sub summarize_results {
     for my $test (@$times) {
         printf "%-${longest_test}s", $test->{name};
         for my $perl (@perl_names) {
-            printf "$spacer%${longest_perl}.3fs", $test->{best}{$perl};
+            my $best = $test->{best}{$perl};
+            if (defined $best) {
+                printf "$spacer%${longest_perl}.3fs", $test->{best}{$perl};
+            }
+            else {
+                printf "$spacer%${longest_perl}s ", '-- ';
+            }
         }
         print "\n";
 
         printf "%-${longest_test}s", '';
         for my $perl (@perl_names) {
-            my $rel   = $test->{compare}{$perl};
-            my $color = $rel <  2 ? $GREEN  :
-                        $rel < 10 ? $YELLOW :
-                                    $RED    ;
-            printf "$spacer$color%${longest_perl}.3fx$CLEAR", $rel;
+            my $rel = $test->{compare}{$perl};
+            if (defined $rel) {
+                my $color = $rel <  2 ? $GREEN  :
+                            $rel < 10 ? $YELLOW :
+                                        $RED    ;
+                printf "$spacer$color%${longest_perl}.3fx$CLEAR", $rel;
+            }
+            else {
+                printf "$spacer$RED%${longest_perl}s $CLEAR", 'FAIL';
+            }
         }
         print "\n";
     }
