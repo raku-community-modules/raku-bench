@@ -20,42 +20,42 @@ my %COMPILERS = (
                            {
                             name  => 'perl5',
                             dir   => 'BENCH',
-                            f_cmd => [qw( perl    )],
-                            e_cmd => [qw( perl -E )],
+                            f_run => [qw( perl    )],
+                            e_run => [qw( perl -E )],
                            },
                            {
                             name  => 'p5.pl',
                             dir   => 'BENCH/../Perlito',
-                            f_cmd => [qw( perl -Ilib5 perlito5.pl -Isrc5/lib    )],
-                            e_cmd => [qw( perl -Ilib5 perlito5.pl -Isrc5/lib -e )],
+                            f_run => [qw( perl -Ilib5 perlito5.pl -Isrc5/lib    )],
+                            e_run => [qw( perl -Ilib5 perlito5.pl -Isrc5/lib -e )],
                            },
                            {
                             name  => 'p5.js',
                             dir   => 'BENCH/../Perlito',
-                            f_cmd => [qw( node perlito5.js -Isrc5/lib    )],
-                            e_cmd => [qw( node perlito5.js -Isrc5/lib -e )],
+                            f_run => [qw( node perlito5.js -Isrc5/lib    )],
+                            e_run => [qw( node perlito5.js -Isrc5/lib -e )],
                            },
                           ],
                  perl6 => [
                            {
                             name  => 'rakudo',
                             dir   => 'BENCH/../rakudo',
-                            f_cmd => [qw( install/bin/perl6    )],
-                            e_cmd => [qw( install/bin/perl6 -e )],
+                            f_run => [qw( install/bin/perl6    )],
+                            e_run => [qw( install/bin/perl6 -e )],
                            },
                            {
                             name  => 'niecza',
                             dir   => 'BENCH/../niecza',
-                            f_cmd => [qw( mono-sgen run/Niecza.exe    )],
-                            e_cmd => [qw( mono-sgen run/Niecza.exe -e )],
+                            f_run => [qw( mono-sgen run/Niecza.exe    )],
+                            e_run => [qw( mono-sgen run/Niecza.exe -e )],
                            },
                           ],
                  nqp   => [
                            {
                             name  => 'nqp',
                             dir   => 'BENCH/../nqp',
-                            f_cmd => [qw( install/bin/nqp --vmlibs=math_ops    )],
-                            e_cmd => [qw( install/bin/nqp --vmlibs=math_ops -e )],
+                            f_run => [qw( install/bin/nqp --vmlibs=math_ops    )],
+                            e_run => [qw( install/bin/nqp --vmlibs=math_ops -e )],
                            },
                           ],
                 );
@@ -163,7 +163,7 @@ sub time_group {
     for my $perl (@$group_perls) {
         my $name = $perl->{name};
         my $dir  = $perl->{dir} || 'BENCH';
-        my $cmd  = $perl->{"${test_type}_cmd"};
+        my $cmd  = $perl->{"${test_type}_run"};
         my $args = $opt->{$group_name};
         my @args = ref $args ? @$args : ($args);
         my @cmd  = (@$cmd, @args);
