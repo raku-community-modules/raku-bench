@@ -5,8 +5,10 @@
 use 5.010;
 use strict;
 use warnings;
-use Time::HiRes 'time';
-use List::Util  'min', 'max';
+use Time::HiRes   'time';
+use File::Temp    'tempfile';
+use List::Util    'min', 'max';
+use Capture::Tiny 'capture';
 use FindBin;
 use Cwd;
 
@@ -15,47 +17,86 @@ my %DEFAULT = (
                TEST_COUNT => 5,
               );
 my @GROUPS    = qw( perl5 nqp perl6 );
+my %VM        = (
+                 perl5   => 'perl',
+                 node_js => 'node',
+                 mono    => 'mono-sgen',
+                 v8      => 'BENCH/../v8/out/native/d8',
+                );
 my %COMPILERS = (
                  perl5 => [
                            {
-                            name  => 'perl5',
-                            dir   => 'BENCH',
-                            f_run => [qw( perl    )],
-                            e_run => [qw( perl -E )],
+                            name      => 'perl5',
+                            enabled   => 1,
+                            dir       => 'BENCH',
+                            f_run     => [$VM{perl5}          ],
+                            e_run     => [$VM{perl5}, qw( -E )],
                            },
                            {
-                            name  => 'p5.pl',
-                            dir   => 'BENCH/../Perlito',
-                            f_run => [qw( perl -Ilib5 perlito5.pl -Isrc5/lib    )],
-                            e_run => [qw( perl -Ilib5 perlito5.pl -Isrc5/lib -e )],
+                            name      => 'p5.pl',
+                            enabled   => 1,
+                            dir       => 'BENCH/../Perlito',
+                            f_run     => [$VM{perl5}, qw( -Ilib5 perlito5.pl -Isrc5/lib    )],
+                            e_run     => [$VM{perl5}, qw( -Ilib5 perlito5.pl -Isrc5/lib -e )],
                            },
                            {
-                            name  => 'p5.js',
-                            dir   => 'BENCH/../Perlito',
-                            f_run => [qw( node perlito5.js -Isrc5/lib    )],
-                            e_run => [qw( node perlito5.js -Isrc5/lib -e )],
+                            name      => 'p5.js_node',
+                            enabled   => 1,
+                            dir       => 'BENCH/../Perlito',
+                            f_run     => [$VM{node_js}, qw( perlito5.js -Isrc5/lib    )],
+                            e_run     => [$VM{node_js}, qw( perlito5.js -Isrc5/lib -e )],
+                           },
+                           {
+                            name      => 'p5.js_v8',
+                            enabled   => 1,
+                            dir       => 'BENCH/../Perlito',
+                            f_compile => [$VM{v8}, qw( perlito5.js -- -Isrc5/lib -Cjs    )],
+                            e_compile => [$VM{v8}, qw( perlito5.js -- -Isrc5/lib -Cjs -e )],
+                            f_run     => [$VM{v8}, qw( COMPILED -- )],
+                            e_run     => [$VM{v8}, qw( COMPILED -- )],
                            },
                           ],
                  perl6 => [
                            {
-                            name  => 'rakudo',
-                            dir   => 'BENCH/../rakudo',
-                            f_run => [qw( install/bin/perl6    )],
-                            e_run => [qw( install/bin/perl6 -e )],
+                            name      => 'rakudo',
+                            enabled   => 1,
+                            dir       => 'BENCH/../rakudo',
+                            f_run     => [qw( install/bin/perl6    )],
+                            e_run     => [qw( install/bin/perl6 -e )],
                            },
                            {
-                            name  => 'niecza',
-                            dir   => 'BENCH/../niecza',
-                            f_run => [qw( mono-sgen run/Niecza.exe    )],
-                            e_run => [qw( mono-sgen run/Niecza.exe -e )],
+                            name      => 'niecza',
+                            enabled   => 1,
+                            dir       => 'BENCH/../niecza',
+                            f_run     => [$VM{mono}, qw( run/Niecza.exe    )],
+                            e_run     => [$VM{mono}, qw( run/Niecza.exe -e )],
+                           },
+                           {
+                            name      => 'p6.pl',
+                            enabled   => 1,
+                            dir       => 'BENCH/../Perlito',
+                            f_compile => [$VM{perl5}, qw( -Ilib5 perlito6.pl -Cperl5    )],
+                            e_compile => [$VM{perl5}, qw( -Ilib5 perlito6.pl -Cperl5 -e )],
+                            f_run     => [$VM{perl5}, qw( -Ilib5 COMPILED )],
+                            e_run     => [$VM{perl5}, qw( -Ilib5 COMPILED )],
+                           },
+                           {
+                            name      => 'p6.js_v8',
+                            enabled   => 1,
+                            dir       => 'BENCH/../Perlito',
+                            f_compile => [$VM{v8}, qw( perlito6.js -- -Cjs    )],
+                            e_compile => [$VM{v8}, qw( perlito6.js -- -Cjs -e )],
+                            f_run     => [$VM{v8}, qw( COMPILED -- )],
+                            e_run     => [$VM{v8}, qw( COMPILED -- )],
                            },
                           ],
                  nqp   => [
                            {
-                            name  => 'nqp',
-                            dir   => 'BENCH/../nqp',
-                            f_run => [qw( install/bin/nqp --vmlibs=math_ops    )],
-                            e_run => [qw( install/bin/nqp --vmlibs=math_ops -e )],
+                            name      => 'nqp',
+                            enabled   => 1,
+                            dir       => 'BENCH/../nqp',
+                            f_run     => [qw( install/bin/nqp --vmlibs=math_ops    )],
+                            e_run     => [qw( install/bin/nqp --vmlibs=math_ops -e )],
                            },
                           ],
                 );
@@ -161,37 +202,69 @@ sub time_group {
     my $cwd = cwd;
 
     for my $perl (@$group_perls) {
+        next unless $perl->{enabled};
+
         my $name = $perl->{name};
         my $dir  = $perl->{dir} || 'BENCH';
-        my $cmd  = $perl->{"${test_type}_run"};
+        my $comp = $perl->{"${test_type}_compile"} || [];
+        my $run  = $perl->{"${test_type}_run"};
         my $args = $opt->{$group_name};
         my @args = ref $args ? @$args : ($args);
-        my @cmd  = (@$cmd, @args);
 
-        s/\bBENCH\b/$FindBin::Bin/g for $dir, @cmd;
+        s/\bBENCH\b/$FindBin::Bin/g for $dir, @$comp, @$run, @args;
+
+        my @compile;
+        if (@$comp) {
+            # XXXX: This shift is a code smell ...
+            @compile = (@$comp, shift @args);
+        }
+        my @run = (@$run, @args);
 
         if ($dir) {
             chdir $dir or die "Could not change to $name directory '$dir': $!";
         }
 
-        $times->{$name} = time_command(\@cmd, $opt->{count});
+        $times->{$name} = time_command(\@compile, \@run, $opt->{count});
     }
 
     chdir $cwd;
 }
 
 sub time_command {
-    my ($cmd, $count) = @_;
+    my ($compile, $run, $count) = @_;
     $count ||= $DEFAULT{TEST_COUNT};
 
-    my @times;
+    my (@times, $status);
     for my $i (1 .. $count) {
-        my $start  = time;
-        my $status = system @$cmd;
-        push @times, time - $start;
-        if ($status) {
-            warn "Failed to run command: @$cmd\n";
-            return undef;
+        if (@$compile) {
+            my $start = time;
+            my ($out, $err) = capture { $status = system @$compile };
+            if ($status) {
+                warn "Failed to run compile command: @$compile\n"
+                     . (length $err ? "Error:\n$err\n" : '');
+                return undef;
+            }
+
+            my ($fh, $filename) = tempfile(UNLINK => 1);
+            print $fh $out;
+            close $fh;
+            my @run = @$run;
+            s/\bCOMPILED\b/$filename/g for @run;
+            $status = system @run;
+            push @times, time - $start;
+            if ($status) {
+                warn "Failed to run command: @run\n";
+                return undef;
+            }
+        }
+        else {
+            my $start  = time;
+            $status = system @$run;
+            push @times, time - $start;
+            if ($status) {
+                warn "Failed to run command: @$run\n";
+                return undef;
+            }
         }
     }
 
