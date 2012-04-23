@@ -28,6 +28,9 @@ my %COMPILERS = (
                            {
                             name      => 'perl5',
                             enabled   => 1,
+                            language  => 'Perl 5',
+                            compiler  => 'perl5',
+                            vm        => 'perl5',
                             dir       => 'BENCH',
                             f_run     => [$VM{perl5}          ],
                             e_run     => [$VM{perl5}, qw( -E )],
@@ -35,6 +38,9 @@ my %COMPILERS = (
                            {
                             name      => 'p5.pl',
                             enabled   => 1,
+                            language  => 'Perl 5',
+                            compiler  => 'perlito5',
+                            vm        => 'perl5',
                             dir       => 'BENCH/../Perlito',
                             f_run     => [$VM{perl5}, qw( -Ilib5 perlito5.pl -Isrc5/lib    )],
                             e_run     => [$VM{perl5}, qw( -Ilib5 perlito5.pl -Isrc5/lib -e )],
@@ -42,6 +48,9 @@ my %COMPILERS = (
                            {
                             name      => 'p5.js_node',
                             enabled   => 1,
+                            language  => 'Perl 5',
+                            compiler  => 'perlito5',
+                            vm        => 'node.js',
                             dir       => 'BENCH/../Perlito',
                             f_run     => [$VM{node_js}, qw( perlito5.js -Isrc5/lib    )],
                             e_run     => [$VM{node_js}, qw( perlito5.js -Isrc5/lib -e )],
@@ -49,6 +58,9 @@ my %COMPILERS = (
                            {
                             name      => 'p5.js_v8',
                             enabled   => 1,
+                            language  => 'Perl 5',
+                            compiler  => 'perlito5',
+                            vm        => 'd8',
                             dir       => 'BENCH/../Perlito',
                             f_compile => [$VM{v8}, qw( perlito5.js -- -Isrc5/lib -Cjs    )],
                             e_compile => [$VM{v8}, qw( perlito5.js -- -Isrc5/lib -Cjs -e )],
@@ -60,6 +72,9 @@ my %COMPILERS = (
                            {
                             name      => 'rakudo',
                             enabled   => 1,
+                            language  => 'Perl 6',
+                            compiler  => 'rakudo',
+                            vm        => 'parrot',
                             dir       => 'BENCH/../rakudo',
                             f_run     => [qw( install/bin/perl6    )],
                             e_run     => [qw( install/bin/perl6 -e )],
@@ -67,6 +82,9 @@ my %COMPILERS = (
                            {
                             name      => 'niecza',
                             enabled   => 1,
+                            language  => 'Perl 6',
+                            compiler  => 'niecza',
+                            vm        => 'mono',
                             dir       => 'BENCH/../niecza',
                             f_run     => [$VM{mono}, qw( run/Niecza.exe    )],
                             e_run     => [$VM{mono}, qw( run/Niecza.exe -e )],
@@ -74,6 +92,9 @@ my %COMPILERS = (
                            {
                             name      => 'p6.pl',
                             enabled   => 1,
+                            language  => 'Perl 6',
+                            compiler  => 'perlito6',
+                            vm        => 'perl5',
                             dir       => 'BENCH/../Perlito',
                             f_compile => [$VM{perl5}, qw( -Ilib5 perlito6.pl -Cperl5    )],
                             e_compile => [$VM{perl5}, qw( -Ilib5 perlito6.pl -Cperl5 -e )],
@@ -83,6 +104,9 @@ my %COMPILERS = (
                            {
                             name      => 'p6.js_v8',
                             enabled   => 1,
+                            language  => 'Perl 6',
+                            compiler  => 'perlito6',
+                            vm        => 'd8',
                             dir       => 'BENCH/../Perlito',
                             f_compile => [$VM{v8}, qw( perlito6.js -- -Cjs    )],
                             e_compile => [$VM{v8}, qw( perlito6.js -- -Cjs -e )],
@@ -94,6 +118,9 @@ my %COMPILERS = (
                            {
                             name      => 'nqp',
                             enabled   => 1,
+                            language  => 'NQP',
+                            compiler  => 'nqp',
+                            vm        => 'parrot',
                             dir       => 'BENCH/../nqp',
                             f_run     => [qw( install/bin/nqp --vmlibs=math_ops    )],
                             e_run     => [qw( install/bin/nqp --vmlibs=math_ops -e )],
