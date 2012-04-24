@@ -24,6 +24,7 @@ class Forest {
 
     method init-grid () {
         # @!grid := [ (pir::rand__NN(1.0) < .5 ?? $Tree !! $Empty) xx $!width ] xx $!height;
+        @!grid := [];
         my $i := 0;
         while $i < $!height {
             @!grid.push([]);
@@ -37,51 +38,94 @@ class Forest {
     }
 
     method init-neighbors () {
-        @!neighbors := [ ] xx $!height; # XXX rakudo doesn't autoviv yet
-        for ^$!height X ^$!width -> $i, $j {
-            @!neighbors[$i][$j] := gather for
-                    [-1,-1],[+0,-1],[+1,-1],
+        @!neighbors := [];
+        my $i := 0;
+        while $i < $!height {
+            @!neighbors.push([]);
+            my $j := 0;
+            while $j < $!width {
+                @!neighbors[$i].push([]);
+                for [-1,-1],[+0,-1],[+1,-1],
                     [-1,+0],(     ),[+1,+0],
                     [-1,+1],[+0,+1],[+1,+1]
-            {
-                take-rw @!grid[$i + .[0]][$j + .[1]] // next;
+                {
+                    my $y := $i + $_[0];
+                    my $x := $j + $_[1];
+                    next if $x < 0 || $x >= $!width;
+                    next if $y < 0 || $y >= $!height;
+
+                    my $cell := @!grid[$i + $_[0]][$j + $_[1]];
+                    @!neighbors[$i][$j].push($cell);
+                }
+                $j++;
             }
+            $i++;
         }
     }
 
     method step () {
         my @new;
-        @new := [] xx $!height;   # XXX rakudo doesn't autoviv yet
-        for ^$!height X ^$!width -> $i, $j {
-            given @!grid[$i][$j] {
-                when $Empty   { @new[$i][$j] := pir::rand__NN(1.0) < $!p ?? $Tree !! $Empty }
-                when $Tree    { @new[$i][$j] :=
-                     (@!neighbors[$i][$j].any === $Burning or pir::rand__NN(1.0) < $!f) ?? $Burning !! $Tree;
+        my $i := 0;
+        while $i < $!height {
+            @new.push([]);
+            my $j := 0;
+            while $j < $!width {
+                my $cell := @!grid[$i][$j];
+                if    $cell == $Empty {
+                    @new[$i][$j] := pir::rand__NN(1.0) < $!p ?? $Tree !! $Empty
                 }
-                when $Burning { @new[$i][$j] := $Empty }
+                elsif $cell == $Tree {
+                    my $burn_tree := 0;
+                    for @!neighbors[$i][$j] {
+                        $burn_tree := 1 if $_ == $Burning;
+                    }
+                    $burn_tree := 1 if pir::rand__NN(1.0) < $!f;
+                    @new[$i][$j] := $burn_tree ?? $Burning !! $Tree;
+                }
+                elsif $cell == $Burning {
+                    @new[$i][$j] := $Empty
+                }
+                $j++;
             }
+            $i++;
         }
-        for ^$!height X ^$!width -> $i, $j {
-            @!grid[$i][$j] := @new[$i][$j];
+        $i := 0;
+        while $i < $!height {
+            my $j := 0;
+            while $j < $!width {
+                @!grid[$i][$j] := @new[$i][$j];
+                $j++;
+            }
+            $i++;
         }
     }
 
     method Str () {
-        join '', gather for ^$!height -> $i {
-            take @show[@!grid[$i].list], "\n";
+        my $rows := '';
+        my $i := 0;
+        while $i < $!height {
+            my $row := '';
+            my $j := 0;
+            while $j < $!width {
+                $row := $row ~ @show[@!grid[$i][$j]];
+                $j++;
+            }
+            $rows := $rows ~ $row ~ "\n";
+            $i++;
         }
+        $rows;
     }
 }
 
-sub MAIN ($w, $h, $steps) {
-    my Forest $f .= new($h, $w);
-    print "\e[2J$CLEAR";      # ANSI clear screen
+sub MAIN ($name, $w, $h, $steps) {
+    my $f := Forest.new($h, $w);
+    print("\e[2J$CLEAR");      # ANSI clear screen
 
     my $i := 0;
     until $i >= $steps {
-        print "\e[H";   # ANSI home
-        say $i++;
-        say $f.Str;
+        print("\e[H");   # ANSI home
+        say($i++);
+        say($f.Str);
         $f.step;
     }
 }
