@@ -104,7 +104,7 @@ my %COMPILERS = (
                            },
                            {
                             name      => 'p6.js_v8',
-                            enabled   => 1,
+                            enabled   => 0,
                             language  => 'Perl 6',
                             compiler  => 'perlito6',
                             vm        => 'd8',
