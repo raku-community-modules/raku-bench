@@ -1,0 +1,13 @@
+* Add Pugs to known compilers
+* Support skipping individual tests for particular compilers
+  + Display skips as SKIP instead of FAIL in summary table
+* Correct rc-forest-fire variants to produce more similar output
+* More tests!
+  + Specific ideas
+    - Construct a triangular sequence in an array, then print it
+    - Round trip a CSV file, correctly handling escapes and non-ASCII chars
+    - Round trip XML through a friendly internal structure (XML::Simple-ish)
+    - Extract info from a PNG file
+    - Compute positions for a particle system after N steps
+  + Areas to cover
+    - Something for big int
