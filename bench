@@ -126,6 +126,16 @@ my %COMPILERS = (
                             f_run     => [qw( install/bin/nqp --vmlibs=math_ops    )],
                             e_run     => [qw( install/bin/nqp --vmlibs=math_ops -e )],
                            },
+                           {
+                            name      => 'rakudo',
+                            enabled   => 1,
+                            language  => 'NQP',
+                            compiler  => 'rakudo',
+                            vm        => 'parrot',
+                            dir       => 'BENCH/../rakudo',
+                            f_run     => [qw( install/bin/perl6    )],
+                            e_run     => [qw( install/bin/perl6 -e )],
+                           },
                           ],
                 );
 my @TESTS_E = (
