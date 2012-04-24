@@ -5,10 +5,11 @@
 use 5.010;
 use strict;
 use warnings;
-use Time::HiRes   'time';
-use File::Temp    'tempfile';
-use List::Util    'min', 'max';
-use Capture::Tiny 'capture';
+use Time::HiRes     'time';
+use File::Temp      'tempfile';
+use List::Util      'min', 'max';
+use List::MoreUtils 'uniq';
+use Capture::Tiny   'capture';
 use FindBin;
 use Cwd;
 
@@ -331,24 +332,35 @@ sub summarize_results {
     my $YELLOW = "\e[1;33m";
     my $CLEAR  = "\e[0m";
 
-    say '';
-
     my @test_names   = map { $_->{name} } @$times;
     my $longest_test = max 8, map { length } @test_names;
 
-    my @perl_names   = map { $_->{name} } map { @{$COMPILERS{$_}} } @GROUPS;
-    my $longest_perl = max 8, map { length } @perl_names;
+    my @perls        = map { @{$COMPILERS{$_}} } @GROUPS;
+    my @lang_names   = map { $_->{language} } @perls;
+    my @comp_names   = map { $_->{compiler} } @perls;
+    my @vm_names     = map { $_->{vm}       } @perls;
+    my $longest_perl = max 8, map { length } @lang_names, @comp_names, @vm_names;
 
-    my $spacer = '   ';
-    my $format = join $spacer => "%-${longest_test}s", (("%${longest_perl}s ") x @perl_names);
-    printf "$format\n", 'TEST', map {uc} @perl_names;
+    my $spacer_length = 3;
+    my $spacer = ' ' x $spacer_length;
+    my $format = join $spacer => "%-${longest_test}s", (("%${longest_perl}s ") x @perls);
+
+    my %lang_count;
+       $lang_count{$_}++ for @lang_names;
+    my @langs = uniq @lang_names;
+    my @lang_titles = map { center(" $_ ", $lang_count{$_} * ($longest_perl + $spacer_length + 1) - $spacer_length, bg => '-') } @langs;
+
+    print  "$CLEAR\n", join($spacer => ' ' x $longest_test, @lang_titles), "\n";
+    printf "$format\n", '',     @comp_names;
+    printf "$format\n", 'TEST', @vm_names;
 
     for my $test (@$times) {
         printf "%-${longest_test}s", $test->{name};
-        for my $perl (@perl_names) {
-            my $best = $test->{best}{$perl};
+        for my $perl (@perls) {
+            my $name = $perl->{name};
+            my $best = $test->{best}{$name};
             if (defined $best) {
-                printf "$spacer%${longest_perl}.3fs", $test->{best}{$perl};
+                printf "$spacer%${longest_perl}.3fs", $test->{best}{$name};
             }
             else {
                 printf "$spacer%${longest_perl}s ", '-- ';
@@ -357,8 +369,8 @@ sub summarize_results {
         print "\n";
 
         printf "%-${longest_test}s", '';
-        for my $perl (@perl_names) {
-            my $rel = $test->{compare}{$perl};
+        for my $perl (@perls) {
+            my $rel = $test->{compare}{$perl->{name}};
             if (defined $rel) {
                 my $color = $rel <  2 ? $GREEN  :
                             $rel < 10 ? $YELLOW :
@@ -371,4 +383,15 @@ sub summarize_results {
         }
         print "\n";
     }
+}
+
+sub center {
+    my ($string, $length, %opts) = @_;
+
+    my $bg_char = $opts{bg} || ' ';
+    my $output  = $bg_char x ($length / length $bg_char);
+    my $left    = int(($length - length $string) / 2);
+    substr($output, $left, length $string, $string);
+
+    return $output;
 }
