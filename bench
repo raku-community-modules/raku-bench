@@ -346,6 +346,7 @@ sub summarize_results {
     my $longest_test = max 8, map { length } @test_names;
 
     my @perls        = map { @{$COMPILERS{$_}} } @GROUPS;
+       @perls        = grep { $_->{enabled} } @perls;
     my @lang_names   = map { $_->{language} } @perls;
     my @comp_names   = map { $_->{compiler} } @perls;
     my @vm_names     = map { $_->{vm}       } @perls;
