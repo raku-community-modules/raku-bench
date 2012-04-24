@@ -21,11 +21,15 @@ Compilers tested so far:
     Perl 5
         perl5
         perlito5.pl
-        perlito5.js
+        perlito5.js/node
+        perlito5.js/d8
     Perl 6
-        perl6 (Rakudo)
+        rakudo
         niecza
+        perlito6.pl
+        perlito6.js/d8
     NQP
         nqp (github perl6/nqp)
+        rakudo
 
 Enjoy!
