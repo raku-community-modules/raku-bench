@@ -127,7 +127,7 @@ my %COMPILERS = (
                             e_run     => [qw( install/bin/nqp --vmlibs=math_ops -e )],
                            },
                            {
-                            name      => 'rakudo',
+                            name      => 'rakudo.nqp',
                             enabled   => 1,
                             language  => 'NQP',
                             compiler  => 'rakudo',
