@@ -104,7 +104,7 @@ my %COMPILERS = (
                            },
                            {
                             name      => 'p6.js_v8',
-                            enabled   => 0,
+                            enabled   => 1,
                             language  => 'Perl 6',
                             compiler  => 'perlito6',
                             vm        => 'd8',
@@ -167,6 +167,7 @@ my @TESTS_E = (
 my @TESTS_F = (
                {
                 name  => 'rc-forest-fire',
+                skip  => [qw( p6.js_v8 )],
                 perl5 => [qw( BENCH/perl5/rc-forest-fire 30 20 10 )],
                 perl6 => [qw( BENCH/perl6/rc-forest-fire 30 20 10 )],
                 nqp   => [qw( BENCH/nqp/rc-forest-fire 30 20 10 )],
@@ -194,6 +195,7 @@ sub run_tests_e {
         my $compared  = compare_times($best);
         push @times, {
                       name    => $name,
+                      conf    => $test,
                       raw     => $raw_times,
                       best    => $best,
                       compare => $compared,
@@ -214,6 +216,7 @@ sub run_tests_f {
         my $compared  = compare_times($best);
         push @times, {
                       name    => $name,
+                      conf    => $test,
                       raw     => $raw_times,
                       best    => $best,
                       compare => $compared,
@@ -243,6 +246,8 @@ sub time_group {
         next unless $perl->{enabled};
 
         my $name = $perl->{name};
+        next if grep { $_ eq $name } @{$opt->{skip} || []};
+
         my $dir  = $perl->{dir} || 'BENCH';
         my $comp = $perl->{"${test_type}_compile"} || [];
         my $run  = $perl->{"${test_type}_run"};
@@ -381,7 +386,8 @@ sub summarize_results {
 
         printf "%-${longest_test}s", '';
         for my $perl (@perls) {
-            my $rel = $test->{compare}{$perl->{name}};
+            my $name = $perl->{name};
+            my $rel  = $test->{compare}{$name};
             if (defined $rel) {
                 my $color = $rel <  2 ? $GREEN  :
                             $rel < 10 ? $YELLOW :
@@ -389,7 +395,9 @@ sub summarize_results {
                 printf "$spacer$color%${longest_perl}.3fx$CLEAR", $rel;
             }
             else {
-                printf "$spacer$RED%${longest_perl}s $CLEAR", 'FAIL';
+                my $is_skip = grep { $_ eq $name } @{$test->{conf}{skip} || []};
+                printf "$spacer$RED%${longest_perl}s $CLEAR",
+                       $is_skip ? 'SKIP' : 'FAIL';
             }
         }
         print "\n";

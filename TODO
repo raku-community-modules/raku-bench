@@ -1,6 +1,4 @@
 * Add Pugs to known compilers
-* Support skipping individual tests for particular compilers
-  + Display skips as SKIP instead of FAIL in summary table
 * Test relative speed of $i++ and $i := $i + 1 in NQP
   + If little slowdown, switch NQP tests to latter to support Rakudo
 * Correct rc-forest-fire variants to produce more similar output
