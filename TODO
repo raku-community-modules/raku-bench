@@ -1,7 +1,10 @@
-* Add Pugs to known compilers
-* Test relative speed of $i++ and $i := $i + 1 in NQP
-  + If little slowdown, switch NQP tests to latter to support Rakudo
-* Correct rc-forest-fire variants to produce more similar output
+* Features
+  * Notice when child processes have been killed by signal and DWIM better
+  * Add Pugs to known compilers
+* Improved tests
+  * Correct rc-forest-fire variants to produce more similar output
+  * Test relative speed of $i++ and $i := $i + 1 in NQP
+    + If little slowdown, switch NQP tests to latter to support Rakudo
 * More tests!
   + Specific ideas
     - Construct a triangular sequence in an array, then print it
