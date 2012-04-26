@@ -163,6 +163,12 @@ my @TESTS_E = (
                 perl6 => '1 for 1 .. 100000',
                 nqp   => 'my $i := 1; while $i <= 100000 { $i := $i + 1; 1 }',
                },
+               {
+                name  => 'empty_loop_1e6',
+                perl5 => '1 for 1 .. 1000000',
+                perl6 => '1 for 1 .. 1000000',
+                nqp   => 'my $i := 1; while $i <= 1000000 { $i := $i + 1; 1 }',
+               },
               );
 my @TESTS_F = (
                {
