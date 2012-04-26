@@ -133,3 +133,9 @@ sub main ($w, $h, $steps) {
         $f.step;
     }
 }
+
+# XXXX: Perl 6/NQP incompatibility: whether MAIN's args include the program name
+sub MAIN (*@args) {
+    @args.shift if @args == 4;
+    main(|@args);
+}
