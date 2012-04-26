@@ -1,8 +1,10 @@
 * Features
-  * Notice when child processes have been killed by signal and DWIM better
-  * Add Pugs to known compilers
+  + Notice when child processes have been killed by signal and DWIM better
+  + Add Pugs to known compilers
+  + Document data expected from each test, and analysis of results
+  + Output to multiple formats: ANSI text, plain text, JSON, HTML
 * Improved tests
-  * Correct rc-forest-fire variants to produce more similar output
+  + Correct rc-forest-fire variants to produce more similar output
 * More tests!
   + Specific ideas
     - Construct a triangular sequence in an array, then print it
