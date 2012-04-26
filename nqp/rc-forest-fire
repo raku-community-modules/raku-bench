@@ -15,11 +15,14 @@ class Forest {
     has $!p;
     has $!f;
 
-    method new($height, $width, $p=0.01, $f=0.001) {
-        my $c := self.bless(:$height, :$width, :$p, :$f);
-        $c.init-grid;
-        $c.init-neighbors;
-        return $c;
+    method init ($width, $height, $p=0.01, $f=0.001) {
+        $!height := $height;
+        $!width  := $width;
+        $!p      := $p;
+        $!f      := $f;
+
+        self.init-grid;
+        self.init-neighbors;
     }
 
     method init-grid () {
@@ -116,8 +119,9 @@ class Forest {
     }
 }
 
-sub MAIN ($name, $w, $h, $steps) {
-    my $f := Forest.new($h, $w);
+sub main ($w, $h, $steps) {
+    my $f := Forest.new;
+    $f.init($w, $h);
     print("\e[2J$CLEAR");      # ANSI clear screen
 
     my $i := 0;
