@@ -31,9 +31,9 @@ class Forest {
             my $j := 0;
             while $j < $!width {
                 @!grid[$i].push(pir::rand__NN(1.0) < .5 ?? $Tree !! $Empty);
-                $j++;
+                $j := $j + 1;
             }
-            $i++;
+            $i := $i + 1;
         }
     }
 
@@ -56,9 +56,9 @@ class Forest {
 
                     @!neighbors[$i][$j].push([$x, $y]);
                 }
-                $j++;
+                $j := $j + 1;
             }
-            $i++;
+            $i := $i + 1;
         }
     }
 
@@ -84,18 +84,18 @@ class Forest {
                 elsif $cell == $Burning {
                     @new[$i][$j] := $Empty
                 }
-                $j++;
+                $j := $j + 1;
             }
-            $i++;
+            $i := $i + 1;
         }
         $i := 0;
         while $i < $!height {
             my $j := 0;
             while $j < $!width {
                 @!grid[$i][$j] := @new[$i][$j];
-                $j++;
+                $j := $j + 1;
             }
-            $i++;
+            $i := $i + 1;
         }
     }
 
@@ -107,10 +107,10 @@ class Forest {
             my $j := 0;
             while $j < $!width {
                 $row := $row ~ @show[@!grid[$i][$j]];
-                $j++;
+                $j := $j + 1;
             }
             $rows := $rows ~ $row ~ "\n";
-            $i++;
+            $i := $i + 1;
         }
         $rows;
     }
@@ -123,7 +123,8 @@ sub MAIN ($name, $w, $h, $steps) {
     my $i := 0;
     until $i >= $steps {
         print("\e[H");   # ANSI home
-        say($i++);
+        say($i);
+        $i := $i + 1;
         say($f.Str);
         $f.step;
     }
