@@ -138,7 +138,8 @@ my %COMPILERS = (
                            },
                           ],
                 );
-my @TESTS_E = (
+my %TESTS = (
+             e => [
                {
                 name  => 'empty',
                 perl5 => '',
@@ -169,8 +170,8 @@ my @TESTS_E = (
                 perl6 => '1 for 1 .. 1000000',
                 nqp   => 'my $i := 1; while $i <= 1000000 { $i := $i + 1; 1 }',
                },
-              );
-my @TESTS_F = (
+                  ],
+             f => [
                {
                 name  => 'rc-forest-fire',
                 skip  => [qw( p6.js_v8 )],
@@ -178,46 +179,30 @@ my @TESTS_F = (
                 perl6 => [qw( BENCH/perl6/rc-forest-fire 30 20 10 )],
                 nqp   => [qw( BENCH/nqp/rc-forest-fire 30 20 10 )],
                },
-              );
-
+                  ],
+            );
 
 MAIN();
 
 sub MAIN {
-    my $times_e = run_tests_e();
-    my $times_f = run_tests_f();
+    my @results;
 
-    summarize_results([@$times_e, @$times_f]);
-}
-
-sub run_tests_e {
-    my @times;
-
-    for my $test (@TESTS_E) {
-        my $name  = $test->{name};
-        say "Testing $name ...";
-        my $raw_times = time_all_compilers(e => %$test);
-        my $best      = best_times($raw_times);
-        my $compared  = compare_times($best);
-        push @times, {
-                      name    => $name,
-                      conf    => $test,
-                      raw     => $raw_times,
-                      best    => $best,
-                      compare => $compared,
-                     };
+    for my $test_type (sort keys %TESTS) {
+        my $results = run_tests($test_type, $TESTS{$test_type});
+        push @results, @$results;
     }
 
-    return \@times;
+    summarize_results(\@results);
 }
 
-sub run_tests_f {
+sub run_tests {
+    my ($test_type, $tests) = @_;
     my @times;
 
-    for my $test (@TESTS_F) {
+    for my $test (@$tests) {
         my $name  = $test->{name};
         say "Testing $name ...";
-        my $raw_times = time_all_compilers(f => %$test);
+        my $raw_times = time_all_compilers($test_type => %$test);
         my $best      = best_times($raw_times);
         my $compared  = compare_times($best);
         push @times, {
