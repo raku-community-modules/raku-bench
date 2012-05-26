@@ -187,17 +187,18 @@ MAIN();
 sub MAIN {
     my @results;
 
-    for my $test_type (sort keys %TESTS) {
-        my $results = run_tests($test_type, $TESTS{$test_type});
-        push @results, @$results;
-    }
+    eval {
+        for my $test_type (sort keys %TESTS) {
+            run_tests($test_type, $TESTS{$test_type}, \@results);
+        }
+    };
+    warn "\n$@\n" if $@;
 
     summarize_results(\@results);
 }
 
 sub run_tests {
-    my ($test_type, $tests) = @_;
-    my @times;
+    my ($test_type, $tests, $results) = @_;
 
     for my $test (@$tests) {
         my $name  = $test->{name};
@@ -205,16 +206,14 @@ sub run_tests {
         my $raw_times = time_all_compilers($test_type => %$test);
         my $best      = best_times($raw_times);
         my $compared  = compare_times($best);
-        push @times, {
-                      name    => $name,
-                      conf    => $test,
-                      raw     => $raw_times,
-                      best    => $best,
-                      compare => $compared,
-                     };
+        push @$results, {
+                         name    => $name,
+                         conf    => $test,
+                         raw     => $raw_times,
+                         best    => $best,
+                         compare => $compared,
+                        };
     }
-
-    return \@times;
 }
 
 sub time_all_compilers {
@@ -274,6 +273,7 @@ sub time_command {
             my $start = time;
             my ($out, $err) = capture { $status = system @$compile };
             if ($status) {
+                die "Test's compile command terminated by SIGINT.\n" if ($status & 127) == 2;
                 warn "Failed to run compile command: @$compile\n"
                      . (length $err ? "Error:\n$err\n" : '');
                 return undef;
@@ -287,6 +287,7 @@ sub time_command {
             $status = system @run;
             push @times, time - $start;
             if ($status) {
+                die "Test's run command terminated by SIGINT.\n" if ($status & 127) == 2;
                 warn "Failed to run command: @run\n";
                 return undef;
             }
@@ -296,6 +297,7 @@ sub time_command {
             $status = system @$run;
             push @times, time - $start;
             if ($status) {
+                die "Test terminated by SIGINT.\n" if ($status & 127) == 2;
                 warn "Failed to run command: @$run\n";
                 return undef;
             }

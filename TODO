@@ -1,5 +1,4 @@
 * Features
-  + Notice when child processes have been killed by signal and DWIM better
   + Add Pugs to known compilers
   + Document data expected from each test, and analysis of results
   + Output to multiple formats: ANSI text, plain text, JSON, HTML
