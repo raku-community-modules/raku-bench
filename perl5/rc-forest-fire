@@ -4,7 +4,7 @@ my ($w, $h, $steps) = @ARGV;
 my $r = "\033[H";
 my $step = 0;
 
-my ($green, $red, $yellow, $norm) = ("\033[32m", "\033[31m", "\033[33m", "\033[0m");
+my ($green, $red, $norm) = ("\033[0;32m", "\033[1;31m", "\033[0m");
 
 my $tree_prob = .01;
 my $burn_prob = .001;
@@ -17,8 +17,7 @@ sub iterate {
         for my $j (0 .. $w - 1) {
                 $new[$i][$j] = $forest[$i][$j];
                 if ($forest[$i][$j] == 2) {
-                        $new[$i][$j] = 3;
-                        next;
+                        $new[$i][$j] = 0;
                 } elsif ($forest[$i][$j] == 1) {
                         if (rand() < $burn_prob) {
                                 $new[$i][$j] = 2;
@@ -39,8 +38,6 @@ sub iterate {
                         }
                 } elsif (rand() < $tree_prob) {
                         $new[$i][$j] = 1;
-                } elsif ($forest[$i][$j] == 3) {
-                        $new[$i][$j] = 0;
                 }
         }}
         @forest = @new;
@@ -51,10 +48,9 @@ sub forest {
         say $step;
         for (@forest) {
                 for (@$_) {
-                        when(0) { print " "; }
-                        when(1) { print "${green}*"}
-                        when(2) { print "${red}&" }
-                        when(3) { print "${yellow}&" }
+                        when(0) { print "  "; }
+                        when(1) { print "${green}木${norm}"}
+                        when(2) { print "${red}火${norm}" }
                 }
                 print "\033[E\033[1G";
         }
