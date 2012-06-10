@@ -5,6 +5,8 @@
 use 5.010;
 use strict;
 use warnings;
+use Pod::Usage;
+use Getopt::Long;
 use Time::HiRes     'time';
 use File::Temp      'tempfile';
 use List::Util      'min', 'max';
@@ -185,6 +187,12 @@ my %TESTS = (
 MAIN();
 
 sub MAIN {
+    my %opt;
+    GetOptions(\%opt, 'help|h|?!', 'man!')
+        or pod2usage(-verbose => 0);
+    pod2usage(-verbose => 1) if $opt{help};
+    pod2usage(-verbose => 2) if $opt{man};
+
     my @results;
 
     eval {
@@ -407,3 +415,52 @@ sub center {
 
     return $output;
 }
+
+
+__END__
+
+=head1 NAME
+
+bench -- Benchmark Perl-family compilers against each other
+
+
+=head1 SYNOPSIS
+
+    bench [--help|-h|-?] [--man]
+
+
+=head1 DESCRIPTION
+
+This program benchmarks a number of implementations of Perl-family languages
+against each other doing various simple tasks.  For a given task, each
+language uses a similar algorithm, but written in the appropriate colloquial
+style.  For a given language, all relevant implementations execute exactly
+the same program for each task, or are marked as unable to process that task.
+
+The simplest tasks are executed using each implementation's "evaluate a string
+from the command line" option, generally C<-e> or C<-E>.  More complex tasks
+are composed of matching scripts sorted into subdirectories by language,
+optionally with additional command line arguments.
+
+
+=head1 OPTIONS
+
+=over 4
+
+=item --help|-h|-?
+
+Get basic help for this program
+
+=item --man
+
+Display this program's entire manpage
+
+=back
+
+
+=head1 AUTHOR
+
+Geoffrey Broadwell
+
+
+=cut
