@@ -9,11 +9,31 @@
   + Find weak points in core design
     - Iterative v. recursive v. memoized recursive v. sequence method of finding solution
       . Fibonacci sequence
+  + Standard CS tools
+    - Basic data structures (core or implemented in terms of core)
+      . string:     bit vector?, C string, unicode string, rope
+      . hash-like:  hash, bag, set, enum, sparse array
+      . list-like:  linked list, doubly linked list
+      . array-like: tuple, stack, queue, deque, matrix, image
+      . multilevel: HoH, AoA, HoA, AoH, etc.
+      . tree-like:  binary tree, b-tree, trie
+      . spatial:    quadtree, octree, k-d tree
+      . graph-like: undirected graph, directed graph, DAG, weighted variants
+      . sorted:     priority queue, sorted hash, search tree
+    - Basic algorithms
+      . string:     length, concat, join, extract/set/insert substring, char-at,
+                    split/comb, reverse, change case, encode/decode, difference
+      . sorting:    numeric, string, user-defined sort key or sort comparator
+      . searching:  find: key, value, range, Nth item, substring, regex match
+      . spatial:    nearest N neighbors, AABB test, frustum test, path/surface
+      . tree:       insert, delete, visit all in pre-/in-/post-order
+      . graph:      minimum spanning tree, DFS, BFS, A* pathfinding
   + Specific ideas
     - Construct a triangular sequence in an array, then print it
     - Round trip a CSV file, correctly handling escapes and non-ASCII chars
     - Round trip XML through a friendly internal structure (XML::Simple-ish)
     - Extract info from a PNG file
     - Compute positions for a particle system after N steps
+    - Parse dotty file and generate graph data structure from it
   + Areas to cover
     - Something for big int
