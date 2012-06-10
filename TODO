@@ -5,8 +5,6 @@
   + Document data expected from each test, and analysis of results
   + Output to multiple formats: ANSI text, plain text, JSON, HTML
   + Option to show times/comparisons with and without startup time included
-* Improved tests
-  + Correct rc-forest-fire variants to produce more similar output
 * More tests!
   + Find weak points in core design
     - Iterative v. recursive v. memoized recursive v. sequence method of finding solution
