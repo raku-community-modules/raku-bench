@@ -184,7 +184,9 @@ my %TESTS = (
                   ],
             );
 my %FORMATTER = (
-                 text => \&summarize_results,
+                 text         => \&summarize_results_text,
+                 html         => \&summarize_results_html,
+                 html_snippet => \&summarize_results_html_snippet,
                 );
 
 
@@ -357,7 +359,7 @@ sub compare_times {
     return \%relative;
 }
 
-sub summarize_results {
+sub summarize_results_text {
     my ($times, $style) = @_;
 
     $style = -t STDOUT
@@ -439,6 +441,110 @@ sub center {
     return $output;
 }
 
+sub summarize_results_html {
+    my ($times, $style) = @_;
+
+    # Default to including style in full HTML pages
+    $style = 1
+        if $style eq 'auto';
+
+    print <<'HEADER';
+<html>
+<head>
+<title>Perl Bench Summary</title>
+</head>
+
+<body>
+HEADER
+
+    summarize_results_html_snippet($times, $style);
+
+    print <<'FOOTER';
+</body>
+</html>
+FOOTER
+}
+
+sub summarize_results_html_snippet {
+    my ($times, $style) = @_;
+    my $html = '';
+
+    # Default to no style info if just generating an HTML snippet
+    $style = 0
+        if $style eq 'auto';
+
+    if ($style) {
+        $html .= <<'CSS';
+<style type="text/css">
+bench_language { text-align: center; }
+bench_compiler { text-align: center; }
+bench_vm       { text-align: center; }
+bench_time     { text-align: right; font-family: monospace; }
+bench_no_time  { text-align: right; font-family: monospace; }
+bench_good     { text-align: right; font-family: monospace; color: green;  }
+bench_bad      { text-align: right; font-family: monospace; color: yellow; }
+bench_ugly     { text-align: right; font-family: monospace; color: red;    }
+bench_skip     { text-align: right; font-family: monospace; color: red;    }
+bench_fail     { text-align: right; font-family: monospace; color: red;    }
+</style>
+
+CSS
+    }
+
+    my @test_names   = map { $_->{name} } @$times;
+    my @perls        = map { @{$COMPILERS{$_}} } @GROUPS;
+       @perls        = grep { $_->{enabled} } @perls;
+    my @lang_names   = map { $_->{language} } @perls;
+    my @comp_names   = map { $_->{compiler} } @perls;
+    my @vm_names     = map { $_->{vm}       } @perls;
+
+    my %lang_count;
+       $lang_count{$_}++ for @lang_names;
+    my @langs = uniq @lang_names;
+
+    $html .= qq{<table class="bench_summary">\n};
+    $html .= "<tr><th></th>\n"     . join('' => map qq{    <th class="bench_language" colspan="$lang_count{$_}">$_</th>\n} => @langs) . "</tr>\n";
+    $html .= "<tr><th></th>\n"     . join('' => map qq{    <th class="bench_compiler">$_</th>\n} => @comp_names) . "</tr>\n";
+    $html .= "<tr><th>TEST</th>\n" . join('' => map qq{    <th class="bench_vm">$_</th>\n} => @vm_names) . "</tr>\n";
+
+    for my $test (@$times) {
+        $html .= "<tr><td>$test->{name}</td>\n";
+        for my $perl (@perls) {
+            my $name = $perl->{name};
+            my $best = $test->{best}{$name};
+            if (defined $best) {
+                $html .= sprintf qq{    <td class="bench_time">%.3fs</td>\n}, $test->{best}{$name};
+            }
+            else {
+                $html .= qq{    <td class="bench_no_time">--</td>\n};
+            }
+        }
+        $html .= "</tr>\n";
+
+        $html .= "<tr><td></td>\n";
+        for my $perl (@perls) {
+            my $name = $perl->{name};
+            my $rel  = $test->{compare}{$name};
+            if (defined $rel) {
+                my $class = $rel <  2 ? 'bench_good' :
+                            $rel < 10 ? 'bench_bad'  :
+                                        'bench_ugly' ;
+                $html .= sprintf qq{    <td class="$class">%.3fx</td>\n}, $rel;
+            }
+            else {
+                my $is_skip = grep { $_ eq $name } @{$test->{conf}{skip} || []};
+                my $class   = $is_skip ? 'bench_skip' : 'bench_fail';
+                my $message = $is_skip ? 'SKIP'       : 'FAIL';
+                $html .= qq{    <td class="$class">$message</td>\n};
+            }
+        }
+        $html .= "</tr>\n";
+    }
+    $html .= "</table>\n";
+
+    print $html;
+}
+
 
 __END__
 
@@ -449,7 +555,7 @@ bench -- Benchmark Perl-family compilers against each other
 
 =head1 SYNOPSIS
 
-    bench [--help|-h|-?] [--man] [--format=text] [--style=0|1|auto]
+    bench [--help|-h|-?] [--man] [--format=text|html|html_snippet] [--style=0|1|auto]
 
 
 =head1 DESCRIPTION
@@ -478,10 +584,12 @@ Get basic help for this program
 
 Display this program's entire manpage
 
-=item --format=text
+=item --format=text|html|html_snippet
 
-Format the summary output in a particular format.  The default is 'text',
-which outputs a text-rendered summary table, with ANSI coloring.
+Format the summary output in a particular format.  The default is C<text>,
+which outputs a text-rendered summary table with ANSI coloring.  HTML output
+is also available, either in full document form (C<html>), or just a snippet
+containing the summary table (C<html_snippet>).
 
 =item --style=0|1|auto
 
@@ -489,7 +597,10 @@ Select whether style settings are included in the output.  C<0> turns off
 style output, C<1> turns it on, and C<auto> (the default) tries to DWIM.
 For text output, this option selects whether ANSI color codes are used to
 highlight entries in the summary table; C<auto> turns on ANSI color whenever
-the output is a TTY.
+the output is a TTY.  For HTML output, this determines whether a CSS style
+block is added to the HTML (element C<class> attributes are always output).
+C<auto> defaults to adding CSS to full HTML documents (format C<html>), and
+I<not> adding it to HTML snippets (format C<html_snippet>).
 
 =back
 
