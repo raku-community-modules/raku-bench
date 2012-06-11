@@ -387,25 +387,26 @@ sub summarize_results {
     my @langs = uniq @lang_names;
     my @lang_titles = map { center(" $_ ", $lang_count{$_} * ($longest_perl + $spacer_length + 1) - $spacer_length, bg => '-') } @langs;
 
-    print  "$CLEAR\n", join($spacer => ' ' x $longest_test, @lang_titles), "\n";
-    printf "$format\n", '',     @comp_names;
-    printf "$format\n", 'TEST', @vm_names;
+    my $output = '';
+    $output .= "$CLEAR\n" . join($spacer => ' ' x $longest_test, @lang_titles) . "\n";
+    $output .= sprintf "$format\n", '',     @comp_names;
+    $output .= sprintf "$format\n", 'TEST', @vm_names;
 
     for my $test (@$times) {
-        printf "%-${longest_test}s", $test->{name};
+        $output .= sprintf "%-${longest_test}s", $test->{name};
         for my $perl (@perls) {
             my $name = $perl->{name};
             my $best = $test->{best}{$name};
             if (defined $best) {
-                printf "$spacer%${longest_perl}.3fs", $test->{best}{$name};
+                $output .= sprintf "$spacer%${longest_perl}.3fs", $test->{best}{$name};
             }
             else {
-                printf "$spacer%${longest_perl}s ", '-- ';
+                $output .= sprintf "$spacer%${longest_perl}s ", '-- ';
             }
         }
-        print "\n";
+        $output .= "\n";
 
-        printf "%-${longest_test}s", '';
+        $output .= sprintf "%-${longest_test}s", '';
         for my $perl (@perls) {
             my $name = $perl->{name};
             my $rel  = $test->{compare}{$name};
@@ -413,16 +414,18 @@ sub summarize_results {
                 my $color = $rel <  2 ? $GREEN  :
                             $rel < 10 ? $YELLOW :
                                         $RED    ;
-                printf "$spacer$color%${longest_perl}.3fx$CLEAR", $rel;
+                $output .= sprintf "$spacer$color%${longest_perl}.3fx$CLEAR", $rel;
             }
             else {
                 my $is_skip = grep { $_ eq $name } @{$test->{conf}{skip} || []};
-                printf "$spacer$RED%${longest_perl}s $CLEAR",
+                $output .= sprintf "$spacer$RED%${longest_perl}s $CLEAR",
                        $is_skip ? 'SKIP' : 'FAIL';
             }
         }
-        print "\n";
+        $output .= "\n";
     }
+
+    print $output;
 }
 
 sub center {
