@@ -183,15 +183,23 @@ my %TESTS = (
                    },
                   ],
             );
+my %FORMATTER = (
+                 text => \&summarize_results,
+                );
+
 
 MAIN();
 
 sub MAIN {
     my %opt;
-    GetOptions(\%opt, 'help|h|?!', 'man!')
+    GetOptions(\%opt, 'help|h|?!', 'man!', 'format=s')
         or pod2usage(-verbose => 0);
     pod2usage(-verbose => 1) if $opt{help};
     pod2usage(-verbose => 2) if $opt{man};
+
+    $opt{format} ||= 'text';
+    my $formatter = $FORMATTER{$opt{format}}
+        or pod2usage(-msg => "Unknown output format '$opt{format}'");
 
     my @results;
 
@@ -202,7 +210,7 @@ sub MAIN {
     };
     warn "\n$@\n" if $@;
 
-    summarize_results(\@results);
+    $formatter->(\@results);
 }
 
 sub run_tests {
@@ -426,7 +434,7 @@ bench -- Benchmark Perl-family compilers against each other
 
 =head1 SYNOPSIS
 
-    bench [--help|-h|-?] [--man]
+    bench [--help|-h|-?] [--man] [--format=text]
 
 
 =head1 DESCRIPTION
@@ -454,6 +462,11 @@ Get basic help for this program
 =item --man
 
 Display this program's entire manpage
+
+=item --format=text
+
+Format the summary output in a particular format.  The default is 'text',
+which outputs a text-rendered summary table, with ANSI coloring.
 
 =back
 
