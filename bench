@@ -191,16 +191,24 @@ my %FORMATTER = (
 MAIN();
 
 sub MAIN {
+    # Process options
     my %opt;
-    GetOptions(\%opt, 'help|h|?!', 'man!', 'format=s')
+    GetOptions(\%opt, 'help|h|?!', 'man!', 'format=s', 'style=s')
         or pod2usage(-verbose => 0);
     pod2usage(-verbose => 1) if $opt{help};
     pod2usage(-verbose => 2) if $opt{man};
 
-    $opt{format} ||= 'text';
-    my $formatter = $FORMATTER{$opt{format}}
+    $opt{format} //= 'text';
+    $opt{format}   = lc $opt{format};
+    my $formatter  = $FORMATTER{$opt{format}}
         or pod2usage(-msg => "Unknown output format '$opt{format}'");
 
+    $opt{style}  //= 'auto';
+    $opt{style}    = lc $opt{style};
+    (grep {$_ eq $opt{style}} 0, 1, 'auto')
+        or pod2usage(-msg => "Unknown output style setting '$opt{style}'");
+
+    # Run tests
     my @results;
 
     eval {
@@ -210,7 +218,8 @@ sub MAIN {
     };
     warn "\n$@\n" if $@;
 
-    $formatter->(\@results);
+    # Output results
+    $formatter->(\@results, $opt{style});
 }
 
 sub run_tests {
@@ -349,12 +358,15 @@ sub compare_times {
 }
 
 sub summarize_results {
-    my $times = shift;
+    my ($times, $style) = @_;
 
-    my $RED    = "\e[1;31m";
-    my $GREEN  = "\e[32m";
-    my $YELLOW = "\e[1;33m";
-    my $CLEAR  = "\e[0m";
+    $style = -t STDOUT
+        if $style eq 'auto';
+
+    my $RED    = $style ? "\e[1;31m" : '';
+    my $GREEN  = $style ? "\e[32m"   : '';
+    my $YELLOW = $style ? "\e[1;33m" : '';
+    my $CLEAR  = $style ? "\e[0m"    : '';
 
     my @test_names   = map { $_->{name} } @$times;
     my $longest_test = max 8, map { length } @test_names;
@@ -434,7 +446,7 @@ bench -- Benchmark Perl-family compilers against each other
 
 =head1 SYNOPSIS
 
-    bench [--help|-h|-?] [--man] [--format=text]
+    bench [--help|-h|-?] [--man] [--format=text] [--style=0|1|auto]
 
 
 =head1 DESCRIPTION
@@ -467,6 +479,14 @@ Display this program's entire manpage
 
 Format the summary output in a particular format.  The default is 'text',
 which outputs a text-rendered summary table, with ANSI coloring.
+
+=item --style=0|1|auto
+
+Select whether style settings are included in the output.  C<0> turns off
+style output, C<1> turns it on, and C<auto> (the default) tries to DWIM.
+For text output, this option selects whether ANSI color codes are used to
+highlight entries in the summary table; C<auto> turns on ANSI color whenever
+the output is a TTY.
 
 =back
 
