@@ -5,8 +5,6 @@
   + Add Pugs to known compilers
   + Document data expected from each test, and analysis of results
   + Option to show times/comparisons with and without startup time included
-  + Output summary to arbitrary file
-    - Guess format based on extension of outfile
   + Compare against results of a previous run
   + Output version of each compiler in summary
 * More tests!

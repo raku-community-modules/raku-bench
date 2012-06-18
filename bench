@@ -12,6 +12,8 @@ use File::Temp      'tempfile';
 use List::Util      'min', 'max';
 use List::MoreUtils 'uniq';
 use Capture::Tiny   'capture';
+use File::Basename;
+use IO::File;
 use FindBin;
 use JSON;
 use Cwd;
@@ -197,20 +199,28 @@ MAIN();
 sub MAIN {
     # Process options
     my %opt;
-    GetOptions(\%opt, 'help|h|?!', 'man!', 'format=s', 'style=s')
+    GetOptions(\%opt, 'help|h|?!', 'man!', 'format=s', 'style=s', 'outfile=s')
         or pod2usage(-verbose => 0);
     pod2usage(-verbose => 1) if $opt{help};
     pod2usage(-verbose => 2) if $opt{man};
 
-    $opt{format} //= 'text';
-    $opt{format}   = lc $opt{format};
-    my $formatter  = $FORMATTER{$opt{format}}
+    $opt{outfile} //= '-';
+    my $suffix      = (fileparse($opt{outfile}, qr/\.[^.]+$/))[2] || '.';
+    my $ext         = lc substr $suffix, 1;
+
+    $opt{format}  //= exists $FORMATTER{$ext} ? $ext : 'text';
+    $opt{format}    = lc $opt{format};
+    my $formatter   = $FORMATTER{$opt{format}}
         or pod2usage(-msg => "Unknown output format '$opt{format}'");
 
-    $opt{style}  //= 'auto';
-    $opt{style}    = lc $opt{style};
+    $opt{style}   //= 'auto';
+    $opt{style}     = lc $opt{style};
     (grep {$_ eq $opt{style}} 0, 1, 'auto')
         or pod2usage(-msg => "Unknown output style setting '$opt{style}'");
+
+    # Open outfile
+    my $out_fh = $opt{outfile} eq '-' ? \*STDOUT : IO::File->new($opt{outfile}, '>')
+        or die "Could not open outfile '$opt{outfile}': $!";
 
     # Run tests
     my @results;
@@ -223,7 +233,7 @@ sub MAIN {
     warn "\n$@\n" if $@;
 
     # Output results
-    $formatter->(\@results, $opt{style});
+    $formatter->(\@results, $opt{style}, $out_fh);
 }
 
 sub run_tests {
@@ -362,7 +372,7 @@ sub compare_times {
 }
 
 sub summarize_results_json {
-    my ($times, $style) = @_;
+    my ($times, $style, $out_fh) = @_;
 
     $style = 1 if $style eq 'auto';
 
@@ -371,13 +381,13 @@ sub summarize_results_json {
 
     my $json = $encoder->encode($times);
 
-    print $json;
+    print $out_fh $json;
 }
 
 sub summarize_results_text {
-    my ($times, $style) = @_;
+    my ($times, $style, $out_fh) = @_;
 
-    $style = -t STDOUT
+    $style = -t $out_fh
         if $style eq 'auto';
 
     my $RED    = $style ? "\e[1;31m" : '';
@@ -442,7 +452,7 @@ sub summarize_results_text {
         $output .= "\n";
     }
 
-    print $output;
+    print $out_fh $output;
 }
 
 sub center {
@@ -457,13 +467,13 @@ sub center {
 }
 
 sub summarize_results_html {
-    my ($times, $style) = @_;
+    my ($times, $style, $out_fh) = @_;
 
     # Default to including style in full HTML pages
     $style = 1
         if $style eq 'auto';
 
-    print <<'HEADER';
+    print $out_fh <<'HEADER';
 <html>
 <head>
 <title>Perl Bench Summary</title>
@@ -472,16 +482,16 @@ sub summarize_results_html {
 <body>
 HEADER
 
-    summarize_results_html_snippet($times, $style);
+    summarize_results_html_snippet($times, $style, $out_fh);
 
-    print <<'FOOTER';
+    print $out_fh <<'FOOTER';
 </body>
 </html>
 FOOTER
 }
 
 sub summarize_results_html_snippet {
-    my ($times, $style) = @_;
+    my ($times, $style, $out_fh) = @_;
     my $html = '';
 
     # Default to no style info if just generating an HTML snippet
@@ -557,7 +567,7 @@ CSS
     }
     $html .= "</table>\n";
 
-    print $html;
+    print $out_fh $html;
 }
 
 
@@ -601,11 +611,13 @@ Display this program's entire manpage
 
 =item --format=text|json|html|html_snippet
 
-Format the summary output in a particular format.  The default is C<text>,
-which outputs a text-rendered summary table with ANSI coloring.  HTML output
-is also available, either in full document form (C<html>), or just a snippet
-containing the summary table (C<html_snippet>).  To save the results in
-computer-friendly form, use the C<json> format.
+Format the summary output in a particular format.  If the C<--outfile> option
+is set, then the default output format is based on the lowercased extension
+of the output filename.  Otherwise the default is C<text>, which outputs a
+text-rendered summary table with ANSI coloring.  HTML output is also available,
+either in full document form (C<html>), or just a snippet containing the
+summary table (C<html_snippet>).  To save the results in computer-friendly
+form, use the C<json> format.
 
 =item --style=0|1|auto
 
@@ -619,6 +631,11 @@ C<auto> defaults to adding CSS to full HTML documents (format C<html>), and
 I<not> adding it to HTML snippets (format C<html_snippet>).  If style is
 on (or auto) for JSON output (format C<json>), the result will be
 pretty-printed; otherwise it will be output in compact form.
+
+=item --outfile=path/file|-
+
+Write the summary report to a particular path and file, or to STDOUT (the
+default) if C<--outfile> is set to C<-> (a single hyphen).
 
 =back
 
