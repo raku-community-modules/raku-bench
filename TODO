@@ -1,9 +1,14 @@
 * Features
   + Documentation
+    - WIP: manpage/usage
   + Options to list known languages, implementations, tests, etc.
   + Add Pugs to known compilers
   + Document data expected from each test, and analysis of results
   + Option to show times/comparisons with and without startup time included
+  + Output summary to arbitrary file
+    - Guess format based on extension of outfile
+  + Compare against results of a previous run
+  + Output version of each compiler in summary
 * More tests!
   + Find weak points in core design
     - Iterative v. recursive v. memoized recursive v. sequence method of finding solution
