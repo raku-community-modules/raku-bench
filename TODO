@@ -3,7 +3,6 @@
   + Options to list known languages, implementations, tests, etc.
   + Add Pugs to known compilers
   + Document data expected from each test, and analysis of results
-  + Output to multiple formats: ANSI text, plain text, JSON, HTML
   + Option to show times/comparisons with and without startup time included
 * More tests!
   + Find weak points in core design

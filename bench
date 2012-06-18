@@ -362,9 +362,14 @@ sub compare_times {
 }
 
 sub summarize_results_json {
-    my $times = shift;
+    my ($times, $style) = @_;
 
-    my $json = JSON->new->utf8->pretty->encode($times);
+    $style = 1 if $style eq 'auto';
+
+    my $encoder = JSON->new->utf8;
+       $encoder->pretty if $style;
+
+    my $json = $encoder->encode($times);
 
     print $json;
 }
@@ -611,8 +616,9 @@ highlight entries in the summary table; C<auto> turns on ANSI color whenever
 the output is a TTY.  For HTML output, this determines whether a CSS style
 block is added to the HTML (element C<class> attributes are always output).
 C<auto> defaults to adding CSS to full HTML documents (format C<html>), and
-I<not> adding it to HTML snippets (format C<html_snippet>).  Style settings
-are ignored for JSON output (format <json>).
+I<not> adding it to HTML snippets (format C<html_snippet>).  If style is
+on (or auto) for JSON output (format C<json>), the result will be
+pretty-printed; otherwise it will be output in compact form.
 
 =back
 
