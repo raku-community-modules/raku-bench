@@ -580,7 +580,8 @@ bench -- Benchmark Perl-family compilers against each other
 
 =head1 SYNOPSIS
 
-    bench [--help|-h|-?] [--man] [--format=text|json|html|html_snippet] [--style=0|1|auto]
+    bench [--help|-h|-?] [--man] [--format=text|json|html|html_snippet]
+          [--style=0|1|auto] [--outfile=path/to/file.ext]
 
 
 =head1 DESCRIPTION
@@ -632,10 +633,12 @@ I<not> adding it to HTML snippets (format C<html_snippet>).  If style is
 on (or auto) for JSON output (format C<json>), the result will be
 pretty-printed; otherwise it will be output in compact form.
 
-=item --outfile=path/file|-
+=item --outfile=path/to/file.ext|-
 
 Write the summary report to a particular path and file, or to STDOUT (the
-default) if C<--outfile> is set to C<-> (a single hyphen).
+default) if C<--outfile> is set to C<-> (a single hyphen).  If this option
+is set and C<--format> is not, then the summary format defaults to the
+lowercased extension (F<ext> in F<path/to/file.ext>) of the C<--outfile>.
 
 =back
 
