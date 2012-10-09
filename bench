@@ -528,16 +528,16 @@ sub summarize_results_html_snippet {
     if ($style) {
         $html .= <<'CSS';
 <style type="text/css">
-bench_language { text-align: center; }
-bench_compiler { text-align: center; }
-bench_vm       { text-align: center; }
-bench_time     { text-align: right; font-family: monospace; }
-bench_no_time  { text-align: right; font-family: monospace; }
-bench_good     { text-align: right; font-family: monospace; color: green;  }
-bench_bad      { text-align: right; font-family: monospace; color: yellow; }
-bench_ugly     { text-align: right; font-family: monospace; color: red;    }
-bench_skip     { text-align: right; font-family: monospace; color: red;    }
-bench_fail     { text-align: right; font-family: monospace; color: red;    }
+.bench_language { text-align: center; }
+.bench_compiler { text-align: center; }
+.bench_vm       { text-align: center; }
+.bench_time     { text-align: right; font-family: monospace; }
+.bench_no_time  { text-align: right; font-family: monospace; }
+.bench_good     { text-align: right; font-family: monospace; color: green;  }
+.bench_bad      { text-align: right; font-family: monospace; color: yellow; }
+.bench_ugly     { text-align: right; font-family: monospace; color: red;    }
+.bench_skip     { text-align: right; font-family: monospace; color: red;    }
+.bench_fail     { text-align: right; font-family: monospace; color: red;    }
 </style>
 
 CSS
