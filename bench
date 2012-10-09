@@ -222,6 +222,22 @@ sub MAIN {
     my $out_fh = $opt{outfile} eq '-' ? \*STDOUT : IO::File->new($opt{outfile}, '>')
         or die "Could not open outfile '$opt{outfile}': $!";
 
+    # Record general test configuration and info
+    my %config = (
+                  default   => \%DEFAULT,
+                  groups    => \@GROUPS,
+                  vm        => \%VM,
+                  compilers => \%COMPILERS,
+                  tests     => \%TESTS,
+                 );
+
+    my $bench_rev = `git describe --always --dirty`;
+    chomp $bench_rev;
+    my %run       = (
+                     start_time => time,
+                     bench_rev  => $bench_rev,
+                    );
+
     # Run tests
     my @results;
 
@@ -232,8 +248,10 @@ sub MAIN {
     };
     warn "\n$@\n" if $@;
 
+    $run{end_time} = time;
+
     # Output results
-    $formatter->(\@results, $opt{style}, $out_fh);
+    $formatter->(\%config, \%run, \@results, $opt{style}, $out_fh);
 }
 
 sub run_tests {
@@ -372,20 +390,26 @@ sub compare_times {
 }
 
 sub summarize_results_json {
-    my ($times, $style, $out_fh) = @_;
+    my ($config, $run, $times, $style, $out_fh) = @_;
 
     $style = 1 if $style eq 'auto';
 
     my $encoder = JSON->new->utf8;
        $encoder->pretty if $style;
 
-    my $json = $encoder->encode($times);
+    my %info = (
+                config => $config,
+                run    => $run,
+                times  => $times,
+               );
+
+    my $json = $encoder->encode(\%info);
 
     print $out_fh $json;
 }
 
 sub summarize_results_text {
-    my ($times, $style, $out_fh) = @_;
+    my ($config, $run, $times, $style, $out_fh) = @_;
 
     $style = -t $out_fh
         if $style eq 'auto';
@@ -414,7 +438,9 @@ sub summarize_results_text {
     my @langs = uniq @lang_names;
     my @lang_titles = map { center(" $_ ", $lang_count{$_} * ($longest_perl + $spacer_length + 1) - $spacer_length, bg => '-') } @langs;
 
-    my $output = '';
+    my $start  = friendly_time($run->{start_time});
+    my $output = "perl6-bench rev $run->{bench_rev} run at $start\n\n";
+
     $output .= "$CLEAR\n" . join($spacer => ' ' x $longest_test, @lang_titles) . "\n";
     $output .= sprintf "$format\n", '',     @comp_names;
     $output .= sprintf "$format\n", 'TEST', @vm_names;
@@ -467,7 +493,7 @@ sub center {
 }
 
 sub summarize_results_html {
-    my ($times, $style, $out_fh) = @_;
+    my ($config, $run, $times, $style, $out_fh) = @_;
 
     # Default to including style in full HTML pages
     $style = 1
@@ -482,7 +508,7 @@ sub summarize_results_html {
 <body>
 HEADER
 
-    summarize_results_html_snippet($times, $style, $out_fh);
+    summarize_results_html_snippet($config, $run, $times, $style, $out_fh);
 
     print $out_fh <<'FOOTER';
 </body>
@@ -491,7 +517,7 @@ FOOTER
 }
 
 sub summarize_results_html_snippet {
-    my ($times, $style, $out_fh) = @_;
+    my ($config, $run, $times, $style, $out_fh) = @_;
     my $html = '';
 
     # Default to no style info if just generating an HTML snippet
@@ -528,6 +554,7 @@ CSS
     my @langs = uniq @lang_names;
 
     $html .= qq{<table class="bench_summary">\n};
+    $html .= qq{<caption>perl6-bench rev $run->{bench_rev} run at } . friendly_time($run->{start_time}) . qq{</caption>\n};
     $html .= "<tr><th></th>\n"     . join('' => map qq{    <th class="bench_language" colspan="$lang_count{$_}">$_</th>\n} => @langs) . "</tr>\n";
     $html .= "<tr><th></th>\n"     . join('' => map qq{    <th class="bench_compiler">$_</th>\n} => @comp_names) . "</tr>\n";
     $html .= "<tr><th>TEST</th>\n" . join('' => map qq{    <th class="bench_vm">$_</th>\n} => @vm_names) . "</tr>\n";
@@ -568,6 +595,14 @@ CSS
     $html .= "</table>\n";
 
     print $out_fh $html;
+}
+
+sub friendly_time {
+    my $time     = shift;
+    my $dt       = DateTime->from_epoch(epoch => $time);
+    my $friendly = $dt->ymd . ' ' . $dt->hms;
+
+    return $friendly;
 }
 
 
