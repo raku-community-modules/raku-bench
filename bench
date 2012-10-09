@@ -12,6 +12,7 @@ use File::Temp      'tempfile';
 use List::Util      'min', 'max';
 use List::MoreUtils 'uniq';
 use Capture::Tiny   'capture';
+use DateTime;
 use File::Basename;
 use IO::File;
 use FindBin;
@@ -439,9 +440,9 @@ sub summarize_results_text {
     my @lang_titles = map { center(" $_ ", $lang_count{$_} * ($longest_perl + $spacer_length + 1) - $spacer_length, bg => '-') } @langs;
 
     my $start  = friendly_time($run->{start_time});
-    my $output = "perl6-bench rev $run->{bench_rev} run at $start\n\n";
+    my $output = "$CLEAR\n==> perl6-bench rev $run->{bench_rev} run at $start\n\n";
 
-    $output .= "$CLEAR\n" . join($spacer => ' ' x $longest_test, @lang_titles) . "\n";
+    $output .= join($spacer => ' ' x $longest_test, @lang_titles) . "\n";
     $output .= sprintf "$format\n", '',     @comp_names;
     $output .= sprintf "$format\n", 'TEST', @vm_names;
 
