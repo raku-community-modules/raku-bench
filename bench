@@ -528,16 +528,24 @@ sub summarize_results_html_snippet {
     if ($style) {
         $html .= <<'CSS';
 <style type="text/css">
-.bench_language { text-align: center; }
-.bench_compiler { text-align: center; }
-.bench_vm       { text-align: center; }
-.bench_time     { text-align: right; font-family: monospace; }
-.bench_no_time  { text-align: right; font-family: monospace; }
-.bench_good     { text-align: right; font-family: monospace; color: green;  }
-.bench_bad      { text-align: right; font-family: monospace; color: yellow; }
-.bench_ugly     { text-align: right; font-family: monospace; color: red;    }
-.bench_skip     { text-align: right; font-family: monospace; color: red;    }
-.bench_fail     { text-align: right; font-family: monospace; color: red;    }
+.bench_summary         { font-family: sans-serif; }
+.bench_summary caption { font-style: italic;      }
+.bench_summary td      { padding-left: .4em; padding-right: .4em; }
+.bench_summary th      { padding-left: .4em; padding-right: .4em; }
+.bench_rev             { font-family: monospace;  }
+.bench_start_time      { font-family: monospace;  }
+.bench_language        { text-align: center; border-bottom: 1px solid #999; border-left: .4em solid #fff; border-right: .4em solid #fff; }
+.bench_compiler        { text-align: center; padding-top: .1em; }
+.bench_vm              { text-align: center; padding-top: .1em; }
+.bench_time_row    td  { padding-top: .2em; padding-bottom: 0; }
+.bench_compare_row td  { padding-top: 0; padding-bottom: .2em; }
+.bench_time            { text-align: right; font-family: monospace; }
+.bench_no_time         { text-align: right; font-family: monospace; }
+.bench_good            { text-align: right; font-family: monospace; color: green; }
+.bench_bad             { text-align: right; font-family: monospace; color: #dd0;  }
+.bench_ugly            { text-align: right; font-family: monospace; color: red;   }
+.bench_skip            { text-align: right; font-family: monospace; color: red;   }
+.bench_fail            { text-align: right; font-family: monospace; color: red;   }
 </style>
 
 CSS
@@ -554,14 +562,14 @@ CSS
        $lang_count{$_}++ for @lang_names;
     my @langs = uniq @lang_names;
 
-    $html .= qq{<table class="bench_summary">\n};
-    $html .= qq{<caption>perl6-bench rev $run->{bench_rev} run at } . friendly_time($run->{start_time}) . qq{</caption>\n};
+    $html .= qq{<table class="bench_summary" cellspacing="0" cellpadding="0">\n};
+    $html .= qq{<caption>perl6-bench rev <span class="bench_rev">$run->{bench_rev}</span> run at <span class="bench_start_time">} . friendly_time($run->{start_time}) . qq{</span></caption>\n};
     $html .= "<tr><th></th>\n"     . join('' => map qq{    <th class="bench_language" colspan="$lang_count{$_}">$_</th>\n} => @langs) . "</tr>\n";
     $html .= "<tr><th></th>\n"     . join('' => map qq{    <th class="bench_compiler">$_</th>\n} => @comp_names) . "</tr>\n";
     $html .= "<tr><th>TEST</th>\n" . join('' => map qq{    <th class="bench_vm">$_</th>\n} => @vm_names) . "</tr>\n";
 
     for my $test (@$times) {
-        $html .= "<tr><td>$test->{name}</td>\n";
+        $html .= qq{<tr class="bench_time_row"><td>$test->{name}</td>\n};
         for my $perl (@perls) {
             my $name = $perl->{name};
             my $best = $test->{best}{$name};
@@ -574,7 +582,7 @@ CSS
         }
         $html .= "</tr>\n";
 
-        $html .= "<tr><td></td>\n";
+        $html .= qq{<tr class="bench_compare_row"><td></td>\n};
         for my $perl (@perls) {
             my $name = $perl->{name};
             my $rel  = $test->{compare}{$name};
