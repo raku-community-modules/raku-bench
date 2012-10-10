@@ -1,0 +1,24 @@
+* General
+  + Startup times
+    - For simple tests, many implementations suffer from slow startup times
+    - Niecza on mono suffers the most, with a very slow startup
+    - Rakudo on Parrot and Perlito* on JS follow with medium-high startup times
+    - Perlito* on perl5 is a bit faster with medium-low startup times
+    - NQP on Parrot has relatively quick startup times
+    - perl5 (native) has extremely fast startup times
+  + Perl 6 v. NQP idioms
+    - Many idioms have to be changed to translate Perl 6 code to NQP code
+    - Because Rakudo can (mostly) compile both languages and Niecza can compile
+      some NQP code, this can be used to separate differences due to the
+      compiler versus differences due to the language idioms
+* Individual tests
+  + empty_loop_*
+    - Rakudo prefers the Perl 6 range iteration idiom to the NQP while loop
+    - Niecza *greatly* prefers the NQP while loop to the Perl 6 range iteration
+      idiom; it is unusually slow handling the Perl 6 idiom because:
+      - "niecza's Range.iterator has seen much less love"
+        http://irclog.perlgeek.de/perl6/2012-10-10#i_6050334
+  + rc-forest-fire
+    - Perlito6/* cannot yet compile this test
+    - Niecza can compile but not run the NQP version of this test since it does
+      not (for obvious reasons) recognize 'pir::' syntax for raw Parrot opcodes
