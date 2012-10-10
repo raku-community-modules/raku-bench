@@ -142,6 +142,16 @@ my %COMPILERS = (
                             f_run     => [qw( install/bin/perl6    )],
                             e_run     => [qw( install/bin/perl6 -e )],
                            },
+                           {
+                            name      => 'niecza.nqp',
+                            enabled   => 1,
+                            language  => 'NQP',
+                            compiler  => 'niecza',
+                            vm        => 'mono',
+                            dir       => 'BENCH/../niecza',
+                            f_run     => [$VM{mono}, qw( run/Niecza.exe    )],
+                            e_run     => [$VM{mono}, qw( run/Niecza.exe -e )],
+                           },
                           ],
                 );
 my %TESTS = (
@@ -180,7 +190,7 @@ my %TESTS = (
              f => [
                    {
                     name  => 'rc-forest-fire',
-                    skip  => [qw( p6.pl p6.js_v8 )],
+                    skip  => [qw( niecza.nqp p6.pl p6.js_v8 )],
                     perl5 => [qw( BENCH/perl5/rc-forest-fire 30 20 10 )],
                     perl6 => [qw( BENCH/perl6/rc-forest-fire 30 20 10 )],
                     nqp   => [qw( BENCH/nqp/rc-forest-fire 30 20 10 )],
