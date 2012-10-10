@@ -11,6 +11,15 @@
   + Find weak points in core design
     - Iterative v. recursive v. memoized recursive v. sequence method of finding solution
       . Fibonacci sequence
+    - Parsing variants
+      . Deep v. flat parse trees
+      . Capturing v. non-capturing subrules
+      . | v. || v. <[ ]>
+      . ASCII v. Latin-1 v. UTF-8 Latin characters v. UTF-8 non-Latin v. other encodings
+    - Standard types
+      . Native v. object
+      . Small numbers v. big numbers with Int or FatRat
+      . Packed v. standard arrays
   + Standard CS tools
     - Basic data structures (core or implemented in terms of core)
       . string:     bit vector?, C string, unicode string, rope
