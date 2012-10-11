@@ -4,7 +4,6 @@
     - WIP: data expected from each test, and analysis of results
   + Options to list known languages, implementations, tests, etc.
   + Add Pugs to known compilers
-  + Option to show times/comparisons with and without startup time included
   + Compare against results of a previous run
   + Output version of each compiler in summary
 * More tests!

@@ -156,6 +156,7 @@ my %COMPILERS = (
                 );
 my %TESTS = (
              e => [
+                   # empty test MUST appear first, so that --ignore-startup will work
                    {
                     name  => 'empty',
                     perl5 => '',
@@ -210,7 +211,8 @@ MAIN();
 sub MAIN {
     # Process options
     my %opt;
-    GetOptions(\%opt, 'help|h|?!', 'man!', 'format=s', 'style=s', 'outfile=s')
+    GetOptions(\%opt, 'help|h|?!', 'man!', 'format=s', 'style=s', 'outfile=s',
+                      'ignore-startup|ignore_startup|ignorestartup!')
         or pod2usage(-verbose => 0);
     pod2usage(-verbose => 1) if $opt{help};
     pod2usage(-verbose => 2) if $opt{man};
@@ -247,14 +249,21 @@ sub MAIN {
     my %run       = (
                      start_time => time,
                      bench_rev  => $bench_rev,
+                     options    => \%opt,
                     );
 
     # Run tests
-    my @results;
+    my (@results, $startup);
 
     eval {
+        if ($opt{'ignore-startup'}) {
+            say "Measuring startup times ...";
+            my $times = time_all_compilers(e => %{$TESTS{e}[0]});
+            $startup  = best_times($times);
+        }
+
         for my $test_type (sort keys %TESTS) {
-            run_tests($test_type, $TESTS{$test_type}, \@results);
+            run_tests($test_type, $TESTS{$test_type}, \@results, $startup);
         }
     };
     warn "\n$@\n" if $@;
@@ -266,19 +275,21 @@ sub MAIN {
 }
 
 sub run_tests {
-    my ($test_type, $tests, $results) = @_;
+    my ($test_type, $tests, $results, $startup) = @_;
 
     for my $test (@$tests) {
         my $name  = $test->{name};
         say "Testing $name ...";
         my $raw_times = time_all_compilers($test_type => %$test);
         my $best      = best_times($raw_times);
-        my $compared  = compare_times($best);
+        my $cooked    = subtract_times($best, $startup);
+        my $compared  = compare_times($cooked);
         push @$results, {
                          name    => $name,
                          conf    => $test,
                          raw     => $raw_times,
                          best    => $best,
+                         cooked  => $cooked,
                          compare => $compared,
                         };
     }
@@ -386,15 +397,40 @@ sub best_times {
     return \%best;
 }
 
+sub subtract_times {
+    my ($orig, $offset) = @_;
+
+    return $orig unless $offset;
+
+    my %cooked;
+
+    while (my ($perl, $time) = each %$orig) {
+        if ($time) {
+            $cooked{$perl} = $time - ($offset->{$perl} || 0);
+            $cooked{$perl} = 0 if $cooked{$perl} < 0;
+        }
+        else {
+            $cooked{$perl} = $time;
+        }
+    }
+
+    return \%cooked;
+}
+
 sub compare_times {
     my $times = shift;
     my %relative;
 
     my @sorted   = sort { $times->{$a} <=> $times->{$b} }
                         grep { defined $times->{$_} } keys %$times;
-    my $shortest = $times->{$sorted[0]} || 1e-6;
+
+    my $min_time = 1e-3;
+    my $shortest = $times->{$sorted[0]};
+       $shortest = $min_time unless $shortest > $min_time;
+
     for my $perl (@sorted) {
         $relative{$perl} = $times->{$perl} / $shortest;
+        $relative{$perl} = 1 unless $relative{$perl} > 1;
     }
 
     return \%relative;
@@ -450,7 +486,8 @@ sub summarize_results_text {
     my @lang_titles = map { center(" $_ ", $lang_count{$_} * ($longest_perl + $spacer_length + 1) - $spacer_length, bg => '-') } @langs;
 
     my $start  = friendly_time($run->{start_time});
-    my $output = "$CLEAR\n==> perl6-bench rev $run->{bench_rev} run at $start\n\n";
+    my $ignore = $run->{options}{'ignore-startup'} ? ' (ignoring startup time)' : '';
+    my $output = "$CLEAR\n==> perl6-bench rev $run->{bench_rev} run at $start$ignore\n\n";
 
     $output .= join($spacer => ' ' x $longest_test, @lang_titles) . "\n";
     $output .= sprintf "$format\n", '',     @comp_names;
@@ -460,9 +497,9 @@ sub summarize_results_text {
         $output .= sprintf "%-${longest_test}s", $test->{name};
         for my $perl (@perls) {
             my $name = $perl->{name};
-            my $best = $test->{best}{$name};
+            my $best = $test->{cooked}{$name};
             if (defined $best) {
-                $output .= sprintf "$spacer%${longest_perl}.3fs", $test->{best}{$name};
+                $output .= sprintf "$spacer%${longest_perl}.3fs", $best;
             }
             else {
                 $output .= sprintf "$spacer%${longest_perl}s ", '-- ';
@@ -572,8 +609,9 @@ CSS
        $lang_count{$_}++ for @lang_names;
     my @langs = uniq @lang_names;
 
+    my $ignore = $run->{options}{'ignore-startup'} ? ' (ignoring startup time)' : '';
     $html .= qq{<table class="bench_summary" cellspacing="0" cellpadding="0">\n};
-    $html .= qq{<caption>perl6-bench rev <span class="bench_rev">$run->{bench_rev}</span> run at <span class="bench_start_time">} . friendly_time($run->{start_time}) . qq{</span></caption>\n};
+    $html .= qq{<caption>perl6-bench rev <span class="bench_rev">$run->{bench_rev}</span> run at <span class="bench_start_time">} . friendly_time($run->{start_time}) . qq{</span>$ignore</caption>\n};
     $html .= "<tr><th></th>\n"     . join('' => map qq{    <th class="bench_language" colspan="$lang_count{$_}">$_</th>\n} => @langs) . "</tr>\n";
     $html .= "<tr><th></th>\n"     . join('' => map qq{    <th class="bench_compiler">$_</th>\n} => @comp_names) . "</tr>\n";
     $html .= "<tr><th>TEST</th>\n" . join('' => map qq{    <th class="bench_vm">$_</th>\n} => @vm_names) . "</tr>\n";
@@ -582,9 +620,9 @@ CSS
         $html .= qq{<tr class="bench_time_row"><td>$test->{name}</td>\n};
         for my $perl (@perls) {
             my $name = $perl->{name};
-            my $best = $test->{best}{$name};
+            my $best = $test->{cooked}{$name};
             if (defined $best) {
-                $html .= sprintf qq{    <td class="bench_time">%.3fs</td>\n}, $test->{best}{$name};
+                $html .= sprintf qq{    <td class="bench_time">%.3fs</td>\n}, $best;
             }
             else {
                 $html .= qq{    <td class="bench_no_time">--</td>\n};
@@ -635,7 +673,7 @@ bench -- Benchmark Perl-family compilers against each other
 =head1 SYNOPSIS
 
     bench [--help|-h|-?] [--man] [--format=text|json|html|html_snippet]
-          [--style=0|1|auto] [--outfile=path/to/file.ext]
+          [--style=0|1|auto] [--outfile=path/to/file.ext] [--ignore-startup]
 
 
 =head1 DESCRIPTION
@@ -693,6 +731,11 @@ Write the summary report to a particular path and file, or to STDOUT (the
 default) if C<--outfile> is set to C<-> (a single hyphen).  If this option
 is set and C<--format> is not, then the summary format defaults to the
 lowercased extension (F<ext> in F<path/to/file.ext>) of the C<--outfile>.
+
+=item --ignore-startup
+
+Ignore (subtract out) the startup time of the compiler from each benchmark
+result, so that runtime performance can be compared more directly.
 
 =back
 
