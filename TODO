@@ -6,6 +6,9 @@
   + Add Pugs to known compilers
   + Compare against results of a previous run
   + Output version of each compiler in summary
+  + Group tests and total by group in summaries
+    - trivial, simulation, parsing, ...
+  + Tag tests and query/total by tag?
 * More tests!
   + Find weak points in core design
     - Iterative v. recursive v. memoized recursive v. sequence method of finding solution
