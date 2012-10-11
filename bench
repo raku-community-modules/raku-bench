@@ -41,6 +41,7 @@ my %COMPILERS = (
                             dir       => 'BENCH',
                             f_run     => [$VM{perl5}          ],
                             e_run     => [$VM{perl5}, qw( -E )],
+                            show_ver  => [$VM{perl5}, qw( -E say+$] )],
                            },
                            {
                             name      => 'p5.pl',
@@ -51,6 +52,7 @@ my %COMPILERS = (
                             dir       => 'BENCH/../Perlito',
                             f_run     => [$VM{perl5}, qw( -Ilib5 perlito5.pl -Isrc5/lib    )],
                             e_run     => [$VM{perl5}, qw( -Ilib5 perlito5.pl -Isrc5/lib -e )],
+                            show_ver  => [$VM{perl5}, qw( -Ilib5 perlito5.pl --version     )],
                            },
                            {
                             name      => 'p5.js_node',
@@ -61,6 +63,7 @@ my %COMPILERS = (
                             dir       => 'BENCH/../Perlito',
                             f_run     => [$VM{node_js}, qw( perlito5.js -Isrc5/lib    )],
                             e_run     => [$VM{node_js}, qw( perlito5.js -Isrc5/lib -e )],
+                            show_ver  => [$VM{node_js}, qw( perlito5.js --version     )],
                            },
                            {
                             name      => 'p5.js_v8',
@@ -71,6 +74,7 @@ my %COMPILERS = (
                             dir       => 'BENCH/../Perlito',
                             f_compile => [$VM{v8}, qw( perlito5.js -- -Isrc5/lib -Cjs    )],
                             e_compile => [$VM{v8}, qw( perlito5.js -- -Isrc5/lib -Cjs -e )],
+                            show_ver  => [$VM{v8}, qw( perlito5.js -- --version          )],
                             f_run     => [$VM{v8}, qw( COMPILED -- )],
                             e_run     => [$VM{v8}, qw( COMPILED -- )],
                            },
@@ -85,6 +89,7 @@ my %COMPILERS = (
                             dir       => 'BENCH/../rakudo',
                             f_run     => [qw( install/bin/perl6    )],
                             e_run     => [qw( install/bin/perl6 -e )],
+                            show_ver  => [qw( install/bin/perl6 --version )],
                            },
                            {
                             name      => 'niecza',
@@ -95,6 +100,7 @@ my %COMPILERS = (
                             dir       => 'BENCH/../niecza',
                             f_run     => [$VM{mono}, qw( run/Niecza.exe    )],
                             e_run     => [$VM{mono}, qw( run/Niecza.exe -e )],
+                            show_ver  => [$VM{mono}, qw( run/Niecza.exe --version )],
                            },
                            {
                             name      => 'p6.pl',
@@ -105,6 +111,7 @@ my %COMPILERS = (
                             dir       => 'BENCH/../Perlito',
                             f_compile => [$VM{perl5}, qw( -Ilib5 perlito6.pl -Cperl5    )],
                             e_compile => [$VM{perl5}, qw( -Ilib5 perlito6.pl -Cperl5 -e )],
+                            show_ver  => [$VM{perl5}, qw( -Ilib5 perlito6.pl --version  )],
                             f_run     => [$VM{perl5}, qw( -Ilib5 COMPILED )],
                             e_run     => [$VM{perl5}, qw( -Ilib5 COMPILED )],
                            },
@@ -117,6 +124,7 @@ my %COMPILERS = (
                             dir       => 'BENCH/../Perlito',
                             f_compile => [$VM{v8}, qw( perlito6.js -- -Cjs    )],
                             e_compile => [$VM{v8}, qw( perlito6.js -- -Cjs -e )],
+                            show_ver  => [$VM{v8}, qw( perlito6.js -- --version )],
                             f_run     => [$VM{v8}, qw( COMPILED -- )],
                             e_run     => [$VM{v8}, qw( COMPILED -- )],
                            },
@@ -131,6 +139,7 @@ my %COMPILERS = (
                             dir       => 'BENCH/../nqp',
                             f_run     => [qw( install/bin/nqp --vmlibs=math_ops    )],
                             e_run     => [qw( install/bin/nqp --vmlibs=math_ops -e )],
+                            show_ver  => [qw( install/bin/nqp --version            )],
                            },
                            {
                             name      => 'rakudo.nqp',
@@ -141,6 +150,7 @@ my %COMPILERS = (
                             dir       => 'BENCH/../rakudo',
                             f_run     => [qw( install/bin/perl6    )],
                             e_run     => [qw( install/bin/perl6 -e )],
+                            show_ver  => [qw( install/bin/perl6 --version )],
                            },
                            {
                             name      => 'niecza.nqp',
@@ -151,6 +161,7 @@ my %COMPILERS = (
                             dir       => 'BENCH/../niecza',
                             f_run     => [$VM{mono}, qw( run/Niecza.exe    )],
                             e_run     => [$VM{mono}, qw( run/Niecza.exe -e )],
+                            show_ver  => [$VM{mono}, qw( run/Niecza.exe --version )],
                            },
                           ],
                 );
@@ -244,13 +255,11 @@ sub MAIN {
                   tests     => \%TESTS,
                  );
 
-    my $bench_rev = `git describe --always --dirty`;
-    chomp $bench_rev;
-    my %run       = (
-                     start_time => time,
-                     bench_rev  => $bench_rev,
-                     options    => \%opt,
-                    );
+    my %run    = (
+                  start_time => time,
+                  options    => \%opt,
+                  versions   => detect_versions(),
+                 );
 
     # Run tests
     my (@results, $startup);
@@ -272,6 +281,34 @@ sub MAIN {
 
     # Output results
     $formatter->(\%config, \%run, \@results, $opt{style}, $out_fh);
+}
+
+sub detect_versions {
+    say "Detecting versions ...";
+
+    my %version;
+    my $cwd = cwd;
+
+    for my $group (@GROUPS) {
+        for my $compiler (@{$COMPILERS{$group}}) {
+            next unless $compiler->{enabled};
+
+            my $dir = $compiler->{dir} || 'BENCH';
+            my @cmd = @{$compiler->{show_ver}};
+            s/\bBENCH\b/$FindBin::Bin/g for $dir, @cmd;
+
+            chdir $dir;
+            $version{$compiler->{name}} = `@cmd`;
+        }
+    }
+
+    chdir $FindBin::Bin;
+    $version{bench} = `git describe --always --dirty`;
+
+    chomp for values %version;
+
+    chdir $cwd;
+    return \%version;
 }
 
 sub run_tests {
@@ -487,7 +524,7 @@ sub summarize_results_text {
 
     my $start  = friendly_time($run->{start_time});
     my $ignore = $run->{options}{'ignore-startup'} ? ' (ignoring startup time)' : '';
-    my $output = "$CLEAR\n==> perl6-bench rev $run->{bench_rev} run at $start$ignore\n\n";
+    my $output = "$CLEAR\n==> perl6-bench version $run->{versions}{bench} run at $start$ignore\n\n";
 
     $output .= join($spacer => ' ' x $longest_test, @lang_titles) . "\n";
     $output .= sprintf "$format\n", '',     @comp_names;
@@ -579,7 +616,7 @@ sub summarize_results_html_snippet {
 .bench_summary caption { font-style: italic;      }
 .bench_summary td      { padding-left: .4em; padding-right: .4em; }
 .bench_summary th      { padding-left: .4em; padding-right: .4em; }
-.bench_rev             { font-family: monospace;  }
+.bench_ver             { font-family: monospace;  }
 .bench_start_time      { font-family: monospace;  }
 .bench_language        { text-align: center; border-bottom: 1px solid #999; border-left: .4em solid #fff; border-right: .4em solid #fff; }
 .bench_compiler        { text-align: center; padding-top: .1em; }
@@ -611,7 +648,7 @@ CSS
 
     my $ignore = $run->{options}{'ignore-startup'} ? ' (ignoring startup time)' : '';
     $html .= qq{<table class="bench_summary" cellspacing="0" cellpadding="0">\n};
-    $html .= qq{<caption>perl6-bench rev <span class="bench_rev">$run->{bench_rev}</span> run at <span class="bench_start_time">} . friendly_time($run->{start_time}) . qq{</span>$ignore</caption>\n};
+    $html .= qq{<caption>perl6-bench version <span class="bench_ver">$run->{versions}{bench}</span> run at <span class="bench_start_time">} . friendly_time($run->{start_time}) . qq{</span>$ignore</caption>\n};
     $html .= "<tr><th></th>\n"     . join('' => map qq{    <th class="bench_language" colspan="$lang_count{$_}">$_</th>\n} => @langs) . "</tr>\n";
     $html .= "<tr><th></th>\n"     . join('' => map qq{    <th class="bench_compiler">$_</th>\n} => @comp_names) . "</tr>\n";
     $html .= "<tr><th>TEST</th>\n" . join('' => map qq{    <th class="bench_vm">$_</th>\n} => @vm_names) . "</tr>\n";
