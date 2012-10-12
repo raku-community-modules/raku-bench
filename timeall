@@ -1,0 +1,532 @@
+#!/usr/bin/env perl
+
+# ABSTRACT: Run benchmark timings for various Perl 5, NQP, and Perl 6 implementations
+
+use 5.010;
+use strict;
+use warnings;
+use Pod::Usage;
+use Getopt::Long;
+use Time::HiRes     'time';
+use File::Temp      'tempfile';
+use List::Util      'min', 'max';
+use List::MoreUtils 'uniq';
+use Capture::Tiny   'capture';
+use DateTime;
+use File::Basename;
+use IO::File;
+use FindBin;
+use JSON;
+use Cwd;
+
+
+my %DEFAULT = (
+               TEST_COUNT => 2,
+              );
+my @GROUPS    = qw( perl5 nqp perl6 );
+my %VM        = (
+                 perl5   => 'perl',
+                 node_js => 'node',
+                 mono    => 'mono-sgen',
+                 v8      => 'BENCH/../v8/out/native/d8',
+                );
+my %COMPILERS = (
+                 perl5 => [
+                           {
+                            name      => 'perl5',
+                            enabled   => 1,
+                            language  => 'Perl 5',
+                            compiler  => 'perl5',
+                            vm        => 'perl5',
+                            dir       => 'BENCH',
+                            f_run     => [$VM{perl5}          ],
+                            e_run     => [$VM{perl5}, qw( -E )],
+                            show_ver  => [$VM{perl5}, qw( -E say+$] )],
+                           },
+                           {
+                            name      => 'p5.pl',
+                            enabled   => 1,
+                            language  => 'Perl 5',
+                            compiler  => 'perlito5',
+                            vm        => 'perl5',
+                            dir       => 'BENCH/../Perlito',
+                            f_run     => [$VM{perl5}, qw( -Ilib5 perlito5.pl -Isrc5/lib    )],
+                            e_run     => [$VM{perl5}, qw( -Ilib5 perlito5.pl -Isrc5/lib -e )],
+                            show_ver  => [$VM{perl5}, qw( -Ilib5 perlito5.pl --version     )],
+                           },
+                           {
+                            name      => 'p5.js_node',
+                            enabled   => 1,
+                            language  => 'Perl 5',
+                            compiler  => 'perlito5',
+                            vm        => 'node.js',
+                            dir       => 'BENCH/../Perlito',
+                            f_run     => [$VM{node_js}, qw( perlito5.js -Isrc5/lib    )],
+                            e_run     => [$VM{node_js}, qw( perlito5.js -Isrc5/lib -e )],
+                            show_ver  => [$VM{node_js}, qw( perlito5.js --version     )],
+                           },
+                           {
+                            name      => 'p5.js_v8',
+                            enabled   => 1,
+                            language  => 'Perl 5',
+                            compiler  => 'perlito5',
+                            vm        => 'd8',
+                            dir       => 'BENCH/../Perlito',
+                            f_compile => [$VM{v8}, qw( perlito5.js -- -Isrc5/lib -Cjs    )],
+                            e_compile => [$VM{v8}, qw( perlito5.js -- -Isrc5/lib -Cjs -e )],
+                            show_ver  => [$VM{v8}, qw( perlito5.js -- --version          )],
+                            f_run     => [$VM{v8}, qw( COMPILED -- )],
+                            e_run     => [$VM{v8}, qw( COMPILED -- )],
+                           },
+                          ],
+                 perl6 => [
+                           {
+                            name      => 'rakudo',
+                            enabled   => 1,
+                            language  => 'Perl 6',
+                            compiler  => 'rakudo',
+                            vm        => 'parrot',
+                            dir       => 'BENCH/../rakudo',
+                            f_run     => [qw( install/bin/perl6    )],
+                            e_run     => [qw( install/bin/perl6 -e )],
+                            show_ver  => [qw( install/bin/perl6 --version )],
+                           },
+                           {
+                            name      => 'niecza',
+                            enabled   => 1,
+                            language  => 'Perl 6',
+                            compiler  => 'niecza',
+                            vm        => 'mono',
+                            dir       => 'BENCH/../niecza',
+                            f_run     => [$VM{mono}, qw( run/Niecza.exe    )],
+                            e_run     => [$VM{mono}, qw( run/Niecza.exe -e )],
+                            show_ver  => [$VM{mono}, qw( run/Niecza.exe --version )],
+                           },
+                           {
+                            name      => 'p6.pl',
+                            enabled   => 1,
+                            language  => 'Perl 6',
+                            compiler  => 'perlito6',
+                            vm        => 'perl5',
+                            dir       => 'BENCH/../Perlito',
+                            f_compile => [$VM{perl5}, qw( -Ilib5 perlito6.pl -Cperl5    )],
+                            e_compile => [$VM{perl5}, qw( -Ilib5 perlito6.pl -Cperl5 -e )],
+                            show_ver  => [$VM{perl5}, qw( -Ilib5 perlito6.pl --version  )],
+                            f_run     => [$VM{perl5}, qw( -Ilib5 COMPILED )],
+                            e_run     => [$VM{perl5}, qw( -Ilib5 COMPILED )],
+                           },
+                           {
+                            name      => 'p6.js_v8',
+                            enabled   => 1,
+                            language  => 'Perl 6',
+                            compiler  => 'perlito6',
+                            vm        => 'd8',
+                            dir       => 'BENCH/../Perlito',
+                            f_compile => [$VM{v8}, qw( perlito6.js -- -Cjs    )],
+                            e_compile => [$VM{v8}, qw( perlito6.js -- -Cjs -e )],
+                            show_ver  => [$VM{v8}, qw( perlito6.js -- --version )],
+                            f_run     => [$VM{v8}, qw( COMPILED -- )],
+                            e_run     => [$VM{v8}, qw( COMPILED -- )],
+                           },
+                          ],
+                 nqp   => [
+                           {
+                            name      => 'nqp',
+                            enabled   => 1,
+                            language  => 'NQP',
+                            compiler  => 'nqp',
+                            vm        => 'parrot',
+                            dir       => 'BENCH/../nqp',
+                            f_run     => [qw( install/bin/nqp --vmlibs=math_ops    )],
+                            e_run     => [qw( install/bin/nqp --vmlibs=math_ops -e )],
+                            show_ver  => [qw( install/bin/nqp --version            )],
+                           },
+                           {
+                            name      => 'rakudo.nqp',
+                            enabled   => 1,
+                            language  => 'NQP',
+                            compiler  => 'rakudo',
+                            vm        => 'parrot',
+                            dir       => 'BENCH/../rakudo',
+                            f_run     => [qw( install/bin/perl6    )],
+                            e_run     => [qw( install/bin/perl6 -e )],
+                            show_ver  => [qw( install/bin/perl6 --version )],
+                           },
+                           {
+                            name      => 'niecza.nqp',
+                            enabled   => 1,
+                            language  => 'NQP',
+                            compiler  => 'niecza',
+                            vm        => 'mono',
+                            dir       => 'BENCH/../niecza',
+                            f_run     => [$VM{mono}, qw( run/Niecza.exe    )],
+                            e_run     => [$VM{mono}, qw( run/Niecza.exe -e )],
+                            show_ver  => [$VM{mono}, qw( run/Niecza.exe --version )],
+                           },
+                          ],
+                );
+my %TESTS = (
+             e => [
+                   # empty test MUST appear first, so that --ignore-startup will work
+                   {
+                    name  => 'empty',
+                    perl5 => '',
+                    perl6 => '',
+                    nqp   => '',
+                   },
+                   {
+                    name  => 'zero',
+                    perl5 => '0',
+                    perl6 => '0',
+                    nqp   => '0',
+                   },
+                   {
+                    name  => 'hello',
+                    perl5 => 'say "Hello, World!"',
+                    perl6 => 'say "Hello, World!"',
+                    nqp   => 'say("Hello, World!")',
+                   },
+                   {
+                    name  => 'empty_loop_1e5',
+                    perl5 => '1 for 1 .. 100000',
+                    perl6 => '1 for 1 .. 100000',
+                    nqp   => 'my $i := 1; while $i <= 100000 { $i := $i + 1; 1 }',
+                   },
+                   {
+                    name  => 'empty_loop_1e6',
+                    perl5 => '1 for 1 .. 1000000',
+                    perl6 => '1 for 1 .. 1000000',
+                    nqp   => 'my $i := 1; while $i <= 1000000 { $i := $i + 1; 1 }',
+                   },
+                  ],
+             f => [
+                   {
+                    name  => 'rc-forest-fire',
+                    skip  => [qw( niecza.nqp p6.pl p6.js_v8 )],
+                    perl5 => [qw( BENCH/perl5/rc-forest-fire 30 20 10 )],
+                    perl6 => [qw( BENCH/perl6/rc-forest-fire 30 20 10 )],
+                    nqp   => [qw( BENCH/nqp/rc-forest-fire 30 20 10 )],
+                   },
+                  ],
+            );
+my %FORMATTER = (
+                 json         => \&summarize_results_json,
+                );
+
+
+MAIN();
+
+sub MAIN {
+    # Process options
+    my %opt;
+    GetOptions(\%opt, 'help|h|?!', 'man!', 'format=s', 'outfile=s')
+        or pod2usage(-verbose => 0);
+    pod2usage(-verbose => 1) if $opt{help};
+    pod2usage(-verbose => 2) if $opt{man};
+
+    $opt{outfile} //= 'bench-' . DateTime->today->ymd . '.json';
+    my $suffix      = (fileparse($opt{outfile}, qr/\.[^.]+$/))[2] || '.';
+    my $ext         = lc substr $suffix, 1;
+
+    $opt{format}  //= exists $FORMATTER{$ext} ? $ext : 'text';
+    $opt{format}    = lc $opt{format};
+    my $formatter   = $FORMATTER{$opt{format}}
+        or pod2usage(-msg => "Unknown output format '$opt{format}'");
+
+    # Open outfile
+    my $out_fh = $opt{outfile} eq '-' ? \*STDOUT : IO::File->new($opt{outfile}, '>')
+        or die "Could not open outfile '$opt{outfile}': $!";
+
+    # Record general test configuration and info
+    my %config = (
+                  default   => \%DEFAULT,
+                  groups    => \@GROUPS,
+                  vm        => \%VM,
+                  compilers => \%COMPILERS,
+                  tests     => \%TESTS,
+                 );
+
+    my %run    = (
+                  start_time => time,
+                  options    => \%opt,
+                  versions   => detect_versions(),
+                 );
+
+    # Run tests
+    my (@results, $startup);
+
+    eval {
+	say "Measuring startup times ...";
+	my $times = time_all_compilers(e => %{$TESTS{e}[0]});
+	$startup  = best_times($times);
+
+        for my $test_type (sort keys %TESTS) {
+            run_tests($test_type, $TESTS{$test_type}, \@results, $startup);
+        }
+    };
+    warn "\n$@\n" if $@;
+
+    $run{end_time} = time;
+
+    # Output results
+    $formatter->(\%config, \%run, \@results, $out_fh);
+    say "Benchmark data written to '$opt{outfile}'."
+	if $opt{outfile} ne '-';
+}
+
+sub detect_versions {
+    say "Detecting versions ...";
+
+    my %version;
+    my $cwd = cwd;
+
+    for my $group (@GROUPS) {
+        for my $compiler (@{$COMPILERS{$group}}) {
+            next unless $compiler->{enabled};
+
+            my $dir = $compiler->{dir} || 'BENCH';
+            my @cmd = @{$compiler->{show_ver}};
+            s/\bBENCH\b/$FindBin::Bin/g for $dir, @cmd;
+
+            chdir $dir;
+            $version{$compiler->{name}} = `@cmd`;
+        }
+    }
+
+    chdir $FindBin::Bin;
+    $version{bench} = `git describe --always --dirty`;
+
+    chomp for values %version;
+
+    chdir $cwd;
+    return \%version;
+}
+
+sub run_tests {
+    my ($test_type, $tests, $results, $startup) = @_;
+
+    for my $test (@$tests) {
+        my $name  = $test->{name};
+        say "Testing $name ...";
+        my $raw_times = time_all_compilers($test_type => %$test);
+        my $best      = best_times($raw_times);
+        my $cooked    = subtract_times($best, $startup);
+        push @$results, {
+                         name    => $name,
+                         conf    => $test,
+                         raw     => $raw_times,
+                         best    => $best,
+                         cooked  => $cooked,
+                        };
+    }
+}
+
+sub time_all_compilers {
+    my ($test_type, %opt) = @_;
+    my %times;
+
+    for my $group (@GROUPS) {
+        time_group($group, $test_type, $COMPILERS{$group}, \%times, \%opt);
+    }
+
+    return \%times;
+}
+
+sub time_group {
+    my ($group_name, $test_type, $group_perls, $times, $opt) = @_;
+
+    my $cwd = cwd;
+
+    for my $perl (@$group_perls) {
+        next unless $perl->{enabled};
+
+        my $name = $perl->{name};
+        next if grep { $_ eq $name } @{$opt->{skip} || []};
+
+        my $dir  = $perl->{dir} || 'BENCH';
+        my $comp = $perl->{"${test_type}_compile"} || [];
+        my $run  = $perl->{"${test_type}_run"};
+        my $args = $opt->{$group_name};
+        my @args = ref $args ? @$args : ($args);
+
+        s/\bBENCH\b/$FindBin::Bin/g for $dir, @$comp, @$run, @args;
+
+        my @compile;
+        if (@$comp) {
+            # XXXX: This shift is a code smell ...
+            @compile = (@$comp, shift @args);
+        }
+        my @run = (@$run, @args);
+
+        if ($dir) {
+            chdir $dir or die "Could not change to $name directory '$dir': $!";
+        }
+
+        $times->{$name} = time_command(\@compile, \@run, $opt->{count});
+    }
+
+    chdir $cwd;
+}
+
+sub time_command {
+    my ($compile, $run, $count) = @_;
+    $count ||= $DEFAULT{TEST_COUNT};
+
+    my (@times, $status);
+    for my $i (1 .. $count) {
+        if (@$compile) {
+            my $start = time;
+            my ($out, $err) = capture { $status = system @$compile };
+            if ($status) {
+                die "Test's compile command terminated by SIGINT.\n" if ($status & 127) == 2;
+                warn "Failed to run compile command: @$compile\n"
+                     . (length $err ? "Error:\n$err\n" : '');
+                return undef;
+            }
+
+            my ($fh, $filename) = tempfile(UNLINK => 1);
+            print $fh $out;
+            close $fh;
+            my @run = @$run;
+            s/\bCOMPILED\b/$filename/g for @run;
+            $status = system @run;
+            push @times, time - $start;
+            if ($status) {
+                die "Test's run command terminated by SIGINT.\n" if ($status & 127) == 2;
+                warn "Failed to run command: @run\n";
+                return undef;
+            }
+        }
+        else {
+            my $start  = time;
+            $status = system @$run;
+            push @times, time - $start;
+            if ($status) {
+                die "Test terminated by SIGINT.\n" if ($status & 127) == 2;
+                warn "Failed to run command: @$run\n";
+                return undef;
+            }
+        }
+    }
+
+    return \@times;
+}
+
+sub best_times {
+    my $raw_times = shift;
+    my %best;
+
+    while (my ($perl, $times) = each %$raw_times) {
+        $best{$perl} = $times ? min(@$times) : undef;
+    }
+
+    return \%best;
+}
+
+sub subtract_times {
+    my ($orig, $offset) = @_;
+
+    return $orig unless $offset;
+
+    my %cooked;
+
+    while (my ($perl, $time) = each %$orig) {
+        if ($time) {
+            $cooked{$perl} = $time - ($offset->{$perl} || 0);
+            $cooked{$perl} = 0 if $cooked{$perl} < 0;
+        }
+        else {
+            $cooked{$perl} = $time;
+        }
+    }
+
+    return \%cooked;
+}
+
+sub summarize_results_json {
+    my ($config, $run, $times, $out_fh) = @_;
+
+    my $style = 1;
+
+    my $encoder = JSON->new->utf8->canonical;
+       $encoder->pretty if $style;
+
+    my %info = (
+                config => $config,
+                run    => $run,
+                times  => $times,
+               );
+
+    my $json = $encoder->encode(\%info);
+
+    print $out_fh $json;
+}
+
+
+__END__
+
+=head1 NAME
+
+timeall -- Benchmark Perl-family compilers against each other
+
+
+=head1 SYNOPSIS
+
+    timeall [--help|-h|-?] [--man] [--format=json] [--outfile=path/to/file.ext]
+
+
+=head1 DESCRIPTION
+
+This program benchmarks a number of implementations of Perl-family languages
+against each other doing various simple tasks.  For a given task, each
+language uses a similar algorithm, but written in the appropriate colloquial
+style.  For a given language, all relevant implementations execute exactly
+the same program for each task, or are marked as unable to process that task.
+
+The simplest tasks are executed using each implementation's "evaluate a string
+from the command line" option, generally C<-e> or C<-E>.  More complex tasks
+are composed of matching scripts sorted into subdirectories by language,
+optionally with additional command line arguments.
+
+Once this script produces a file of timing information, the timing file can
+be fed to the F<analyze> script to produce human-friendly summaries of the
+timing data.
+
+
+=head1 OPTIONS
+
+=over 4
+
+=item --help|-h|-?
+
+Get basic help for this program
+
+=item --man
+
+Display this program's entire manpage
+
+=item --format=json
+
+Format the summary output in a particular format.  If the C<--outfile> option
+is set, then the default output format is based on the lowercased extension
+of the output filename.  Otherwise the default (and currently only) format is
+C<json>, which outputs the results in computer-friendly format suitable for
+feeding to the F<analyze> program.
+
+=item --outfile=path/to/file.ext|-
+
+Write the summary report to a particular path and file, or to STDOUT if
+C<--outfile> is set to C<-> (a single hyphen).  If this option is set and
+C<--format> is not, then the summary format defaults to the lowercased
+extension (F<ext> in F<path/to/file.ext>) of the C<--outfile>.  The default
+C<--outfile> is F<bench-YYYY-MM-DD.json>, where F<YYYY-MM-DD> is today's date.
+
+=back
+
+
+=head1 AUTHOR
+
+Geoffrey Broadwell
+
+
+=cut

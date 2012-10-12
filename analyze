@@ -1,0 +1,405 @@
+#!/usr/bin/env perl
+
+# ABSTRACT: Analyze benchmark data produced by timeall
+
+use 5.010;
+use strict;
+use warnings;
+use Pod::Usage;
+use Getopt::Long;
+use List::Util      'min', 'max';
+use List::MoreUtils 'uniq';
+use File::Basename;
+use IO::File;
+use DateTime;
+use JSON;
+
+my %FORMATTER = (
+                 json         => \&summarize_results_json,
+                 text         => \&summarize_results_text,
+                 html         => \&summarize_results_html,
+                 html_snippet => \&summarize_results_html_snippet,
+                );
+
+
+MAIN();
+
+sub MAIN {
+    # Process options
+    my %opt;
+    GetOptions(\%opt, 'help|h|?!', 'man!', 'format=s', 'style=s', 'outfile=s',
+                      'ignore-startup|ignore_startup|ignorestartup!')
+        or pod2usage(-verbose => 0);
+    pod2usage(-verbose => 1) if $opt{help};
+    pod2usage(-verbose => 2) if $opt{man};
+
+    $opt{outfile} //= '-';
+    my $suffix      = (fileparse($opt{outfile}, qr/\.[^.]+$/))[2] || '.';
+    my $ext         = lc substr $suffix, 1;
+
+    $opt{format}  //= exists $FORMATTER{$ext} ? $ext : 'text';
+    $opt{format}    = lc $opt{format};
+    my $formatter   = $FORMATTER{$opt{format}}
+        or pod2usage(-msg => "Unknown output format '$opt{format}'");
+
+    $opt{style}   //= 'auto';
+    $opt{style}     = lc $opt{style};
+    (grep {$_ eq $opt{style}} 0, 1, 'auto')
+        or pod2usage(-msg => "Unknown output style setting '$opt{style}'");
+
+    pod2usage(-msg => "Must list timing files to analyze") unless @ARGV;
+
+    # Open outfile
+    my $out_fh = $opt{outfile} eq '-' ? \*STDOUT : IO::File->new($opt{outfile}, '>')
+        or die "Could not open outfile '$opt{outfile}': $!";
+
+    # Analyze results
+    my $decoder = JSON->new->utf8;
+    for my $timing_file (@ARGV) {
+	my $in_fh = $timing_file eq '-' ? \*STDIN : IO::File->new($timing_file, '<')
+	    or die "Could not open timing file '$timing_file': $!";
+
+	local $/;
+	my $json = <$in_fh>;
+	my $data = $decoder->decode($json);
+
+	my $test_times = $data->{times};
+	my $time_type  = $opt{'ignore-startup'} ? 'cooked' : 'best';
+	for my $test (@$test_times) {
+	    $test->{compare} = compare_times($test->{$time_type});
+	}
+
+	$formatter->($data, \%opt, $out_fh);
+    }
+}
+
+sub compare_times {
+    my $times = shift;
+    my %relative;
+
+    my @sorted   = sort { $times->{$a} <=> $times->{$b} }
+                        grep { defined $times->{$_} } keys %$times;
+
+    my $min_time = 1e-3;
+    my $shortest = $times->{$sorted[0]};
+       $shortest = $min_time unless $shortest > $min_time;
+
+    for my $perl (@sorted) {
+        $relative{$perl} = $times->{$perl} / $shortest;
+        $relative{$perl} = 1 unless $relative{$perl} > 1;
+    }
+
+    return \%relative;
+}
+
+sub summarize_results_json {
+    my ($data, $opt, $out_fh) = @_;
+
+    my $style = $opt->{style};
+    $style = 1 if $style eq 'auto';
+
+    my $encoder = JSON->new->utf8->canonical;
+       $encoder->pretty if $style;
+
+    my $json = $encoder->encode($data);
+
+    print $out_fh $json;
+}
+
+sub summarize_results_text {
+    my ($data, $opt, $out_fh) = @_;
+
+    my $style = $opt->{style};
+       $style = -t $out_fh
+        if $style eq 'auto';
+
+    my $RED    = $style ? "\e[1;31m" : '';
+    my $GREEN  = $style ? "\e[32m"   : '';
+    my $YELLOW = $style ? "\e[1;33m" : '';
+    my $CLEAR  = $style ? "\e[0m"    : '';
+
+    my $times        = $data->{times};
+    my @test_names   = map { $_->{name} } @$times;
+    my $longest_test = max 8, map { length } @test_names;
+
+    my $groups       = $data->{config}{groups};
+    my $compilers    = $data->{config}{compilers};
+    my @perls        = map { @{$compilers->{$_}} } @$groups;
+       @perls        = grep { $_->{enabled} } @perls;
+    my @lang_names   = map { $_->{language} } @perls;
+    my @comp_names   = map { $_->{compiler} } @perls;
+    my @vm_names     = map { $_->{vm}       } @perls;
+    my $longest_perl = max 8, map { length } @lang_names, @comp_names, @vm_names;
+
+    my $spacer_length = 3;
+    my $spacer = ' ' x $spacer_length;
+    my $format = join $spacer => "%-${longest_test}s", (("%${longest_perl}s ") x @perls);
+
+    my %lang_count;
+       $lang_count{$_}++ for @lang_names;
+    my @langs = uniq @lang_names;
+    my @lang_titles = map { center(" $_ ", $lang_count{$_} * ($longest_perl + $spacer_length + 1) - $spacer_length, bg => '-') } @langs;
+
+    my $run    = $data->{run};
+    my $start  = friendly_time($run->{start_time});
+    my $ignore = $opt->{'ignore-startup'} ? ' (ignoring startup time)' : '';
+    my $output = "$CLEAR\n==> perl6-bench version $run->{versions}{bench} run at $start$ignore\n\n";
+
+    $output .= join($spacer => ' ' x $longest_test, @lang_titles) . "\n";
+    $output .= sprintf "$format\n", '',     @comp_names;
+    $output .= sprintf "$format\n", 'TEST', @vm_names;
+
+    my $time_type = $opt->{'ignore-startup'} ? 'cooked' : 'best';
+    for my $test (@$times) {
+        $output .= sprintf "%-${longest_test}s", $test->{name};
+        for my $perl (@perls) {
+            my $name = $perl->{name};
+            my $best = $test->{$time_type}{$name};
+            if (defined $best) {
+                $output .= sprintf "$spacer%${longest_perl}.3fs", $best;
+            }
+            else {
+                $output .= sprintf "$spacer%${longest_perl}s ", '-- ';
+            }
+        }
+        $output .= "\n";
+
+        $output .= sprintf "%-${longest_test}s", '';
+        for my $perl (@perls) {
+            my $name = $perl->{name};
+            my $rel  = $test->{compare}{$name};
+            if (defined $rel) {
+                my $color = $rel <  2 ? $GREEN  :
+                            $rel < 10 ? $YELLOW :
+                                        $RED    ;
+                $output .= sprintf "$spacer$color%${longest_perl}.3fx$CLEAR", $rel;
+            }
+            else {
+                my $is_skip = grep { $_ eq $name } @{$test->{conf}{skip} || []};
+                $output .= sprintf "$spacer$RED%${longest_perl}s $CLEAR",
+                       $is_skip ? 'SKIP' : 'FAIL';
+            }
+        }
+        $output .= "\n";
+    }
+
+    print $out_fh $output;
+}
+
+sub center {
+    my ($string, $length, %opts) = @_;
+
+    my $bg_char = $opts{bg} || ' ';
+    my $output  = $bg_char x ($length / length $bg_char);
+    my $left    = int(($length - length $string) / 2);
+    substr($output, $left, length $string, $string);
+
+    return $output;
+}
+
+sub summarize_results_html {
+    my ($data, $opt, $out_fh) = @_;
+
+    # Default to including style in full HTML pages
+    $opt->{style} = 1
+        if $opt->{style} eq 'auto';
+
+    print $out_fh <<'HEADER';
+<html>
+<head>
+<title>Perl Bench Summary</title>
+</head>
+
+<body>
+HEADER
+
+    summarize_results_html_snippet($data, $opt, $out_fh);
+
+    print $out_fh <<'FOOTER';
+</body>
+</html>
+FOOTER
+}
+
+sub summarize_results_html_snippet {
+    my ($data, $opt, $out_fh) = @_;
+    my $html = '';
+
+    # Default to no style info if just generating an HTML snippet
+    my $style = $opt->{style};
+       $style = 0
+        if $style eq 'auto';
+
+    if ($style) {
+        $html .= <<'CSS';
+<style type="text/css">
+.bench_summary         { font-family: sans-serif; }
+.bench_summary caption { font-style: italic;      }
+.bench_summary td      { padding-left: .4em; padding-right: .4em; }
+.bench_summary th      { padding-left: .4em; padding-right: .4em; }
+.bench_ver             { font-family: monospace;  }
+.bench_start_time      { font-family: monospace;  }
+.bench_language        { text-align: center; border-bottom: 1px solid #999; border-left: .4em solid #fff; border-right: .4em solid #fff; }
+.bench_compiler        { text-align: center; padding-top: .1em; }
+.bench_vm              { text-align: center; padding-top: .1em; }
+.bench_time_row    td  { padding-top: .2em; padding-bottom: 0; }
+.bench_compare_row td  { padding-top: 0; padding-bottom: .2em; }
+.bench_time            { text-align: right; font-family: monospace; }
+.bench_no_time         { text-align: right; font-family: monospace; }
+.bench_good            { text-align: right; font-family: monospace; color: green; }
+.bench_bad             { text-align: right; font-family: monospace; color: #dd0;  }
+.bench_ugly            { text-align: right; font-family: monospace; color: red;   }
+.bench_skip            { text-align: right; font-family: monospace; color: red;   }
+.bench_fail            { text-align: right; font-family: monospace; color: red;   }
+</style>
+
+CSS
+    }
+
+    my $times        = $data->{times};
+    my @test_names   = map { $_->{name} } @$times;
+    my $groups       = $data->{config}{groups};
+    my $compilers    = $data->{config}{compilers};
+    my @perls        = map { @{$compilers->{$_}} } @$groups;
+       @perls        = grep { $_->{enabled} } @perls;
+    my @lang_names   = map { $_->{language} } @perls;
+    my @comp_names   = map { $_->{compiler} } @perls;
+    my @vm_names     = map { $_->{vm}       } @perls;
+
+    my %lang_count;
+       $lang_count{$_}++ for @lang_names;
+    my @langs = uniq @lang_names;
+
+    my $run    = $data->{run};
+    my $ignore = $opt->{'ignore-startup'} ? ' (ignoring startup time)' : '';
+    $html .= qq{<table class="bench_summary" cellspacing="0" cellpadding="0">\n};
+    $html .= qq{<caption>perl6-bench version <span class="bench_ver">$run->{versions}{bench}</span> run at <span class="bench_start_time">} . friendly_time($run->{start_time}) . qq{</span>$ignore</caption>\n};
+    $html .= "<tr><th></th>\n"     . join('' => map qq{    <th class="bench_language" colspan="$lang_count{$_}">$_</th>\n} => @langs) . "</tr>\n";
+    $html .= "<tr><th></th>\n"     . join('' => map qq{    <th class="bench_compiler">$_</th>\n} => @comp_names) . "</tr>\n";
+    $html .= "<tr><th>TEST</th>\n" . join('' => map qq{    <th class="bench_vm">$_</th>\n} => @vm_names) . "</tr>\n";
+
+    my $time_type = $opt->{'ignore-startup'} ? 'cooked' : 'best';
+    for my $test (@$times) {
+        $html .= qq{<tr class="bench_time_row"><td>$test->{name}</td>\n};
+        for my $perl (@perls) {
+            my $name = $perl->{name};
+            my $best = $test->{$time_type}{$name};
+            if (defined $best) {
+                $html .= sprintf qq{    <td class="bench_time">%.3fs</td>\n}, $best;
+            }
+            else {
+                $html .= qq{    <td class="bench_no_time">--</td>\n};
+            }
+        }
+        $html .= "</tr>\n";
+
+        $html .= qq{<tr class="bench_compare_row"><td></td>\n};
+        for my $perl (@perls) {
+            my $name = $perl->{name};
+            my $rel  = $test->{compare}{$name};
+            if (defined $rel) {
+                my $class = $rel <  2 ? 'bench_good' :
+                            $rel < 10 ? 'bench_bad'  :
+                                        'bench_ugly' ;
+                $html .= sprintf qq{    <td class="$class">%.3fx</td>\n}, $rel;
+            }
+            else {
+                my $is_skip = grep { $_ eq $name } @{$test->{conf}{skip} || []};
+                my $class   = $is_skip ? 'bench_skip' : 'bench_fail';
+                my $message = $is_skip ? 'SKIP'       : 'FAIL';
+                $html .= qq{    <td class="$class">$message</td>\n};
+            }
+        }
+        $html .= "</tr>\n";
+    }
+    $html .= "</table>\n";
+
+    print $out_fh $html;
+}
+
+sub friendly_time {
+    my $time     = shift;
+    my $dt       = DateTime->from_epoch(epoch => $time);
+    my $friendly = $dt->ymd . ' ' . $dt->hms;
+
+    return $friendly;
+}
+
+
+__END__
+
+=head1 NAME
+
+analyze -- Analyze benchmark data produced by timeall
+
+
+=head1 SYNOPSIS
+
+    analyze [--help|-h|-?] [--man] [--format=text|json|html|html_snippet]
+            [--style=0|1|auto] [--outfile=path/to/file.ext] [--ignore-startup]
+            path/to/timing_file.json
+
+
+=head1 DESCRIPTION
+
+After benchmarking a number of implementations of Perl-family languages
+against each other with the F<timeall> program, F<analyze> converts the raw
+timing data to human-friendly summary information in various formats.
+
+
+=head1 OPTIONS
+
+=over 4
+
+=item --help|-h|-?
+
+Get basic help for this program
+
+=item --man
+
+Display this program's entire manpage
+
+=item --format=text|json|html|html_snippet
+
+Format the summary output in a particular format.  If the C<--outfile> option
+is set, then the default output format is based on the lowercased extension
+of the output filename.  Otherwise the default is C<text>, which outputs a
+text-rendered summary table with ANSI coloring.  HTML output is also available,
+either in full document form (C<html>), or just a snippet containing the
+summary table (C<html_snippet>).  To save the results in computer-friendly
+form, use the C<json> format.
+
+=item --style=0|1|auto
+
+Select whether style settings are included in the output.  C<0> turns off
+style output, C<1> turns it on, and C<auto> (the default) tries to DWIM.
+For text output, this option selects whether ANSI color codes are used to
+highlight entries in the summary table; C<auto> turns on ANSI color whenever
+the output is a TTY.  For HTML output, this determines whether a CSS style
+block is added to the HTML (element C<class> attributes are always output).
+C<auto> defaults to adding CSS to full HTML documents (format C<html>), and
+I<not> adding it to HTML snippets (format C<html_snippet>).  If style is
+on (or auto) for JSON output (format C<json>), the result will be
+pretty-printed; otherwise it will be output in compact form.
+
+=item --outfile=path/to/file.ext|-
+
+Write the summary report to a particular path and file, or to STDOUT (the
+default) if C<--outfile> is set to C<-> (a single hyphen).  If this option
+is set and C<--format> is not, then the summary format defaults to the
+lowercased extension (F<ext> in F<path/to/file.ext>) of the C<--outfile>.
+
+=item --ignore-startup
+
+Ignore (subtract out) the startup time of the compiler from each benchmark
+result, so that runtime performance can be compared more directly.
+
+=back
+
+
+=head1 AUTHOR
+
+Geoffrey Broadwell
+
+
+=cut
