@@ -1,11 +1,13 @@
 * General
   + Startup times
     - For simple tests, many implementations suffer from slow startup times
-    - Niecza on mono suffers the most, with a very slow startup
-    - Rakudo on Parrot and Perlito* on JS follow with medium-high startup times
-    - Perlito* on perl5 is a bit faster with medium-low startup times
-    - NQP on Parrot has relatively quick startup times
-    - perl5 (native) has extremely fast startup times
+      . Niecza on mono suffers the most, with a very slow startup
+      . Rakudo on Parrot and Perlito* on JS follow with medium-high startup times
+      . Perlito* on perl5 is a bit faster with medium-low startup times
+      . NQP on Parrot has relatively quick startup times
+      . perl5 (native) has extremely fast startup times
+    - Use the '--ignore-startup' option to `analyze` to subtract startup times
+      so that pure compile and run time can be compared
   + Perl 6 v. NQP idioms
     - Many idioms have to be changed to translate Perl 6 code to NQP code
     - Because Rakudo can (mostly) compile both languages and Niecza can compile

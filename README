@@ -1,17 +1,18 @@
-perl6-bench: A tool to benchmark and compare Perl 6 implementations against perl5
+perl6-bench: A tool to benchmark and compare implementations of Perl family languages
 
 This is a VERY EARLY RELEASE, and represents concept-as-code.  No attempt has
 been made to bulletproof the tool.  Run as:
 
-    perl path/to/bench
+    ./timeall --outfile=times.json
+    ./analyze times.json
 
 You will need at least perl5 5.10.x, and you may need to have some extra
-items in your PATH, such as a recent version of mono-sgen for Niecza and node
-for perlito5.js.  YMMV.
+items in your PATH, such as a recent version of mono-sgen for Niecza and
+node/d8 for Perlito*/JS.  YMMV.
 
 Paths to the proper working directory for each compiler (usually the root
 directory of its Git checkout) can be set in the %COMPILERS hash at the top
-of the bench script.  The default directories are assumed to be parallel
+of the timeall script.  The default directories are assumed to be parallel
 checkouts at the same directory level as the perl6-bench checkout.  For
 example, Perlito's directory is assumed to be ../Perlito/ relative to the
 bench directory.
@@ -29,7 +30,8 @@ Compilers tested so far:
         perlito6.pl
         perlito6.js/d8
     NQP
-        nqp (github perl6/nqp)
+        nqp    (github perl6/nqp)
         rakudo
+        niecza (no pir:: or nqp:: support)
 
 Enjoy!
