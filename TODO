@@ -2,10 +2,19 @@
   + Documentation
     - WIP: manpage/usage
     - WIP: data expected from each test, and analysis of results
+  + Add platform info to timeall output:
+    - OS version
+    - uname -a
+    - /proc/cpuinfo
+    - /proc/meminfo
+  + Auto-tune iteration count or other run-time parameters to make each test
+    run for a given minimum time (e.g. 10 seconds minimum) to get a stable
+    seconds/iteration value as benchmark output
+    - Specify per-test whether to do per-iteration or per-run timing
   + Options to list known languages, implementations, tests, etc.
   + Add Pugs to known compilers
   + Compare against results of a previous run
-  + Output version of each compiler in summary
+  + Output version of each compiler (plus platform summary) from analyze
   + Group tests and total by group in summaries
     - trivial, simulation, parsing, ...
   + Tag tests and query/total by tag?
