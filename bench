@@ -42,14 +42,42 @@ multi MAIN ('setup') {
         my $repo = $component<repo_url>;
         my $bare = "$name.git";
         run < git clone --bare >, $repo, $bare unless $bare.IO.d;
-
-        %*ENV<GIT_DIR> = $bare;
-        my $tag_list = open 'git tag', :p;
-        my @tags = $tag_list.lines;
-        .say for @tags;
+        run < git clone -l     >, $bare, $name unless $name.IO.d;
     }
 
     say 'Setup complete.';
+}
+
+#= Fetch latest commits in each cloned component
+multi MAIN ('fetch') {
+    unless 'components'.IO.d {
+        say "There is no 'components' tree, and thus there are no repos to fetch.";
+        say "Please run `$*PROGRAM_NAME setup` instead.";
+        return;
+    }
+
+    chdir 'components';
+    my $comp_dir = cwd;
+
+    for dir('.').sort -> $component-name {
+        say "==> $component-name";
+        my $bare = "$component-name/$component-name.git";
+
+        unless $bare.IO.d {
+            say "No bare repository exists for component $component-name; can't fetch updates.";
+            next;
+        }
+
+        %*ENV<GIT_DIR> = $bare;
+        run < git fetch >;
+    }
+}
+
+multi MAIN ('build') {
+        # %*ENV<GIT_DIR> = $bare;
+        # my $tag_list = open 'git tag', :p;
+        # my @tags = $tag_list.lines;
+        # .say for @tags;
 }
 
 #= Clean up generated files and directories
