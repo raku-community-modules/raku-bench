@@ -54,7 +54,14 @@ multi MAIN ('setup') {
 
 #= Clean up generated files and directories
 multi MAIN ('clean') {
-    run < rm -rf components results >;
+    rmtree $_ for < components results >;
+}
+
+#= Simulate the behavior of `git clean -dxf`
+sub rmtree ($dir, :$noisy = True) {
+    return unless $dir.IO.d;
+    say "Removing $dir" if $noisy;
+    run < rm -rf >, $dir;
 }
 
 #= Remove *everything* not part of the core benchmark tree
