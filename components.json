@@ -1,0 +1,6 @@
+{
+    "rakudo": {
+        "name":     "rakudo",
+        "repo_url": "git://github.com/rakudo/rakudo.git"
+    }
+}

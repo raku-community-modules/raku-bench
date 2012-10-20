@@ -1,0 +1,73 @@
+#!/usr/bin/env perl6
+
+# ABSTRACT: Master console/"porcelain" for Perl language family benchmarking tools
+
+use v6;
+use JSON::Tiny;
+
+
+# Reduce directory insanity a bit by changing to bench root
+my ($PROGRAM_DIR) = ~($*PROGRAM_NAME ~~ /^(.*\/)/) // './';
+chdir $PROGRAM_DIR;
+$PROGRAM_DIR = cwd;
+
+#= Show benchmark configuration
+multi MAIN ('config') {
+    say "Benchmark root:  $PROGRAM_DIR";
+    say "Perl 6 program:  $*EXECUTABLE_NAME";
+    say "Perl 6 version:  $*PERL<compiler>< name ver build-date >";
+}
+
+#= Prepare for mass benchmarking
+multi MAIN ('setup') {
+    say 'Creating directories ...';
+    mkdir 'components' unless 'components'.IO.d;
+    mkdir 'results'    unless 'results'.IO.d;
+
+    say 'Parsing components.json ...';
+    my $components = from-json(slurp 'components.json');
+
+    say 'Cloning component repos ...';
+    chdir 'components';
+    my $comp_dir = cwd;
+
+    for $components.values -> $component {
+        my $name = $component<name>;
+        say "==> $name";
+
+        chdir $comp_dir;
+        mkdir $name unless $name.IO.d;
+        chdir $name;
+
+        my $repo = $component<repo_url>;
+        my $bare = "$name.git";
+        run < git clone --bare >, $repo, $bare unless $bare.IO.d;
+
+        %*ENV<GIT_DIR> = $bare;
+        my $tag_list = open 'git tag', :p;
+        my @tags = $tag_list.lines;
+        .say for @tags;
+    }
+
+    say 'Setup complete.';
+}
+
+#= Clean up generated files and directories
+multi MAIN ('clean') {
+    run < rm -rf components results >;
+}
+
+#= Remove *everything* not part of the core benchmark tree
+multi MAIN ('realclean') {
+    run < git clean -dxf >;
+}
+
+#= Perform benchmark timings
+multi MAIN ('timeall', *@options) {
+    run('./timeall', |@options);
+}
+
+#= Analyze results from benchmark timings
+multi MAIN ('analyze', *@options_and_files) {
+    run('./analyze', |@options_and_files);
+}
