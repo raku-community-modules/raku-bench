@@ -10,6 +10,8 @@ use JSON::Tiny;
 my ($PROGRAM_DIR) = ~($*PROGRAM_NAME ~~ /^(.*\/)/) // './';
 chdir $PROGRAM_DIR;
 $PROGRAM_DIR = cwd;
+my $COMPONENTS_DIR = "$PROGRAM_DIR/components";
+
 
 #= Show benchmark configuration
 multi MAIN ('config') {
@@ -28,14 +30,11 @@ multi MAIN ('setup') {
     my $components = from-json(slurp 'components.json');
 
     say 'Cloning component repos ...';
-    chdir 'components';
-    my $comp_dir = cwd;
-
     for $components.values -> $component {
         my $name = $component<name>;
         say "==> $name";
 
-        chdir $comp_dir;
+        chdir $COMPONENTS_DIR;
         mkdir $name unless $name.IO.d;
         chdir $name;
 
@@ -50,19 +49,14 @@ multi MAIN ('setup') {
 
 #= Fetch latest commits in each cloned component
 multi MAIN ('fetch') {
-    unless 'components'.IO.d {
-        say "There is no 'components' tree, and thus there are no repos to fetch.";
-        say "Please run `$*PROGRAM_NAME setup` instead.";
-        return;
-    }
+    needs-setup('fetch');
 
-    chdir 'components';
-    my $comp_dir = cwd;
+    chdir $COMPONENTS_DIR;
 
     for dir('.').sort -> $component-name {
         say "==> $component-name";
-        my $bare = "$component-name/$component-name.git";
 
+        my $bare = "$component-name/$component-name.git";
         unless $bare.IO.d {
             say "No bare repository exists for component $component-name; can't fetch updates.";
             next;
@@ -70,6 +64,14 @@ multi MAIN ('fetch') {
 
         %*ENV<GIT_DIR> = $bare;
         run < git fetch >;
+    }
+}
+
+sub needs-setup ($action) {
+    unless $COMPONENTS_DIR.IO.d {
+        say "There is no 'components' tree, and thus there are no repos to $action.";
+        say "Please run `$*PROGRAM_NAME setup`.";
+        exit 1;
     }
 }
 
