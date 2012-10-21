@@ -2,11 +2,22 @@
     "rakudo": {
         "name":         "rakudo",
         "repo_url":     "git://github.com/rakudo/rakudo.git",
-        "release_tags": "^ 20\\d\\d \\D \\d\\d [\\.\\d+]? $"
+        "release_tags": "^ 20\\d\\d \\D \\d\\d [\\.\\d+]? $",
+        "build_steps":  [
+            [ "make", "realclean" ],
+            [ "git", "clean", "-dxf" ],
+            [ "rm", "-rf", "install", "nqp", "parrot" ],
+            [ "perl", "Configure.pl", "--gen-parrot" ],
+            [ "make" ],
+            [ "make", "install" ]
+        ]
     },
     "niecza": {
         "name":         "niecza",
         "repo_url":     "git://github.com/sorear/niecza.git",
-        "release_tags": "^v\\d+$"
+        "release_tags": "^v\\d+$",
+        "build_steps":  [
+            [ "make" ]
+        ]
     }
 }
