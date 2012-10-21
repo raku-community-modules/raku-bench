@@ -119,17 +119,32 @@ multi MAIN ('extract-releases', *@components) {
 multi MAIN ('build', *@components) {
     needs-setup('build components');
 
+    say 'Parsing components.json ...';
+    my $components = from-json(slurp 'components.json');
+
     chdir $COMPONENTS_DIR;
     @components ||= dir('.').sort;
 
-
     for @components -> $component-name {
         say "==> $component-name";
-        chdir "$COMPONENTS_DIR/$component-name";
-
         my $bare = "$component-name.git";
-        my @checkouts = dir('.', test => none('.', '..', $bare)).sort;
-        .say for @checkouts;
+        my @checkouts = dir($component-name, test => none('.', '..', $bare)).sort;
+
+        for @checkouts -> $checkout {
+            chdir "$COMPONENTS_DIR/$component-name/$checkout";
+
+            my $build_steps = $components{$component-name}<build_steps>;
+            for $build_steps.list -> $step {
+                if $step ~~ Positional {
+                    # run |$step;
+		    say "run: $step";
+                }
+                else {
+                    # shell $step;
+		    say "shell: $step";
+                }
+            }
+        }
     }
 }
 
