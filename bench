@@ -12,6 +12,10 @@ chdir $PROGRAM_DIR;
 $PROGRAM_DIR = cwd;
 my $COMPONENTS_DIR = "$PROGRAM_DIR/components";
 
+# This ends up getting used all over the place;
+# might as well just load it at startup
+my $COMPONENTS = from-json(slurp "$PROGRAM_DIR/components.json");
+
 
 #= Show benchmark configuration
 multi MAIN ('config') {
@@ -26,11 +30,8 @@ multi MAIN ('setup') {
     mkdir 'components' unless 'components'.IO.d;
     mkdir 'results'    unless 'results'.IO.d;
 
-    say 'Parsing components.json ...';
-    my $components = from-json(slurp 'components.json');
-
     say 'Cloning component repos ...';
-    for $components.values -> $component {
+    for $COMPONENTS.values -> $component {
         my $name = $component<name>;
         say "==> $name";
 
@@ -79,9 +80,6 @@ sub needs-setup ($action) {
 multi MAIN ('extract-releases', *@components) {
     needs-setup('extract releases');
 
-    say 'Parsing components.json ...';
-    my $components = from-json(slurp 'components.json');
-
     chdir $COMPONENTS_DIR;
     @components ||= dir('.').sort;
 
@@ -95,7 +93,7 @@ multi MAIN ('extract-releases', *@components) {
             next;
         }
 
-        my $tag_regex = $components{$component-name}<release_tags> || '.';
+        my $tag_regex = $COMPONENTS{$component-name}<release_tags> || '.';
         %*ENV<GIT_DIR> = $bare;
         my $tag_list = open 'git tag', :p;
         my @tags = grep / <{ $tag_regex }> /, $tag_list.lines;
@@ -118,9 +116,6 @@ multi MAIN ('extract-releases', *@components) {
 #= Build checked out component trees
 multi MAIN ('build', *@components) {
     needs-setup('build components');
-
-    say 'Parsing components.json ...';
-    my $components = from-json(slurp 'components.json');
 
     chdir $COMPONENTS_DIR;
     @components ||= dir('.').sort;
