@@ -68,6 +68,7 @@ multi MAIN ('fetch') {
     }
 }
 
+#= Check whether 'setup' command has been run and bail out if not
 sub needs-setup ($action) {
     unless $COMPONENTS_DIR.IO.d {
         say "There is no 'components' tree, and thus there are no repos to $action.";
