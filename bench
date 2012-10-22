@@ -144,6 +144,39 @@ multi MAIN ('build', *@components) {
     }
 }
 
+#= Expand a partially-specified list of components and checkouts
+sub explode-components (@component-specs) {
+    my @exploded;
+    for @component-specs -> $spec is copy {
+        # Remove optional leading 'components/', which helps with tab completion
+        $spec .= subst(/^ 'components/' /, '');  # ' -- Damn syntax highlighting
+        die "Don't know what to do with empty component specification" unless $spec.chars;
+
+        my ($component, $checkouts) = $spec.split: '/';
+        my $comp-info = $COMPONENTS{$component};
+        die "Don't know how to process component '$component'" unless $comp-info;
+
+        my @checkouts;
+        if $checkouts.defined && $checkouts.chars {
+            @checkouts = $checkouts.split: ',';
+        }
+        else {
+            my $bare   = "$component.git";
+            @checkouts = dir("$COMPONENTS_DIR/$component",
+                            test => none('.', '..', $bare)).sort;
+        }
+
+        if @exploded.first(*.<info><name> eq $component) -> $comp {
+            $comp<checkouts>.push: |@checkouts;
+        }
+        else {
+            @exploded.push: { info => $comp-info, checkouts => @checkouts };
+        }
+    }
+
+    return @exploded;
+}
+
 #= Clean up generated files and directories
 multi MAIN ('clean') {
     rmtree $_ for < components results >;
