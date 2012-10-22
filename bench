@@ -132,14 +132,7 @@ multi MAIN ('build', *@components) {
 
             my $build_steps = $comp<info><build_steps>;
             for $build_steps.list -> $step {
-                if $step ~~ Positional {
-                    # run |$step;
-                    # say "run: $step";
-                }
-                else {
-                    # shell $step;
-                    # say "shell: $step";
-                }
+                $step ~~ Positional ?? run(|$step) !! shell($step);
             }
         }
     }
