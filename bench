@@ -121,23 +121,24 @@ multi MAIN ('build', *@components) {
     chdir $COMPONENTS_DIR;
     @components ||= dir('.').sort;
 
-    for @components -> $component-name {
-        say "==> $component-name";
-        my $bare = "$component-name.git";
-        my @checkouts = dir($component-name, test => none('.', '..', $bare)).sort;
+    for explode-components(@components) -> $comp {
+        my $name = $comp<info><name>;
+        say "==> $name";
 
-        for @checkouts -> $checkout {
-            chdir "$COMPONENTS_DIR/$component-name/$checkout";
+        my @checkouts = $comp<checkouts>;
+        for $comp<checkouts>.list -> $checkout {
+            say "----> $checkout";
+            chdir "$COMPONENTS_DIR/$name/$checkout";
 
-            my $build_steps = $components{$component-name}<build_steps>;
+            my $build_steps = $comp<info><build_steps>;
             for $build_steps.list -> $step {
                 if $step ~~ Positional {
                     # run |$step;
-		    say "run: $step";
+                    # say "run: $step";
                 }
                 else {
                     # shell $step;
-		    say "shell: $step";
+                    # say "shell: $step";
                 }
             }
         }
