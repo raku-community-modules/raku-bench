@@ -174,9 +174,22 @@ sub explode-components (@component-specs, :$chdir = True, :$default-to-dirs) {
     return @exploded;
 }
 
-#= Clean up generated files and directories
-multi MAIN ('clean') {
-    rmtree $_ for < components results >;
+#= Clean up build trees in components/, keeping bare clones by default
+multi MAIN ('clean', *@components) {
+    unless $COMPONENTS_DIR.IO.d {
+        say "No 'components' tree exists, so there is nothing to clean.";
+        exit;
+    }
+
+    for explode-components(@components, :default-to-dirs) -> $comp {
+        my $name = $comp<info><name>;
+        say "==> $name";
+
+        my @checkouts = $comp<checkouts>;
+        for $comp<checkouts>.list -> $checkout {
+            rmtree "$COMPONENTS_DIR/$name/$checkout";
+        }
+    }
 }
 
 #= Simulate the behavior of `git clean -dxf`
@@ -187,7 +200,19 @@ sub rmtree ($dir, :$noisy = True) {
 }
 
 #= Remove *everything* not part of the core benchmark tree
-multi MAIN ('realclean') {
+multi MAIN ('realclean', Bool :$force) {
+    unless $force {
+        say "Are you sure?
+
+This command will wipe your benchmarking tree clean, destroying any builds,
+cloned components, and benchmark results in the process.  You will need
+to use the --force option if you really want to do this.";
+        exit;
+    }
+
+    # OK, you asked for it!
+    say "OK, performing realclean.";
+    rmtree $_ for < components results >;
     run < git clean -dxf >;
 }
 
