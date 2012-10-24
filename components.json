@@ -7,6 +7,15 @@
             [ "make" ]
         ]
     },
+    "nqp":    {
+        "name":         "nqp",
+        "repo_url":     "git://github.com/perl6/nqp.git",
+        "release_tags": "^ 20\\d\\d \\D \\d\\d [\\.\\d+]? $"
+    },
+    "parrot": {
+        "name":         "parrot",
+        "repo_url":     "git://github.com/parrot/parrot.git"
+    },
     "rakudo": {
         "name":         "rakudo",
         "repo_url":     "git://github.com/rakudo/rakudo.git",
