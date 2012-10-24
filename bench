@@ -144,7 +144,10 @@ multi MAIN ('build', *@components) {
 }
 
 #= Expand a partially-specified list of components and checkouts
-sub explode-components (@component-specs) {
+sub explode-components (@component-specs, :$chdir = True, :$default-to-dirs) {
+    chdir $COMPONENTS_DIR if $chdir;
+    @component-specs ||= dir('.').sort if $default-to-dirs;
+
     my @exploded;
     for @component-specs -> $spec is copy {
         # Remove optional leading 'components/', which helps with tab completion
