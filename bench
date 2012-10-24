@@ -17,6 +17,8 @@ my $COMPONENTS_DIR = "$PROGRAM_DIR/components";
 my $COMPONENTS = from-json(slurp "$PROGRAM_DIR/components.json");
 
 
+# MAIN COMMANDS
+
 #= Show benchmark configuration
 multi MAIN ('config') {
     say "Benchmark root:    $PROGRAM_DIR";
@@ -66,15 +68,6 @@ multi MAIN ('fetch', *@components) {
 
         %*ENV<GIT_DIR> = $bare;
         run < git fetch >;
-    }
-}
-
-#= Check whether 'setup' command has been run and bail out if not
-sub needs-setup ($action) {
-    unless $COMPONENTS_DIR.IO.d {
-        say "There is no 'components' tree, and thus there are no repos to $action.";
-        say "Please run `$*PROGRAM_NAME setup`.";
-        exit 1;
     }
 }
 
@@ -138,6 +131,70 @@ multi MAIN ('build', *@components) {
     }
 }
 
+#= Clean up build trees in components/, keeping bare clones by default
+multi MAIN ('clean', *@components) {
+    unless $COMPONENTS_DIR.IO.d {
+        say "No 'components' tree exists, so there is nothing to clean.";
+        exit;
+    }
+
+    for explode-components(@components) -> $comp {
+        my $name = $comp<info><name>;
+        say "==> $name";
+
+        my @checkouts = $comp<checkouts>;
+        for $comp<checkouts>.list -> $checkout {
+            rmtree "$COMPONENTS_DIR/$name/$checkout";
+        }
+    }
+}
+
+#= Remove *everything* not part of the core benchmark tree
+multi MAIN ('realclean', Bool :$force) {
+    unless $force {
+        say "Are you sure?
+
+This command will wipe your benchmarking tree clean, destroying any builds,
+cloned components, and benchmark results in the process.  You will need
+to use the --force option if you really want to do this.";
+        exit;
+    }
+
+    # OK, you asked for it!
+    say "OK, performing realclean.";
+    rmtree $_ for < components results >;
+    run < git clean -dxf >;
+}
+
+#= Perform benchmark timings
+multi MAIN ('timeall', *@options) {
+    run('./timeall', |@options);
+}
+
+#= Analyze results from benchmark timings
+multi MAIN ('analyze', *@options_and_files) {
+    run('./analyze', |@options_and_files);
+}
+
+
+# UTILITY ROUTINES
+
+#= Check whether 'setup' command has been run and bail out if not
+sub needs-setup ($action) {
+    unless $COMPONENTS_DIR.IO.d {
+        say "There is no 'components' tree, and thus there are no repos to $action.";
+        say "Please run `$*PROGRAM_NAME setup`.";
+        exit 1;
+    }
+}
+
+#= Simulate the behavior of `git clean -dxf`
+sub rmtree ($dir, :$noisy = True) {
+    return unless $dir.IO.d;
+    say "Removing $dir" if $noisy;
+    run < rm -rf >, $dir;
+}
+
 #= Expand a partially-specified list of components and checkouts
 sub explode-components (@component-specs, :$chdir = True, :$default-to-dirs = True) {
     chdir $COMPONENTS_DIR if $chdir;
@@ -172,56 +229,4 @@ sub explode-components (@component-specs, :$chdir = True, :$default-to-dirs = Tr
     }
 
     return @exploded;
-}
-
-#= Clean up build trees in components/, keeping bare clones by default
-multi MAIN ('clean', *@components) {
-    unless $COMPONENTS_DIR.IO.d {
-        say "No 'components' tree exists, so there is nothing to clean.";
-        exit;
-    }
-
-    for explode-components(@components) -> $comp {
-        my $name = $comp<info><name>;
-        say "==> $name";
-
-        my @checkouts = $comp<checkouts>;
-        for $comp<checkouts>.list -> $checkout {
-            rmtree "$COMPONENTS_DIR/$name/$checkout";
-        }
-    }
-}
-
-#= Simulate the behavior of `git clean -dxf`
-sub rmtree ($dir, :$noisy = True) {
-    return unless $dir.IO.d;
-    say "Removing $dir" if $noisy;
-    run < rm -rf >, $dir;
-}
-
-#= Remove *everything* not part of the core benchmark tree
-multi MAIN ('realclean', Bool :$force) {
-    unless $force {
-        say "Are you sure?
-
-This command will wipe your benchmarking tree clean, destroying any builds,
-cloned components, and benchmark results in the process.  You will need
-to use the --force option if you really want to do this.";
-        exit;
-    }
-
-    # OK, you asked for it!
-    say "OK, performing realclean.";
-    rmtree $_ for < components results >;
-    run < git clean -dxf >;
-}
-
-#= Perform benchmark timings
-multi MAIN ('timeall', *@options) {
-    run('./timeall', |@options);
-}
-
-#= Analyze results from benchmark timings
-multi MAIN ('analyze', *@options_and_files) {
-    run('./analyze', |@options_and_files);
 }
