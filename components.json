@@ -1,4 +1,12 @@
 {
+    "niecza": {
+        "name":         "niecza",
+        "repo_url":     "git://github.com/sorear/niecza.git",
+        "release_tags": "^v\\d+$",
+        "build_steps":  [
+            [ "make" ]
+        ]
+    },
     "rakudo": {
         "name":         "rakudo",
         "repo_url":     "git://github.com/rakudo/rakudo.git",
@@ -10,14 +18,6 @@
             [ "perl", "Configure.pl", "--gen-parrot" ],
             [ "make" ],
             [ "make", "install" ]
-        ]
-    },
-    "niecza": {
-        "name":         "niecza",
-        "repo_url":     "git://github.com/sorear/niecza.git",
-        "release_tags": "^v\\d+$",
-        "build_steps":  [
-            [ "make" ]
         ]
     }
 }
