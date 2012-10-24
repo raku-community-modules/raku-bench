@@ -54,7 +54,7 @@ multi MAIN ('setup') {
 multi MAIN ('fetch', *@components) {
     needs-setup('fetch');
 
-    for explode-components(@components, :default-to-dirs) -> $comp {
+    for explode-components(@components) -> $comp {
         my $name = $comp<info><name>;
         say "==> $name";
 
@@ -121,7 +121,7 @@ multi MAIN ('extract-releases', *@components) {
 multi MAIN ('build', *@components) {
     needs-setup('build components');
 
-    for explode-components(@components, :default-to-dirs) -> $comp {
+    for explode-components(@components) -> $comp {
         my $name = $comp<info><name>;
         say "==> $name";
 
@@ -139,7 +139,7 @@ multi MAIN ('build', *@components) {
 }
 
 #= Expand a partially-specified list of components and checkouts
-sub explode-components (@component-specs, :$chdir = True, :$default-to-dirs) {
+sub explode-components (@component-specs, :$chdir = True, :$default-to-dirs = True) {
     chdir $COMPONENTS_DIR if $chdir;
     @component-specs ||= dir('.').sort if $default-to-dirs;
 
@@ -181,7 +181,7 @@ multi MAIN ('clean', *@components) {
         exit;
     }
 
-    for explode-components(@components, :default-to-dirs) -> $comp {
+    for explode-components(@components) -> $comp {
         my $name = $comp<info><name>;
         say "==> $name";
 
