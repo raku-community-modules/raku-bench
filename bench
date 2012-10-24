@@ -95,7 +95,10 @@ multi MAIN ('extract-releases', *@components) {
             next;
         }
 
-        my $tag_regex = $COMPONENTS{$component-name}<release_tags> || '.';
+        # Determine which release tags to check out by default
+        my $tag_regex = $COMPONENTS{$component-name}<release_tags>;
+        next unless $tag_regex;
+
         %*ENV<GIT_DIR> = $bare;
         my $tag_list = open 'git tag', :p;
         my @tags = grep / <{ $tag_regex }> /, $tag_list.lines;
