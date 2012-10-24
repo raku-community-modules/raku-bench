@@ -51,17 +51,16 @@ multi MAIN ('setup') {
 }
 
 #= Fetch latest commits in each cloned component
-multi MAIN ('fetch') {
+multi MAIN ('fetch', *@components) {
     needs-setup('fetch');
 
-    chdir $COMPONENTS_DIR;
+    for explode-components(@components, :default-to-dirs) -> $comp {
+        my $name = $comp<info><name>;
+        say "==> $name";
 
-    for dir('.').sort -> $component-name {
-        say "==> $component-name";
-
-        my $bare = "$component-name/$component-name.git";
+        my $bare = "$name/$name.git";
         unless $bare.IO.d {
-            say "No bare repository exists for component $component-name; can't fetch updates.";
+            say "No bare repository exists for component $name; can't fetch updates.";
             next;
         }
 
@@ -83,21 +82,20 @@ sub needs-setup ($action) {
 multi MAIN ('extract-releases', *@components) {
     needs-setup('extract releases');
 
-    chdir $COMPONENTS_DIR;
-    @components ||= dir('.').sort;
+    for explode-components(@components) -> $comp {
+        my $name = $comp<info><name>;
+        say "==> $name";
 
-    for @components -> $component-name {
-        say "==> $component-name";
-        chdir "$COMPONENTS_DIR/$component-name";
+        chdir "$COMPONENTS_DIR/$name";
 
-        my $bare = "$component-name.git";
+        my $bare = "$name.git";
         unless $bare.IO.d {
-            say "No bare repository exists for component $component-name; can't extract releases.";
+            say "No bare repository exists for component $name; can't extract releases.";
             next;
         }
 
         # Determine which release tags to check out by default
-        my $tag_regex = $COMPONENTS{$component-name}<release_tags>;
+        my $tag_regex = $comp<release_tags>;
         next unless $tag_regex;
 
         %*ENV<GIT_DIR> = $bare;
@@ -123,10 +121,7 @@ multi MAIN ('extract-releases', *@components) {
 multi MAIN ('build', *@components) {
     needs-setup('build components');
 
-    chdir $COMPONENTS_DIR;
-    @components ||= dir('.').sort;
-
-    for explode-components(@components) -> $comp {
+    for explode-components(@components, :default-to-dirs) -> $comp {
         my $name = $comp<info><name>;
         say "==> $name";
 
