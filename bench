@@ -21,10 +21,13 @@ my $COMPONENTS = from-json(slurp "$PROGRAM_DIR/components.json");
 
 #= Show benchmark configuration
 multi MAIN ('config') {
-    say "Benchmark root:    $PROGRAM_DIR";
-    say "Perl 6 program:    $*EXECUTABLE_NAME";
-    say "Perl 6 version:    $*PERL<compiler>< name ver build-date >";
-    say "Known components:  $COMPONENTS.keys.sort.join(', ')";
+    # XXXX: Can't indent because of Rakudo qq:to with indented end marker bug
+    print qq:to/CONFIG/;
+Benchmark root:    $PROGRAM_DIR
+Perl 6 program:    $*EXECUTABLE_NAME
+Perl 6 version:    $*PERL<compiler>< name ver build-date >
+Known components:  $COMPONENTS.keys.sort.join(', ')
+CONFIG
 }
 
 #= Prepare for mass benchmarking
@@ -152,11 +155,13 @@ multi MAIN ('clean', *@components) {
 #= Remove *everything* not part of the core benchmark tree
 multi MAIN ('realclean', Bool :$force) {
     unless $force {
-        say "Are you sure?
-
-This command will wipe your benchmarking tree clean, destroying any builds,
-cloned components, and benchmark results in the process.  You will need
-to use the --force option if you really want to do this.";
+        print q:to/NEED_FORCE/;
+            Are you sure?
+            
+            This command will wipe your benchmarking tree clean, destroying any builds,
+            cloned components, and benchmark results in the process.  You will need
+            to use the --force option if you really want to do this.
+            NEED_FORCE
         exit;
     }
 
