@@ -21,13 +21,12 @@ my $COMPONENTS = from-json(slurp "$PROGRAM_DIR/components.json");
 
 #= Show benchmark configuration
 multi MAIN ('config') {
-    # XXXX: Can't indent because of Rakudo qq:to with indented end marker bug
     print qq:to/CONFIG/;
-Benchmark root:    $PROGRAM_DIR
-Perl 6 program:    $*EXECUTABLE_NAME
-Perl 6 version:    $*PERL<compiler>< name ver build-date >
-Known components:  $COMPONENTS.keys.sort.join(', ')
-CONFIG
+        Benchmark root:    $PROGRAM_DIR
+        Perl 6 program:    $*EXECUTABLE_NAME
+        Perl 6 version:    $*PERL<compiler>< name ver build-date >
+        Known components:  $COMPONENTS.keys.sort.join(', ')
+        CONFIG
 }
 
 #= Prepare for mass benchmarking
