@@ -155,7 +155,7 @@ multi MAIN ('clean', *@components) {
 #= Remove *everything* not part of the core benchmark tree
 multi MAIN ('realclean', Bool :$force) {
     unless $force {
-        print q:to/NEED_FORCE/;
+        print q:to/NEED_FORCE/;  # : -- Dang syntax highlighting
             Are you sure?
             
             This command will wipe your benchmarking tree clean, destroying any builds,
