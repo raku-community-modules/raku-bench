@@ -7,7 +7,7 @@ use JSON::Tiny;
 
 
 # Reduce directory insanity a bit by changing to bench root
-my ($PROGRAM_DIR) = ~($*PROGRAM_NAME ~~ /^(.*\/)/) // './';
+my $PROGRAM_DIR = ~($*PROGRAM_NAME ~~ /^(.*\/)/) || './';
 chdir $PROGRAM_DIR;
 $PROGRAM_DIR = cwd;
 my $COMPONENTS_DIR = "$PROGRAM_DIR/components";
