@@ -24,6 +24,8 @@
             [ "make", "realclean" ],
             [ "git", "clean", "-dxf" ],
             [ "rm", "-rf", "install", "nqp", "parrot" ],
+            [ "git", "clone", "-l", "../../parrot/parrot.git" ],
+            [ "git", "clone", "-l", "../../nqp/nqp.git" ],
             [ "perl", "Configure.pl", "--gen-parrot" ],
             [ "make" ],
             [ "make", "install" ]
