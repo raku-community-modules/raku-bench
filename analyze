@@ -56,20 +56,20 @@ sub MAIN {
     # Analyze results
     my $decoder = JSON->new->utf8;
     for my $timing_file (@ARGV) {
-	my $in_fh = $timing_file eq '-' ? \*STDIN : IO::File->new($timing_file, '<')
-	    or die "Could not open timing file '$timing_file': $!";
+        my $in_fh = $timing_file eq '-' ? \*STDIN : IO::File->new($timing_file, '<')
+            or die "Could not open timing file '$timing_file': $!";
 
-	local $/;
-	my $json = <$in_fh>;
-	my $data = $decoder->decode($json);
+        local $/;
+        my $json = <$in_fh>;
+        my $data = $decoder->decode($json);
 
-	my $test_times = $data->{times};
-	my $time_type  = $opt{'ignore-startup'} ? 'cooked' : 'best';
-	for my $test (@$test_times) {
-	    $test->{compare} = compare_times($test->{$time_type});
-	}
+        my $test_times = $data->{times};
+        my $time_type  = $opt{'ignore-startup'} ? 'cooked' : 'best';
+        for my $test (@$test_times) {
+            $test->{compare} = compare_times($test->{$time_type});
+        }
 
-	$formatter->($data, \%opt, $out_fh);
+        $formatter->($data, \%opt, $out_fh);
     }
 }
 
