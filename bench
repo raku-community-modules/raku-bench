@@ -4,6 +4,7 @@
 
 use v6;
 use JSON::Tiny;
+use Shell::Command;
 
 
 # Reduce directory insanity a bit by changing to bench root
@@ -202,7 +203,7 @@ sub needs-setup ($action) {
 sub rmtree ($dir, :$noisy = True) {
     return unless $dir.IO.d;
     say "Removing $dir" if $noisy;
-    run < rm -rf >, $dir;
+    rm_rf $dir;
 }
 
 #= Expand a partially-specified list of components and checkouts
