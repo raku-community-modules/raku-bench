@@ -161,6 +161,27 @@ multi MAIN ('clean', *@components) {
     }
 }
 
+#= Run timing benchmarks on built components
+multi MAIN ('time', *@components) {
+    needs-setup('benchmark Perls');
+
+    for explode-components(@components) -> $comp {
+        my $name = $comp<info><name>;
+        say "==> $name";
+
+        my @checkouts = $comp<checkouts>;
+        for $comp<checkouts>.list -> $checkout {
+            say "----> $checkout";
+            chdir "$COMPONENTS_DIR/$name/$checkout";
+
+            my $results_dir = "$PROGRAM_DIR/results/$name";
+            mkpath $results_dir;
+
+            run "$PROGRAM_DIR/timeall", "--outfile=$results_dir/$checkout.json", $name;
+        }
+    }
+}
+
 #= Remove *everything* not part of the core benchmark tree
 multi MAIN ('realclean', Bool :$force) {
     unless $force {

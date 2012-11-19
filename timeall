@@ -237,6 +237,15 @@ sub MAIN {
     my $out_fh = $opt{outfile} eq '-' ? \*STDOUT : IO::File->new($opt{outfile}, '>')
         or die "Could not open outfile '$opt{outfile}': $!";
 
+    # Allow selecting a subset of available compilers
+    if (@ARGV) {
+        for my $set (values %COMPILERS) {
+            for my $compiler (@$set) {
+                $compiler->{enabled} = 0 unless grep {$_ eq $compiler->{name}} @ARGV;
+            }
+        }
+    }
+
     # Record general test configuration and info
     my %config = (
                   default   => \%DEFAULT,
