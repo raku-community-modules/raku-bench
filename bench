@@ -74,8 +74,11 @@ multi MAIN ('fetch', *@components) {
     }
 }
 
+#= Alias for 'extract'
+multi MAIN ('extract-releases', *@components) { MAIN('extract', |@components) }
+
 #= Extract historical releases from cloned components
-multi MAIN ('extract-releases', *@components) {
+multi MAIN ('extract', *@components) {
     needs-setup('extract releases');
 
     for explode-components(@components) -> $comp {
