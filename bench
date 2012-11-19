@@ -59,10 +59,7 @@ multi MAIN ('setup') {
 multi MAIN ('fetch', *@components) {
     needs-setup('fetch');
 
-    for explode-components(@components) -> $comp {
-        my $name = $comp<info><name>;
-        say "==> $name";
-
+    for-components @components, -> $comp, $name {
         my $bare = "$name/$name.git";
         unless $bare.IO.d {
             say "No bare repository exists for component $name; can't fetch updates.";
@@ -81,10 +78,7 @@ multi MAIN ('extract-releases', *@components) { MAIN('extract', |@components) }
 multi MAIN ('extract', *@components) {
     needs-setup('extract releases');
 
-    for explode-components(@components) -> $comp {
-        my $name = $comp<info><name>;
-        say "==> $name";
-
+    for-components @components, -> $comp, $name {
         chdir "$COMPONENTS_DIR/$name";
 
         my $bare = "$name.git";
@@ -126,18 +120,12 @@ multi MAIN ('extract', *@components) {
 multi MAIN ('build', *@components) {
     needs-setup('build components');
 
-    for explode-components(@components) -> $comp {
-        my $name = $comp<info><name>;
-        say "==> $name";
+    for-checkouts @components, -> $comp, $name, $checkout {
+        chdir "$COMPONENTS_DIR/$name/$checkout";
 
-        for $comp<checkouts>.list -> $checkout {
-            say "----> $checkout";
-            chdir "$COMPONENTS_DIR/$name/$checkout";
-
-            my $build_steps = $comp<info><build_steps>;
-            for $build_steps.list -> $step {
-                $step ~~ Positional ?? run(|$step) !! shell($step);
-            }
+        my $build_steps = $comp<info><build_steps>;
+        for $build_steps.list -> $step {
+            $step ~~ Positional ?? run(|$step) !! shell($step);
         }
     }
 }
@@ -146,19 +134,13 @@ multi MAIN ('build', *@components) {
 multi MAIN ('time', *@components) {
     needs-setup('benchmark Perls');
 
-    for explode-components(@components) -> $comp {
-        my $name = $comp<info><name>;
-        say "==> $name";
+    for-checkouts @components, -> $comp, $name, $checkout {
+        chdir "$COMPONENTS_DIR/$name/$checkout";
 
-        for $comp<checkouts>.list -> $checkout {
-            say "----> $checkout";
-            chdir "$COMPONENTS_DIR/$name/$checkout";
+        my $results_dir = "$PROGRAM_DIR/results/$name";
+        mkpath $results_dir;
 
-            my $results_dir = "$PROGRAM_DIR/results/$name";
-            mkpath $results_dir;
-
-            run "$PROGRAM_DIR/timeall", "--outfile=$results_dir/$checkout.json", $name;
-        }
+        run "$PROGRAM_DIR/timeall", "--outfile=$results_dir/$checkout.json", $name;
     }
 }
 
@@ -169,13 +151,8 @@ multi MAIN ('clean', *@components) {
         exit;
     }
 
-    for explode-components(@components) -> $comp {
-        my $name = $comp<info><name>;
-        say "==> $name";
-
-        for $comp<checkouts>.list -> $checkout {
-            rmtree "$COMPONENTS_DIR/$name/$checkout";
-        }
+    for-checkouts @components, -> $comp, $name, $checkout {
+        rm_rf "$COMPONENTS_DIR/$name/$checkout";
     }
 }
 
@@ -225,6 +202,27 @@ sub rmtree ($dir, :$noisy = True) {
     return unless $dir.IO.d;
     say "Removing $dir" if $noisy;
     rm_rf $dir;
+}
+
+#= Run code for every requested component
+sub for-components (@components, &code) {
+    for explode-components(@components) -> $comp {
+        my $name = $comp<info><name>;
+        say "==> $name";
+
+        code($comp, $name);
+    }
+}
+
+#= Run code for every checkout in every requested component
+sub for-checkouts (@components, &code) {
+    for-components @components, -> $comp, $name {
+        for $comp<checkouts>.list -> $checkout {
+            say "----> $checkout";
+
+            code($comp, $name, $checkout);
+        }
+    }
 }
 
 #= Expand a partially-specified list of components and checkouts
