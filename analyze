@@ -54,15 +54,8 @@ sub MAIN {
         or die "Could not open outfile '$opt{outfile}': $!";
 
     # Analyze results
-    my $decoder = JSON->new->utf8;
     for my $timing_file (@ARGV) {
-        my $in_fh = $timing_file eq '-' ? \*STDIN : IO::File->new($timing_file, '<')
-            or die "Could not open timing file '$timing_file': $!";
-
-        local $/;
-        my $json = <$in_fh>;
-        my $data = $decoder->decode($json);
-
+        my $data       = load_timing_file($timing_file);
         my $test_times = $data->{times};
         my $time_type  = $opt{'ignore-startup'} ? 'cooked' : 'best';
         for my $test (@$test_times) {
@@ -71,6 +64,19 @@ sub MAIN {
 
         $formatter->($data, \%opt, $out_fh);
     }
+}
+
+sub load_timing_file {
+    my $timing_file = shift;
+    my $decoder     = JSON->new->utf8;
+
+    my $in_fh = $timing_file eq '-' ? \*STDIN : IO::File->new($timing_file, '<')
+        or die "Could not open timing file '$timing_file': $!";
+
+    local $/;
+    my $json = <$in_fh>;
+
+    return $decoder->decode($json);
 }
 
 sub compare_times {
