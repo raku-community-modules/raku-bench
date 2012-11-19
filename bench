@@ -87,33 +87,46 @@ multi MAIN ('extract', *@components) {
             next;
         }
 
+        # Find all tags known in this component
+        %*ENV<GIT_DIR> = $bare;
+        my $tag-list = open 'git tag', :p;
+        my @all-tags = $tag-list.lines;
+        $tag-list.close;
+        %*ENV.delete('GIT_DIR');
+
         my @tags;
         if $comp<checkouts> {
-            @tags = @($comp<checkouts>);
+            # User specified list of tags to extract
+            for $comp<checkouts>.list {
+                when any(@all-tags) { push @tags, $_ }
+                default  { $*ERR.say: "No such tag '$_'" }
+            }
         }
         else {
-            # Determine which release tags to check out by default
+            # Check out filtered tag list by default
             my $tag_regex = $comp<info><release_tags>;
             next unless $tag_regex;
 
-            %*ENV<GIT_DIR> = $bare;
-            my $tag_list = open 'git tag', :p;
-            @tags = grep / <{ $tag_regex }> /, $tag_list.lines;
-            %*ENV.delete('GIT_DIR');
+            @tags = grep / <{ $tag_regex }> /, $tag-list.lines;
         }
 
         # Work around Rakudo bug #115390 by splitting into two loops
         for @tags -> $tag {
-            next if $tag.IO.d;
+            if $tag.IO.d {
+                say "$tag already cloned.";
+                next;
+            }
             run < git clone -l >, $bare, $tag;
         }
         for @tags -> $tag {
+            unless $tag.IO.d {
+                $*ERR.say: "Unable to extract release '$tag'.";
+                next;
+            }
             chdir $tag; LEAVE chdir '..';
             run < git checkout -q >, $tag;   # > -- Dang syntax highlighting
         }
     }
-
-    say 'Extraction complete.';
 }
 
 #= Build checked out component trees
