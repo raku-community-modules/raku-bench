@@ -130,7 +130,6 @@ multi MAIN ('build', *@components) {
         my $name = $comp<info><name>;
         say "==> $name";
 
-        my @checkouts = $comp<checkouts>;
         for $comp<checkouts>.list -> $checkout {
             say "----> $checkout";
             chdir "$COMPONENTS_DIR/$name/$checkout";
@@ -154,7 +153,6 @@ multi MAIN ('clean', *@components) {
         my $name = $comp<info><name>;
         say "==> $name";
 
-        my @checkouts = $comp<checkouts>;
         for $comp<checkouts>.list -> $checkout {
             rmtree "$COMPONENTS_DIR/$name/$checkout";
         }
@@ -169,7 +167,6 @@ multi MAIN ('time', *@components) {
         my $name = $comp<info><name>;
         say "==> $name";
 
-        my @checkouts = $comp<checkouts>;
         for $comp<checkouts>.list -> $checkout {
             say "----> $checkout";
             chdir "$COMPONENTS_DIR/$name/$checkout";
