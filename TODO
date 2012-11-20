@@ -19,6 +19,25 @@
     - trivial, simulation, parsing, ...
   + Tag tests and query/total by tag?
 * More tests!
+  + Known performance changes
+    - Rakudo
+      . commit 1d4eb481ef5dc4e772042c896cda4a5b7b510d0c (unary hypers)
+      . commit 0fde4a1e375a26da8d7b511aafdb6174e934b757 (parsing)
+      . commit 2125adb2dc3f22f9fb877e3ea403d469037b729c (.map)
+      . commit d6cd1e2bd19e03a81132a23b2025920577f84e37 (FIRST/NEXT/LAST)
+      . commit c10792f88a46a975749b0f2aa1460c432dd16a67 (Array.at_pos, RT #111848)
+      . commit 29f5cf7ca1c547b543b1815a8528cc4ec8307419 (reductions: [+] 1..100000)
+      . commit 95371a6ec5f96563fff0ce9b9ae95a95bec16cf5 (Str.trim*)
+      . commit 9fc3eb254f1d377bebd4f4f89adcec96848e7c3b (IO: .say for @some_list_of_strings)
+      . commit 7ac6d1ea6d8352696ca32b41080e75777ba5f9c2 (Buf creation and listification)
+      . commit af0d2e1d782f1172cf27cb64ad938b504c619dd1 (MapIter: for 1..1000000 { $i++ })
+      . commit 3bc839c00ee03491a7bf8c74923198779a8cc2bb (shiftpush: for 1..100000 { })
+      . commit 0a93f6e39eb970fa1e653b13695b97789ae4d03b (object creation; iterators)
+      . commit 77d4dc1d8ef5c746a5c597341ae1f5e89d66ca24 (attribute access)
+      . commit 80974191c53dae18bab4d5e60d5e17fd5413e886 (stripping trailing zeroes)
+      . commit f58331690e091784a113931d78166ceff908fe03 (scalar assignment: $a = $b)
+      . commit 437675e330460d0cf801d48a635c413d532e062f (Complex ops)
+      . commit 30f5cc9624b9b46ecbff88a2c234e5c9383e21ce (MapIter: map over a range)
   + Find weak points in core design
     - Iterative v. recursive v. memoized recursive v. sequence method of finding solution
       . Fibonacci sequence
