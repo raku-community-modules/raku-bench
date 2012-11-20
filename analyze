@@ -28,7 +28,7 @@ sub MAIN {
     # Process options
     my %opt;
     GetOptions(\%opt, 'help|h|?!', 'man!', 'format=s', 'style=s', 'outfile=s',
-                      'ignore-startup|ignore_startup|ignorestartup!')
+                      'ignore-startup|ignore_startup|ignorestartup!', 'compare!')
         or pod2usage(-verbose => 0);
     pod2usage(-verbose => 1) if $opt{help};
     pod2usage(-verbose => 2) if $opt{man};
@@ -54,16 +54,106 @@ sub MAIN {
         or die "Could not open outfile '$opt{outfile}': $!";
 
     # Analyze results
-    for my $timing_file (@ARGV) {
-        my $data       = load_timing_file($timing_file);
-        my $test_times = $data->{times};
-        my $time_type  = $opt{'ignore-startup'} ? 'cooked' : 'best';
-        for my $test (@$test_times) {
+    my $time_type = $opt{'ignore-startup'} ? 'cooked' : 'best';
+    my $analyze_timing_data = sub {
+        my $data = shift;
+
+        for my $test (@{$data->{times}}) {
             $test->{compare} = compare_times($test->{$time_type});
         }
 
         $formatter->($data, \%opt, $out_fh);
+    };
+
+    if ($opt{compare}) {
+        my $merged = merge_timing_files(@ARGV);
+        $analyze_timing_data->($merged);
     }
+    else {
+        for my $timing_file (@ARGV) {
+            my $data = load_timing_file($timing_file);
+            $analyze_timing_data->($data);
+        }
+    }
+}
+
+sub merge_timing_files {
+    my (%times, %compilers);
+    my (@test_order, @groups);
+    my (@start_times, @end_times, @versions);
+
+    for my $file (@_) {
+        my $basename = fileparse($file, qr/\.[^.]+$/);
+        my $data     = load_timing_file($file);
+
+        # Collect all values for lists that will be summarized
+        # (using min, max, or uniq) after all files are processed
+        push @groups,    @{$data->{config}{groups}};
+        push @versions,    $data->{run}{versions}{bench};
+        push @end_times,   $data->{run}{end_time};
+        push @start_times, $data->{run}{start_time};
+
+        # Merge compiler groups
+        my $compiler_groups = $data->{config}{compilers};
+        while (my ($group, $compilers) = each %$compiler_groups) {
+            for my $compiler (@$compilers) {
+                next unless $compiler->{enabled};
+                $compiler->{run} = $basename;
+                $compiler->{key} = "$compiler->{name}/$basename";
+                push @{$compilers{$group}}, $compiler;
+            }
+        }
+
+        # Merge test timings
+        for my $test (@{$data->{times}}) {
+            my $name = $test->{name};
+            push @test_order, $name;
+
+            my $merged = $times{$name} ||=
+                {
+                 name   => $name,
+                 conf   => $test->{conf},
+                 raw    => {},
+                 best   => {},
+                 cooked => {},
+                };
+
+            for my $compiler (keys %{$test->{best}}) {
+                my $key = "$compiler/$basename";
+                $merged->{$_}{$key} = $test->{$_}{$compiler} for qw( raw best cooked );
+            }
+        }
+    }
+
+    # Summarize collected lists
+    my $start_time = min  @start_times;
+    my $end_time   = max  @end_times;
+    @groups        = uniq @groups;
+    @versions      = uniq sort @versions;
+    @test_order    = uniq @test_order;
+
+    # Bad user, no biscuit!  But we'll still try ....
+    if (@versions > 1) {
+        print STDERR "WARNING: Comparing results from different benchmark versions:\n";
+        print STDERR "    $_\n" for @versions;
+    }
+
+    $compilers{$_} ||= [] for @groups;
+
+    my $merged = {
+                  config => {
+                             groups     => \@groups,
+                             compilers  => \%compilers,
+                            },
+                  run    => {
+                             start_time => $start_time,
+                             end_time   => $end_time,
+                             versions   => { bench => $versions[0] },
+                            },
+                  times  => [ map $times{$_}, @test_order ],
+                 };
+
+    return $merged;
 }
 
 sub load_timing_file {
@@ -132,10 +222,11 @@ sub summarize_results_text {
     my $compilers    = $data->{config}{compilers};
     my @perls        = map { @{$compilers->{$_}} } @$groups;
        @perls        = grep { $_->{enabled} } @perls;
+    my @run_names    = map { $_->{run} || '' } @perls;
     my @lang_names   = map { $_->{language} } @perls;
     my @comp_names   = map { $_->{compiler} } @perls;
     my @vm_names     = map { $_->{vm}       } @perls;
-    my $longest_perl = max 8, map { length } @lang_names, @comp_names, @vm_names;
+    my $longest_perl = max 8, map { length } @run_names, @lang_names, @comp_names, @vm_names;
 
     my $spacer_length = 3;
     my $spacer = ' ' x $spacer_length;
@@ -149,9 +240,11 @@ sub summarize_results_text {
     my $run    = $data->{run};
     my $start  = friendly_time($run->{start_time});
     my $ignore = $opt->{'ignore-startup'} ? ' (ignoring startup time)' : '';
-    my $output = "$CLEAR\n==> perl6-bench version $run->{versions}{bench} run at $start$ignore\n\n";
+    my $run_at = $opt->{compare} ? '' : " run at $start";
+    my $output = "$CLEAR\n==> perl6-bench version $run->{versions}{bench}$run_at$ignore\n\n";
 
     $output .= join($spacer => ' ' x $longest_test, @lang_titles) . "\n";
+    $output .= sprintf "$format\n", '',     @run_names if grep {length} @run_names;
     $output .= sprintf "$format\n", '',     @comp_names;
     $output .= sprintf "$format\n", 'TEST', @vm_names;
 
@@ -159,8 +252,8 @@ sub summarize_results_text {
     for my $test (@$times) {
         $output .= sprintf "%-${longest_test}s", $test->{name};
         for my $perl (@perls) {
-            my $name = $perl->{name};
-            my $best = $test->{$time_type}{$name};
+            my $key  = $perl->{key} || $perl->{name};
+            my $best = $test->{$time_type}{$key};
             if (defined $best) {
                 $output .= sprintf "$spacer%${longest_perl}.3fs", $best;
             }
@@ -172,8 +265,8 @@ sub summarize_results_text {
 
         $output .= sprintf "%-${longest_test}s", '';
         for my $perl (@perls) {
-            my $name = $perl->{name};
-            my $rel  = $test->{compare}{$name};
+            my $key = $perl->{key} || $perl->{name};
+            my $rel = $test->{compare}{$key};
             if (defined $rel) {
                 my $color = $rel <  2 ? $GREEN  :
                             $rel < 10 ? $YELLOW :
@@ -181,7 +274,8 @@ sub summarize_results_text {
                 $output .= sprintf "$spacer$color%${longest_perl}.3fx$CLEAR", $rel;
             }
             else {
-                my $is_skip = grep { $_ eq $name } @{$test->{conf}{skip} || []};
+                # XXXX: May have to make this based on key instead of name
+                my $is_skip = grep { $_ eq $perl->{name} } @{$test->{conf}{skip} || []};
                 $output .= sprintf "$spacer$RED%${longest_perl}s $CLEAR",
                        $is_skip ? 'SKIP' : 'FAIL';
             }
@@ -246,6 +340,7 @@ sub summarize_results_html_snippet {
 .bench_ver             { font-family: monospace;  }
 .bench_start_time      { font-family: monospace;  }
 .bench_language        { text-align: center; border-bottom: 1px solid #999; border-left: .4em solid #fff; border-right: .4em solid #fff; }
+.bench_run             { text-align: center; padding-top: .1em; }
 .bench_compiler        { text-align: center; padding-top: .1em; }
 .bench_vm              { text-align: center; padding-top: .1em; }
 .bench_time_row    td  { padding-top: .2em; padding-bottom: 0; }
@@ -268,6 +363,7 @@ CSS
     my $compilers    = $data->{config}{compilers};
     my @perls        = map { @{$compilers->{$_}} } @$groups;
        @perls        = grep { $_->{enabled} } @perls;
+    my @run_names    = map { $_->{run} || '' } @perls;
     my @lang_names   = map { $_->{language} } @perls;
     my @comp_names   = map { $_->{compiler} } @perls;
     my @vm_names     = map { $_->{vm}       } @perls;
@@ -278,9 +374,11 @@ CSS
 
     my $run    = $data->{run};
     my $ignore = $opt->{'ignore-startup'} ? ' (ignoring startup time)' : '';
+    my $run_at = $opt->{compare} ? '' : qq{ run at <span class="bench_start_time">} . friendly_time($run->{start_time}) . qq{</span>};
     $html .= qq{<table class="bench_summary" cellspacing="0" cellpadding="0">\n};
-    $html .= qq{<caption>perl6-bench version <span class="bench_ver">$run->{versions}{bench}</span> run at <span class="bench_start_time">} . friendly_time($run->{start_time}) . qq{</span>$ignore</caption>\n};
+    $html .= qq{<caption>perl6-bench version <span class="bench_ver">$run->{versions}{bench}</span>$run_at$ignore</caption>\n};
     $html .= "<tr><th></th>\n"     . join('' => map qq{    <th class="bench_language" colspan="$lang_count{$_}">$_</th>\n} => @langs) . "</tr>\n";
+    $html .= "<tr><th></th>\n"     . join('' => map qq{    <th class="bench_run">$_</th>\n} => @run_names) . "</tr>\n" if grep {length} @run_names;
     $html .= "<tr><th></th>\n"     . join('' => map qq{    <th class="bench_compiler">$_</th>\n} => @comp_names) . "</tr>\n";
     $html .= "<tr><th>TEST</th>\n" . join('' => map qq{    <th class="bench_vm">$_</th>\n} => @vm_names) . "</tr>\n";
 
@@ -288,8 +386,8 @@ CSS
     for my $test (@$times) {
         $html .= qq{<tr class="bench_time_row"><td>$test->{name}</td>\n};
         for my $perl (@perls) {
-            my $name = $perl->{name};
-            my $best = $test->{$time_type}{$name};
+            my $key  = $perl->{key} || $perl->{name};
+            my $best = $test->{$time_type}{$key};
             if (defined $best) {
                 $html .= sprintf qq{    <td class="bench_time">%.3fs</td>\n}, $best;
             }
@@ -301,8 +399,8 @@ CSS
 
         $html .= qq{<tr class="bench_compare_row"><td></td>\n};
         for my $perl (@perls) {
-            my $name = $perl->{name};
-            my $rel  = $test->{compare}{$name};
+            my $key = $perl->{key} || $perl->{name};
+            my $rel = $test->{compare}{$key};
             if (defined $rel) {
                 my $class = $rel <  2 ? 'bench_good' :
                             $rel < 10 ? 'bench_bad'  :
@@ -310,7 +408,8 @@ CSS
                 $html .= sprintf qq{    <td class="$class">%.3fx</td>\n}, $rel;
             }
             else {
-                my $is_skip = grep { $_ eq $name } @{$test->{conf}{skip} || []};
+                # XXXX: May have to make this based on key instead of name
+                my $is_skip = grep { $_ eq $perl->{name} } @{$test->{conf}{skip} || []};
                 my $class   = $is_skip ? 'bench_skip' : 'bench_fail';
                 my $message = $is_skip ? 'SKIP'       : 'FAIL';
                 $html .= qq{    <td class="$class">$message</td>\n};
@@ -343,7 +442,7 @@ analyze -- Analyze benchmark data produced by timeall
 
     analyze [--help|-h|-?] [--man] [--format=text|json|html|html_snippet]
             [--style=0|1|auto] [--outfile=path/to/file.ext] [--ignore-startup]
-            path/to/timing_file.json
+            [--compare] path/to/timing_file.json [path/to/second_timing_file.json ...]
 
 
 =head1 DESCRIPTION
@@ -399,6 +498,11 @@ lowercased extension (F<ext> in F<path/to/file.ext>) of the C<--outfile>.
 
 Ignore (subtract out) the startup time of the compiler from each benchmark
 result, so that runtime performance can be compared more directly.
+
+=item --compare
+
+When processing multiple timing files, compare times across all timing files
+at once, rather than analyzing each timing file individually.
 
 =back
 
