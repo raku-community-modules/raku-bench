@@ -187,16 +187,28 @@ my %TESTS = (
                     nqp   => 'say("Hello, World!")',
                    },
                    {
-                    name  => 'empty_loop_1e5',
-                    perl5 => '1 for 1 .. 100000',
-                    perl6 => '1 for 1 .. 100000',
-                    nqp   => 'my $i := 1; while $i <= 100000 { $i := $i + 1; 1 }',
+                    name  => 'empty_while_1e5',
+                    perl5 => 'my $i = 1; while (++$i <= 100000) { }',
+                    perl6 => 'my $i = 1; while (++$i <= 100000) { }',
+                    nqp   => 'my $i := 1; while ($i := $i + 1) <= 100000 { }',
                    },
                    {
-                    name  => 'empty_loop_1e6',
-                    perl5 => '1 for 1 .. 1000000',
-                    perl6 => '1 for 1 .. 1000000',
-                    nqp   => 'my $i := 1; while $i <= 1000000 { $i := $i + 1; 1 }',
+                    name  => 'empty_while_1e6',
+                    perl5 => 'my $i = 1; while (++$i <= 1000000) { }',
+                    perl6 => 'my $i = 1; while (++$i <= 1000000) { }',
+                    nqp   => 'my $i := 1; while ($i := $i + 1) <= 1000000 { }',
+                   },
+                   {
+                    name  => 'for_concat_1e5',
+                    perl5 => 'my $s = ""; for (1 .. 100000) { $s .= "x" }',
+                    perl6 => 'my $s = ""; for (1 .. 100000) { $s ~= "x" }',
+                    nqp   => undef,
+                   },
+                   {
+                    name  => 'for_push_1e3',
+                    perl5 => 'my @a; for (1 .. 1000) { push @a, 1 }',
+                    perl6 => 'my @a; for (1 .. 1000) { push @a, 1 }',
+                    nqp   => undef,
                    },
                   ],
              f => [
@@ -355,7 +367,7 @@ sub time_group {
         my $dir  = $perl->{dir} || 'BENCH';
         my $comp = $perl->{"${test_type}_compile"} || [];
         my $run  = $perl->{"${test_type}_run"};
-        my $args = $opt->{$group_name};
+        my $args = $opt->{$group_name} // next;
         my @args = ref $args ? @$args : ($args);
 
         s/\bBENCH\b/$FindBin::Bin/g for $dir, @$comp, @$run, @args;
