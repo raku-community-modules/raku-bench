@@ -265,9 +265,9 @@ sub MAIN {
     my (@results, $startup);
 
     eval {
-	say "Measuring startup times ...";
-	my $times = time_all_compilers(e => %{$TESTS{e}[0]});
-	$startup  = best_times($times);
+        say "Measuring startup times ...";
+        my $times = time_all_compilers(e => %{$TESTS{e}[0]});
+        $startup  = best_times($times);
 
         for my $test_type (sort keys %TESTS) {
             run_tests($test_type, $TESTS{$test_type}, \@results, $startup);
@@ -280,7 +280,7 @@ sub MAIN {
     # Output results
     $formatter->(\%config, \%run, \@results, $out_fh);
     say "Benchmark data written to '$opt{outfile}'."
-	if $opt{outfile} ne '-';
+        if $opt{outfile} ne '-';
 }
 
 sub detect_versions {
