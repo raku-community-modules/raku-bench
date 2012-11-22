@@ -86,7 +86,6 @@ my %COMPILERS = (
                             language  => 'Perl 6',
                             compiler  => 'rakudo',
                             vm        => 'parrot',
-                            dir       => 'BENCH/../rakudo',
                             f_run     => [qw( install/bin/perl6    )],
                             e_run     => [qw( install/bin/perl6 -e )],
                             show_ver  => [qw( install/bin/perl6 --version )],
@@ -147,7 +146,6 @@ my %COMPILERS = (
                             language  => 'NQP',
                             compiler  => 'rakudo',
                             vm        => 'parrot',
-                            dir       => 'BENCH/../rakudo',
                             f_run     => [qw( install/bin/perl6    )],
                             e_run     => [qw( install/bin/perl6 -e )],
                             show_ver  => [qw( install/bin/perl6 --version )],
@@ -224,6 +222,7 @@ my %TESTS = (
 my %FORMATTER = (
                  json         => \&summarize_results_json,
                 );
+my $START_CWD = cwd;
 
 
 MAIN();
@@ -305,7 +304,7 @@ sub detect_versions {
         for my $compiler (@{$COMPILERS{$group}}) {
             next unless $compiler->{enabled};
 
-            my $dir = $compiler->{dir} || 'BENCH';
+            my $dir = $compiler->{dir} || $START_CWD;
             my @cmd = @{$compiler->{show_ver}};
             s/\bBENCH\b/$FindBin::Bin/g for $dir, @cmd;
 
@@ -364,7 +363,7 @@ sub time_group {
         my $name = $perl->{name};
         next if grep { $_ eq $name } @{$opt->{skip} || []};
 
-        my $dir  = $perl->{dir} || 'BENCH';
+        my $dir  = $perl->{dir} || $START_CWD;
         my $comp = $perl->{"${test_type}_compile"} || [];
         my $run  = $perl->{"${test_type}_run"};
         my $args = $opt->{$group_name} // next;
