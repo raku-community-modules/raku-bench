@@ -208,6 +208,30 @@ my %TESTS = (
                     perl6 => 'my @a; for (1 .. 1000) { push @a, 1 }',
                     nqp   => undef,
                    },
+                   {
+                    name  => 'for_array_set_1e4',
+                    perl5 => 'my @a; $a[ $_ ] = $_ for 1 .. 10000',
+                    perl6 => 'my @a; @a[ $_ ] = $_ for 1 .. 10000',
+                    nqp   => undef,
+                   },
+                   {
+                    name  => 'for_hash_set_1e4',
+                    perl5 => 'my %h; $h{ $_ } = $_ for 1 .. 10000',
+                    perl6 => 'my %h; %h{ $_ } = $_ for 1 .. 10000',
+                    nqp   => undef,
+                   },
+                   {
+                    name  => 'reduce_range_1e5',
+                    perl5 => 'use List::Util "reduce"; reduce { $a + $b } 1 .. 100000',
+                    perl6 => '[+] 1 .. 100000',
+                    nqp   => undef,
+                   },
+                   {
+                    name  => 'trim_string_1e3',
+                    perl5 => 'my $s = " " x 1000 . "x" x 1000 . " " x 1000; /^\s*(.*?)\s*$/s for 1 .. 1000',
+                    perl6 => 'my $s = " " x 1000 ~ "x" x 1000 ~ " " x 1000; $s.trim for 1 .. 1000',
+                    nqp   => undef,
+                   },
                   ],
              f => [
                    {
