@@ -250,6 +250,7 @@ sub summarize_results_text {
 
     my $time_type = $opt->{'ignore-startup'} ? 'cooked' : 'best';
     for my $test (@$times) {
+        $output .= "\n" unless $style;
         $output .= sprintf "%-${longest_test}s", $test->{name};
         for my $perl (@perls) {
             my $key  = $perl->{key} || $perl->{name};
