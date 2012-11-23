@@ -67,7 +67,7 @@ multi MAIN ('fetch', *@components) {
         }
 
         %*ENV<GIT_DIR> = $bare;
-        run < git fetch >;
+        run < git fetch -t >;
     }
 }
 
