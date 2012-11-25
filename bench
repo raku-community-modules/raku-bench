@@ -107,7 +107,7 @@ multi MAIN ('extract', *@components) {
             my $tag_regex = $comp<info><release_tags>;
             next unless $tag_regex;
 
-            @tags = grep / <{ $tag_regex }> /, $tag-list.lines;
+            @tags = grep / <{ $tag_regex }> /, @all-tags;
         }
 
         # Work around Rakudo bug #115390 by splitting into two loops
