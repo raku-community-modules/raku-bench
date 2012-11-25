@@ -4,6 +4,7 @@
         "repo_url":     "git://github.com/sorear/niecza.git",
         "release_tags": "^v\\d+$",
         "build_steps":  [
+            [ "make", "realclean" ],
             [ "make" ]
         ]
     },
