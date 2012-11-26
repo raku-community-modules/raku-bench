@@ -220,8 +220,7 @@ sub summarize_results_text {
 
     my $groups       = $data->{config}{groups};
     my $compilers    = $data->{config}{compilers};
-    my @perls        = map { @{$compilers->{$_}} } @$groups;
-       @perls        = grep { $_->{enabled} } @perls;
+    my @perls        = enabled_perls($groups, $compilers);
     my @run_names    = map { $_->{run} || '' } @perls;
     my @lang_names   = map { $_->{language} } @perls;
     my @comp_names   = map { $_->{compiler} } @perls;
@@ -276,7 +275,8 @@ sub summarize_results_text {
             }
             else {
                 # XXXX: May have to make this based on key instead of name
-                my $is_skip = grep { $_ eq $perl->{name} } @{$test->{conf}{skip} || []};
+                my $is_skip = !defined $test->{conf}{$perl->{group}}
+                            || grep { $_ eq $perl->{name} } @{$test->{conf}{skip} || []};
                 $output .= sprintf "$spacer$RED%${longest_perl}s $CLEAR",
                        $is_skip ? 'SKIP' : 'FAIL';
             }
@@ -362,8 +362,8 @@ CSS
     my @test_names   = map { $_->{name} } @$times;
     my $groups       = $data->{config}{groups};
     my $compilers    = $data->{config}{compilers};
-    my @perls        = map { @{$compilers->{$_}} } @$groups;
-       @perls        = grep { $_->{enabled} } @perls;
+
+    my @perls        = enabled_perls($groups, $compilers);
     my @run_names    = map { $_->{run} || '' } @perls;
     my @lang_names   = map { $_->{language} } @perls;
     my @comp_names   = map { $_->{compiler} } @perls;
@@ -410,7 +410,8 @@ CSS
             }
             else {
                 # XXXX: May have to make this based on key instead of name
-                my $is_skip = grep { $_ eq $perl->{name} } @{$test->{conf}{skip} || []};
+                my $is_skip = !defined $test->{conf}{$perl->{group}}
+                            || grep { $_ eq $perl->{name} } @{$test->{conf}{skip} || []};
                 my $class   = $is_skip ? 'bench_skip' : 'bench_fail';
                 my $message = $is_skip ? 'SKIP'       : 'FAIL';
                 $html .= qq{    <td class="$class">$message</td>\n};
@@ -421,6 +422,21 @@ CSS
     $html .= "</table>\n";
 
     print $out_fh $html;
+}
+
+sub enabled_perls {
+    my ($groups, $compilers) = @_;
+
+    my @perls;
+    for my $group (@$groups) {
+        for my $perl (@{$compilers->{$group}}) {
+            next unless $perl->{enabled};
+            $perl->{group} = $group;
+            push @perls, $perl;
+        }
+    }
+
+    return @perls;
 }
 
 sub friendly_time {
