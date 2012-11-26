@@ -177,7 +177,7 @@ sub compare_times {
                         grep { defined $times->{$_} } keys %$times;
 
     my $min_time = 1e-3;
-    my $shortest = $times->{$sorted[0]};
+    my $shortest = $times->{$sorted[0] || ''} || $min_time;
        $shortest = $min_time unless $shortest > $min_time;
 
     for my $perl (@sorted) {
