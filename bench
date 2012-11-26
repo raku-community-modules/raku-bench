@@ -260,7 +260,7 @@ sub explode-components (@component-specs, :$chdir = True, :$default-to-dirs = Tr
         else {
             my $bare   = "$component.git";
             @checkouts = dir("$COMPONENTS_DIR/$component",
-                            test => none('.', '..', $bare)).sort;
+                            test => none('.', '..', $bare)).map(*.Str).sort;
         }
 
         if @exploded.first(*.<info><name> eq $component) -> $comp {
