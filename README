@@ -1,21 +1,26 @@
 perl6-bench: A tool to benchmark and compare implementations of Perl family languages
 
-This is a VERY EARLY RELEASE, and represents concept-as-code.  No attempt has
-been made to bulletproof the tool.  Run as:
+This is an EARLY RELEASE, and no attempt has been made to bulletproof the tools.
+A sample sequence for building, benchmarking, and comparing a few compilers is
+as follows:
 
-    ./timeall --outfile=times.json
-    ./analyze times.json
+    ./bench setup
+    ./bench extract nqp niecza rakudo
+    ./bench build nqp/2012.11 rakudo/2012.11 niecza/v22
+    ./bench time nqp/2012.11 rakudo/2012.11 niecza/v22
+    ./bench analyze --compare results/*/*.json
 
 You will need at least perl5 5.10.x, and you may need to have some extra
 items in your PATH, such as a recent version of mono-sgen for Niecza and
 node/d8 for Perlito*/JS.  YMMV.
 
-Paths to the proper working directory for each compiler (usually the root
-directory of its Git checkout) can be set in the %COMPILERS hash at the top
-of the timeall script.  The default directories are assumed to be parallel
-checkouts at the same directory level as the perl6-bench checkout.  For
-example, Perlito's directory is assumed to be ../Perlito/ relative to the
-bench directory.
+Paths to the proper working directory of compilers not yet handled by the
+"./bench extract" mechanism can be set in the %COMPILERS hash at the top
+of the timeall script.  The default directories are assumed to be created
+by extract, or in parallel checkouts at the same directory level as the
+perl6-bench checkout.  For example, Perlito's directory is currently assumed
+to be ../Perlito/ relative to the bench directory; eventually it will be
+clonable and extractable in the same way as nqp, niecza, and rakudo.
 
 Compilers tested so far:
 
