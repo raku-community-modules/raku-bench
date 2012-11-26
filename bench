@@ -99,6 +99,7 @@ multi MAIN ('extract', *@components) {
             # User specified list of revs to extract
             for $comp<checkouts>.list {
                 when any(@all-tags) { push @revs, $_ }
+                when so run(< git rev-parse -q --verify --no-revs >, $_) { push @revs, $_ }
                 default  { $*ERR.say: "No such rev '$_'" }
             }
         }
