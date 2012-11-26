@@ -33,8 +33,8 @@ multi MAIN ('config') {
 #= Prepare for mass benchmarking
 multi MAIN ('setup') {
     say 'Creating directories ...';
-    mkdir 'components' unless 'components'.IO.d;
-    mkdir 'results'    unless 'results'.IO.d;
+    mkdir 'components' unless 'components'.path.d;
+    mkdir 'results'    unless 'results'.path.d;
 
     say 'Cloning component repos ...';
     for $COMPONENTS.values -> $component {
@@ -42,14 +42,14 @@ multi MAIN ('setup') {
         say "==> $name";
 
         chdir $COMPONENTS_DIR;
-        mkdir $name unless $name.IO.d;
+        mkdir $name unless $name.path.d;
         chdir $name;
 
         my $repo = $component<repo_url>;
         my $bare = "$name.git";
-        say "----> Already cloned." if $bare.IO.d && $name.IO.d;
-        run < git clone --bare >, $repo, $bare unless $bare.IO.d;
-        run < git clone -l     >, $bare, $name unless $name.IO.d;
+        say "----> Already cloned." if $bare.path.d && $name.path.d;
+        run < git clone --bare >, $repo, $bare unless $bare.path.d;
+        run < git clone -l     >, $bare, $name unless $name.path.d;
     }
 
     say 'Setup complete.';
@@ -61,7 +61,7 @@ multi MAIN ('fetch', *@components) {
 
     for-components @components, -> $comp, $name {
         my $bare = "$name/$name.git";
-        unless $bare.IO.d {
+        unless $bare.path.d {
             say "No bare repository exists for component $name; can't fetch updates.";
             next;
         }
@@ -82,7 +82,7 @@ multi MAIN ('extract', *@components) {
         chdir "$COMPONENTS_DIR/$name";
 
         my $bare = "$name.git";
-        unless $bare.IO.d {
+        unless $bare.path.d {
             say "No bare repository exists for component $name; can't extract releases.";
             next;
         }
@@ -112,14 +112,14 @@ multi MAIN ('extract', *@components) {
 
         # Work around Rakudo bug #115390 by splitting into two loops
         for @revs -> $rev {
-            if $rev.IO.d {
+            if $rev.path.d {
                 say "$rev already cloned.";
                 next;
             }
             run < git clone -l >, $bare, $rev;
         }
         for @revs -> $rev {
-            unless $rev.IO.d {
+            unless $rev.path.d {
                 $*ERR.say: "Unable to extract release '$rev'.";
                 next;
             }
@@ -159,7 +159,7 @@ multi MAIN ('time', *@components) {
 
 #= Clean up build trees in components/, keeping bare clones by default
 multi MAIN ('clean', *@components) {
-    unless $COMPONENTS_DIR.IO.d {
+    unless $COMPONENTS_DIR.path.d {
         say "No 'components' tree exists, so there is nothing to clean.";
         exit;
     }
@@ -203,7 +203,7 @@ multi MAIN ('analyze', *@options_and_files) {
 
 #= Check whether 'setup' command has been run and bail out if not
 sub needs-setup ($action) {
-    unless $COMPONENTS_DIR.IO.d {
+    unless $COMPONENTS_DIR.path.d {
         say "There is no 'components' tree, and thus there are no repos to $action.";
         say "Please run `$*PROGRAM_NAME setup`.";
         exit 1;
@@ -212,7 +212,7 @@ sub needs-setup ($action) {
 
 #= Simulate the behavior of `git clean -dxf`
 sub rmtree ($dir, :$noisy = True) {
-    return unless $dir.IO.d;
+    return unless $dir.path.d;
     say "Removing $dir" if $noisy;
     rm_rf $dir;
 }
