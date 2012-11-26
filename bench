@@ -94,12 +94,12 @@ multi MAIN ('extract', *@components) {
         $tag-list.close;
         %*ENV.delete('GIT_DIR');
 
-        my @tags;
+        my @revs;
         if $comp<checkouts> {
-            # User specified list of tags to extract
+            # User specified list of revs to extract
             for $comp<checkouts>.list {
-                when any(@all-tags) { push @tags, $_ }
-                default  { $*ERR.say: "No such tag '$_'" }
+                when any(@all-tags) { push @revs, $_ }
+                default  { $*ERR.say: "No such rev '$_'" }
             }
         }
         else {
@@ -107,24 +107,24 @@ multi MAIN ('extract', *@components) {
             my $tag_regex = $comp<info><release_tags>;
             next unless $tag_regex;
 
-            @tags = grep / <{ $tag_regex }> /, @all-tags;
+            @revs = grep / <{ $tag_regex }> /, @all-tags;
         }
 
         # Work around Rakudo bug #115390 by splitting into two loops
-        for @tags -> $tag {
-            if $tag.IO.d {
-                say "$tag already cloned.";
+        for @revs -> $rev {
+            if $rev.IO.d {
+                say "$rev already cloned.";
                 next;
             }
-            run < git clone -l >, $bare, $tag;
+            run < git clone -l >, $bare, $rev;
         }
-        for @tags -> $tag {
-            unless $tag.IO.d {
-                $*ERR.say: "Unable to extract release '$tag'.";
+        for @revs -> $rev {
+            unless $rev.IO.d {
+                $*ERR.say: "Unable to extract release '$rev'.";
                 next;
             }
-            chdir $tag; LEAVE chdir '..';
-            run < git checkout -q >, $tag;   # > -- Dang syntax highlighting
+            chdir $rev; LEAVE chdir '..';
+            run < git checkout -q >, $rev;   # > -- Dang syntax highlighting
         }
     }
 }
