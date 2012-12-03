@@ -137,6 +137,8 @@ multi MAIN ('extract', *@components) {
         }
         for @revs -> $rev {
             next unless $rev.path.d;
+            next if $rev eq any(@all-tags);
+
             chdir $rev; LEAVE chdir '..';
             run < git pull >;
         }
