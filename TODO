@@ -26,7 +26,9 @@
     - Run only tests in tag
 * More tests!
   + diakopter++'s ideas:
-    - Add a push-then-join test to go with the push and concat tests
+    - Push-then-join to contrast with the separate push and concat tests
+    - String split using fixed string
+    - String split using regex
     - Closure creation/invocation
     - Argument passing, for different numbers of arguments
     - Lexical/dynamic lookup, with varying depth
