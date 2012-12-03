@@ -1,6 +1,3 @@
-* Hot list
-  + Investigate sorear rakudo concat performance question:
-    - $acc ~= ($x ~ $y) where $x and $y are loop-invariant but not "constant"s
 * Features
   + Documentation
     - WIP: manpage/usage

@@ -267,6 +267,12 @@ my %TESTS = (
                     nqp   => undef,
                    },
                    {
+                    name  => 'for_concat_2_1e5',
+                    perl5 => 'my $x = "a"; my $y = ""; for (1 .. 100000) { $y .= ($x . $x) }',
+                    perl6 => 'my $x = "a"; my $y = ""; for (1 .. 100000) { $y ~= ($x ~ $x) }',
+                    nqp   => undef,
+                   },
+                   {
                     name  => 'for_push_1e3',
                     perl5 => 'my @a; for (1 .. 1000) { push @a, 1 }',
                     perl6 => 'my @a; for (1 .. 1000) { push @a, 1 }',
