@@ -1,3 +1,6 @@
+* Top tasks
+  + Bring forward existing JS-targeting compilers to new component framework
+  + Add pmurias' nqp-js and rakudo-js compilers
 * Features
   + Documentation
     - WIP: manpage/usage
