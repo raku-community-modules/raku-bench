@@ -175,7 +175,7 @@ multi MAIN ('realclean', Bool :$force) {
     unless $force {
         print q:to/NEED_FORCE/;  # : -- Dang syntax highlighting
             Are you sure?
-            
+
             This command will wipe your benchmarking tree clean, destroying any builds,
             cloned components, and benchmark results in the process.  You will need
             to use the --force option if you really want to do this.
