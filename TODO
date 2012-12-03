@@ -34,6 +34,7 @@
     - Lexical/dynamic lookup, with varying depth
     - Raw object (bare class) creation, both new anon class, and new on existing class
     - Object creation in class with attributes
+    - Attribute set/get, including native types where available
     - Single Unicode property lookup in a regex a bunch of times
     - Multiple Unicode property lookup in a regex a bunch of times
     - Multimethod dispatch
