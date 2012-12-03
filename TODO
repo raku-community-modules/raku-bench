@@ -2,7 +2,6 @@
   + Bring forward existing JS-targeting compilers to new component framework
   + Add pmurias' nqp-js and rakudo-js compilers
   + Bring back the ability to test Perl 6 compilers against NQP code (jnthn++)
-  + Add a push-then-join test to go with the push and concat tests (diakopter++)
 * Features
   + Documentation
     - WIP: manpage/usage
@@ -22,8 +21,22 @@
   + Output version of each compiler (plus platform summary) from analyze
   + Group tests and total by group in summaries
     - trivial, simulation, parsing, ...
-  + Tag tests and query/total by tag?
+  + Tag tests:
+    - Query/total by tag
+    - Run only tests in tag
 * More tests!
+  + diakopter++'s ideas:
+    - Add a push-then-join test to go with the push and concat tests
+    - Closure creation/invocation
+    - Argument passing, for different numbers of arguments
+    - Lexical/dynamic lookup, with varying depth
+    - Raw object (bare class) creation, both new anon class, and new on existing class
+    - Object creation in class with attributes
+    - Single Unicode property lookup in a regex a bunch of times
+    - Multiple Unicode property lookup in a regex a bunch of times
+    - Multimethod dispatch
+    - Multisub dispatch
+    - Man-or-boy 1..20
   + Known performance changes
     - Rakudo
       . commit 1d4eb481ef5dc4e772042c896cda4a5b7b510d0c (unary hypers)
