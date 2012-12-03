@@ -99,7 +99,6 @@ multi MAIN ('extract', *@components) {
         my $tag-list = open 'git tag', :p;
         my @all-tags = $tag-list.lines;
         $tag-list.close;
-        %*ENV.delete('GIT_DIR');
 
         my @revs;
         if $comp<checkouts> {
@@ -117,6 +116,8 @@ multi MAIN ('extract', *@components) {
 
             @revs = grep / <{ $tag_regex }> /, @all-tags;
         }
+
+        %*ENV.delete('GIT_DIR');
 
         # Work around Rakudo bug #115390 by splitting into multiple loops
         for @revs -> $rev {
