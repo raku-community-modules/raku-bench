@@ -48,7 +48,7 @@ multi MAIN ('setup') {
         my $repo = $component<repo_url>;
         my $bare = "$name.git";
         say "----> Already cloned." if $bare.path.d && $name.path.d;
-        run < git clone --bare >, $repo, $bare unless $bare.path.d;
+        run < git clone --mirror >, $repo, $bare unless $bare.path.d;
         run < git clone -l     >, $bare, $name unless $name.path.d;
     }
 
