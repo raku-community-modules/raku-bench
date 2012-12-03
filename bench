@@ -60,14 +60,21 @@ multi MAIN ('fetch', *@components) {
     needs-setup('fetch');
 
     for-components @components, -> $comp, $name {
-        my $bare = "$name/$name.git";
-        unless $bare.path.d {
+        my $comp_dir = "$COMPONENTS_DIR/$name";
+        my $bare     = "$name.git";
+
+        unless "$comp_dir/$bare".path.d {
             say "No bare repository exists for component $name; can't fetch updates.";
             next;
         }
 
-        %*ENV<GIT_DIR> = $bare;
-        run < git fetch -t >;
+        for $bare, $comp<checkouts>.list -> $dir {
+            my $path = "$comp_dir/$dir";
+            next unless $path.path.d;
+
+            chdir $path;
+            run < git fetch >, $_ for < -t -u >;
+        }
     }
 }
 
@@ -111,7 +118,7 @@ multi MAIN ('extract', *@components) {
             @revs = grep / <{ $tag_regex }> /, @all-tags;
         }
 
-        # Work around Rakudo bug #115390 by splitting into two loops
+        # Work around Rakudo bug #115390 by splitting into multiple loops
         for @revs -> $rev {
             if $rev.path.d {
                 say "$rev already cloned.";
@@ -126,6 +133,11 @@ multi MAIN ('extract', *@components) {
             }
             chdir $rev; LEAVE chdir '..';
             run < git checkout -q >, $rev;   # > -- Dang syntax highlighting
+        }
+        for @revs -> $rev {
+            next unless $rev.path.d;
+            chdir $rev; LEAVE chdir '..';
+            run < git pull >;
         }
     }
 }
