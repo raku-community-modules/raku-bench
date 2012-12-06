@@ -21,7 +21,7 @@ use Cwd;
 
 
 my %DEFAULT = (
-               TEST_COUNT => 2,
+               TEST_RUNS => 2,
               );
 my @GROUPS    = qw( perl5 nqp perl6 );
 my %VM        = (
@@ -185,7 +185,7 @@ sub MAIN {
     # Process options
     my %opt;
     GetOptions(\%opt, 'help|h|?!', 'man!', 'list-variants!', 'list-tests!',
-                      'format=s', 'outfile=s', 'tests=s')
+                      'runs=i', 'format=s', 'outfile=s', 'tests=s')
         or pod2usage(-verbose => 0);
     pod2usage(-verbose => 1) if $opt{help};
     pod2usage(-verbose => 2) if $opt{man};
@@ -245,14 +245,15 @@ sub MAIN {
 
     # Run tests
     my (@results, $startup);
+    my $runs = $opt{runs} || $DEFAULT{TEST_RUNS};
 
     eval {
         say "Measuring startup times ...";
-        my $times = time_all_compilers(e => %$empty_test);
+        my $times = time_all_compilers($runs, e => %$empty_test);
         $startup  = best_times($times);
 
         for my $test_type (sort keys %TESTS) {
-            run_tests($test_type, $TESTS{$test_type}, \@results, $startup);
+            run_tests($test_type, $TESTS{$test_type}, \@results, $startup, $runs);
         }
     };
     warn "\n$@\n" if $@;
@@ -318,12 +319,12 @@ sub detect_versions {
 }
 
 sub run_tests {
-    my ($test_type, $tests, $results, $startup) = @_;
+    my ($test_type, $tests, $results, $startup, $runs) = @_;
 
     for my $test (@$tests) {
         my $name  = $test->{name};
         say "Testing $name ...";
-        my $raw_times = time_all_compilers($test_type => %$test);
+        my $raw_times = time_all_compilers($runs, $test_type => %$test);
         my $best      = best_times($raw_times);
         my $cooked    = subtract_times($best, $startup);
         push @$results, {
@@ -337,18 +338,18 @@ sub run_tests {
 }
 
 sub time_all_compilers {
-    my ($test_type, %opt) = @_;
+    my ($runs, $test_type, %opt) = @_;
     my %times;
 
     for my $group (@GROUPS) {
-        time_group($group, $test_type, $COMPILERS{$group}, \%times, \%opt);
+        time_group($runs, $group, $test_type, $COMPILERS{$group}, \%times, \%opt);
     }
 
     return \%times;
 }
 
 sub time_group {
-    my ($group_name, $test_type, $group_perls, $times, $opt) = @_;
+    my ($runs, $group_name, $test_type, $group_perls, $times, $opt) = @_;
 
     my $cwd = cwd;
 
@@ -377,7 +378,7 @@ sub time_group {
             chdir $dir or die "Could not change to $name directory '$dir': $!";
         }
 
-        $times->{$name} = time_command(\@compile, \@run, $opt->{count});
+        $times->{$name} = time_command(\@compile, \@run, $runs);
     }
 
     chdir $cwd;
@@ -385,7 +386,6 @@ sub time_group {
 
 sub time_command {
     my ($compile, $run, $count) = @_;
-    $count ||= $DEFAULT{TEST_COUNT};
 
     my (@times, $status);
     for my $i (1 .. $count) {
@@ -488,7 +488,8 @@ timeall -- Benchmark Perl-family compilers against each other
 =head1 SYNOPSIS
 
     timeall [--help|-h|-?] [--man] [--list-variants] [--list-tests]
-    timeall [--format=json] [--outfile=path/to/file.ext] [--tests=list,of,tests] [<enabled compiler variants>]
+    timeall [--runs=2] [--format=json] [--outfile=path/to/file.ext]
+            [--tests=list,of,tests] [<enabled compiler variants>]
 
 =head1 DESCRIPTION
 
@@ -549,6 +550,16 @@ List all known compiler variants
 =item --list-tests
 
 List all known tests
+
+=item --runs=2
+
+Set the number of times each test will be run using each compiler variant.
+The benchmark code uses the best recorded time across all runs for each test
+and compiler combination, so increasing the run count helps to avoid fluke
+measurements and the effects of random background processes, but rapidly
+reaches diminishing returns.  Many times it's more effective to just turn off
+as many background processes (such as email clients) as possible while
+benchmarking.
 
 =item --format=json
 
