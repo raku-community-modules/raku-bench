@@ -1,7 +1,6 @@
 * Top tasks
   + Bring forward existing JS-targeting compilers to new component framework
   + Add pmurias' nqp-js and rakudo-js compilers
-  + Import benchmarks from github:perl6/bench-scripts
 * Features
   + Documentation
     - WIP: manpage/usage
@@ -24,6 +23,16 @@
     - Query/total by tag
     - Run only tests in tag
 * More tests!
+  + Import benchmarks from github:perl6/bench-scripts
+    - non-str-comb.pl
+    - pick-words.pl        # Needs support for data/
+    - pascals_triangle.p6
+    - recursion.p6
+    - prime*.pl
+    - trans-sprintf.pl
+    - anagram.pl           # Needs support for data/
+    - dice.pl
+    - mandelbrot-*.pl
   + diakopter++'s ideas:
     - Push-then-join to contrast with the separate push and concat tests
     - String split using fixed string
