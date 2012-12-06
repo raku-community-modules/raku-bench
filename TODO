@@ -14,7 +14,7 @@
     run for a given minimum time (e.g. 10 seconds minimum) to get a stable
     seconds/iteration value as benchmark output
     - Specify per-test whether to do per-iteration or per-run timing
-  + Options to list known languages, tests, etc.
+  + Options to list known languages, etc.
   + Add Pugs to known compilers
   + Output version of each compiler (plus platform summary) from analyze
   + Group tests and total by group in summaries
