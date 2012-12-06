@@ -458,9 +458,18 @@ style.  For a given language, all relevant implementations execute exactly
 the same program for each task, or are marked as unable to process that task.
 
 The simplest tasks are executed using each implementation's "evaluate a string
-from the command line" option, generally C<-e> or C<-E>.  More complex tasks
-are composed of matching scripts sorted into subdirectories by language,
-optionally with additional command line arguments.
+from the command line" option, generally C<-e> or C<-E>.  These attempt to
+use nearly identical code across languages except for required syntax changes,
+as with sigil variance/invariance or converting between builtin and
+module-loaded functions.  When a language does not provide a given idiom
+at all, that task is simply skipped by all implementations of that language.
+
+More complex tasks are composed of matching scripts sorted into subdirectories
+by language, optionally with additional command line arguments.  These larger
+programs have somewhat more freedom to make use of language-specific idioms,
+but care is taken that the basic algorithms and intrinsic complexity are still
+the same.  Most (hopefully all) of these can be expressed in every language;
+any failures are generally due to limitations of a particular implementation.
 
 Once this script produces a file of timing information, the timing file can
 be fed to the F<analyze> script to produce human-friendly summaries of the
