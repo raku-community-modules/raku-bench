@@ -159,8 +159,8 @@ multi MAIN ('build', *@components) {
     }
 }
 
-#= Run timing benchmarks on built components
-multi MAIN ('time', *@components) {
+#= Run timing benchmarks on (variants of) built components
+multi MAIN ('time', *@components, :$variants?) {
     needs-setup('benchmark Perls');
 
     for-checkouts @components, -> $comp, $name, $checkout {
@@ -169,7 +169,8 @@ multi MAIN ('time', *@components) {
         my $results_dir = "$PROGRAM_DIR/results/$name";
         mkpath $results_dir;
 
-        run "$PROGRAM_DIR/timeall", "--outfile=$results_dir/$checkout.json", $name;
+        my @variants = $variants ?? $variants.split(',') !! $name;
+        run "$PROGRAM_DIR/timeall", "--outfile=$results_dir/$checkout.json", @variants;
     }
 }
 

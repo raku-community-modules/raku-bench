@@ -184,10 +184,11 @@ MAIN();
 sub MAIN {
     # Process options
     my %opt;
-    GetOptions(\%opt, 'help|h|?!', 'man!', 'format=s', 'outfile=s')
+    GetOptions(\%opt, 'help|h|?!', 'man!', 'list-variants!', 'format=s', 'outfile=s')
         or pod2usage(-verbose => 0);
     pod2usage(-verbose => 1) if $opt{help};
     pod2usage(-verbose => 2) if $opt{man};
+    list_variants()          if $opt{'list-variants'};
 
     $opt{outfile} //= 'bench-' . DateTime->today->ymd . '.json';
     my $suffix      = (fileparse($opt{outfile}, qr/\.[^.]+$/))[2] || '.';
@@ -246,6 +247,21 @@ sub MAIN {
     $formatter->(\%config, \%run, \@results, $out_fh);
     say "Benchmark data written to '$opt{outfile}'."
         if $opt{outfile} ne '-';
+}
+
+sub list_variants {
+    my $format = "%-10s   %-8s   %-7s   %-6s\n";
+
+    printf $format, qw( VARIANT COMPILER VM LANGUAGE );
+
+    my @compilers = sort { $a->{name} cmp $b->{name} }
+                    map  @$_, values %COMPILERS;
+
+    for my $compiler (@compilers) {
+        printf $format, @$compiler{qw( name compiler vm language )};
+    }
+
+    exit 0;
 }
 
 sub detect_versions {
@@ -446,8 +462,8 @@ timeall -- Benchmark Perl-family compilers against each other
 
 =head1 SYNOPSIS
 
-    timeall [--help|-h|-?] [--man] [--format=json] [--outfile=path/to/file.ext]
-
+    timeall [--help|-h|-?] [--man] [--list-variants]
+    timeall [--format=json] [--outfile=path/to/file.ext] [<enabled compiler variants>]
 
 =head1 DESCRIPTION
 
@@ -475,6 +491,15 @@ Once this script produces a file of timing information, the timing file can
 be fed to the F<analyze> script to produce human-friendly summaries of the
 timing data.
 
+By default all known implementations of all known languages will be timed
+running several iterations of each task, and the best time for each task and
+implementation used.  To choose only a subset of the implementations, you may
+specify a list of compiler variant names (e.g. C<p5.js_node> for Perlito5
+targeting the Node JavaScript VM, or C<rakudo.nqp> for Rakudo running NQP
+code instead of its native Perl 6 code) on the command line.  In this case,
+only the specified variants will be enabled for that run.  To list the known
+compiler variants, use the C<--list-variants> option.
+
 
 =head1 OPTIONS
 
@@ -487,6 +512,10 @@ Get basic help for this program
 =item --man
 
 Display this program's entire manpage
+
+=item --list-variants
+
+List all known compiler variants
 
 =item --format=json
 
