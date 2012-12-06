@@ -1,6 +1,7 @@
 * Top tasks
   + Bring forward existing JS-targeting compilers to new component framework
   + Add pmurias' nqp-js and rakudo-js compilers
+  + Import benchmarks from github:perl6/bench-scripts
 * Features
   + Documentation
     - WIP: manpage/usage
@@ -14,9 +15,8 @@
     run for a given minimum time (e.g. 10 seconds minimum) to get a stable
     seconds/iteration value as benchmark output
     - Specify per-test whether to do per-iteration or per-run timing
-  + Options to list known languages, implementations, tests, etc.
+  + Options to list known languages, tests, etc.
   + Add Pugs to known compilers
-  + Compare against results of a previous run
   + Output version of each compiler (plus platform summary) from analyze
   + Group tests and total by group in summaries
     - trivial, simulation, parsing, ...
@@ -45,17 +45,11 @@
       . commit 0fde4a1e375a26da8d7b511aafdb6174e934b757 (parsing)
       . commit 2125adb2dc3f22f9fb877e3ea403d469037b729c (.map)
       . commit d6cd1e2bd19e03a81132a23b2025920577f84e37 (FIRST/NEXT/LAST)
-      . DONE: commit c10792f88a46a975749b0f2aa1460c432dd16a67 (Array.at_pos, RT #111848)
-      . DONE: commit 29f5cf7ca1c547b543b1815a8528cc4ec8307419 (reductions: [+] 1..100000)
-      . DONE: commit 95371a6ec5f96563fff0ce9b9ae95a95bec16cf5 (Str.trim*)
       . commit 9fc3eb254f1d377bebd4f4f89adcec96848e7c3b (IO: .say for @some_list_of_strings)
       . commit 7ac6d1ea6d8352696ca32b41080e75777ba5f9c2 (Buf creation and listification)
-      . DONE: commit af0d2e1d782f1172cf27cb64ad938b504c619dd1 (MapIter: for 1..1000000 { $i++ })
-      . DONE: commit 3bc839c00ee03491a7bf8c74923198779a8cc2bb (shiftpush: for 1..100000 { })
       . commit 0a93f6e39eb970fa1e653b13695b97789ae4d03b (object creation; iterators)
       . commit 77d4dc1d8ef5c746a5c597341ae1f5e89d66ca24 (attribute access)
       . commit 80974191c53dae18bab4d5e60d5e17fd5413e886 (stripping trailing zeroes)
-      . DONE: commit f58331690e091784a113931d78166ceff908fe03 (scalar assignment: $a = $b)
       . commit 437675e330460d0cf801d48a635c413d532e062f (Complex ops)
       . commit 30f5cc9624b9b46ecbff88a2c234e5c9383e21ce (MapIter: map over a range)
   + Find weak points in core design
