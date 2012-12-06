@@ -184,11 +184,13 @@ MAIN();
 sub MAIN {
     # Process options
     my %opt;
-    GetOptions(\%opt, 'help|h|?!', 'man!', 'list-variants!', 'format=s', 'outfile=s')
+    GetOptions(\%opt, 'help|h|?!', 'man!', 'list-variants!', 'list-tests!',
+                      'format=s', 'outfile=s', 'tests=s')
         or pod2usage(-verbose => 0);
     pod2usage(-verbose => 1) if $opt{help};
     pod2usage(-verbose => 2) if $opt{man};
     list_variants()          if $opt{'list-variants'};
+    list_tests()             if $opt{'list-tests'};
 
     $opt{outfile} //= 'bench-' . DateTime->today->ymd . '.json';
     my $suffix      = (fileparse($opt{outfile}, qr/\.[^.]+$/))[2] || '.';
@@ -212,6 +214,20 @@ sub MAIN {
         }
     }
 
+    # Allow selecting a subset of available tests
+    my $empty_test = $TESTS{e}[0];
+    if ($opt{tests}) {
+        my %enabled = map {($_ => 1)} split ',' => $opt{tests};
+
+        while (my ($test_type, $tests) = each %TESTS) {
+            my @enabled;
+            for my $test (@$tests) {
+                push @enabled, $test if $enabled{$test->{name}};
+            }
+            $TESTS{$test_type} = \@enabled;
+        }
+    }
+
     # Record general test configuration and info
     my %config = (
                   default   => \%DEFAULT,
@@ -232,7 +248,7 @@ sub MAIN {
 
     eval {
         say "Measuring startup times ...";
-        my $times = time_all_compilers(e => %{$TESTS{e}[0]});
+        my $times = time_all_compilers(e => %$empty_test);
         $startup  = best_times($times);
 
         for my $test_type (sort keys %TESTS) {
@@ -260,6 +276,15 @@ sub list_variants {
     for my $compiler (@compilers) {
         printf $format, @$compiler{qw( name compiler vm language )};
     }
+
+    exit 0;
+}
+
+sub list_tests {
+    my @tests = map @{$TESTS{$_}}, sort keys %TESTS;
+    my @names = map $_->{name}, @tests;
+
+    print "$_\n" for @names;
 
     exit 0;
 }
@@ -462,8 +487,8 @@ timeall -- Benchmark Perl-family compilers against each other
 
 =head1 SYNOPSIS
 
-    timeall [--help|-h|-?] [--man] [--list-variants]
-    timeall [--format=json] [--outfile=path/to/file.ext] [<enabled compiler variants>]
+    timeall [--help|-h|-?] [--man] [--list-variants] [--list-tests]
+    timeall [--format=json] [--outfile=path/to/file.ext] [--tests=list,of,tests] [<enabled compiler variants>]
 
 =head1 DESCRIPTION
 
@@ -492,13 +517,17 @@ be fed to the F<analyze> script to produce human-friendly summaries of the
 timing data.
 
 By default all known implementations of all known languages will be timed
-running several iterations of each task, and the best time for each task and
+running several iterations of every task, and the best time for each task and
 implementation used.  To choose only a subset of the implementations, you may
 specify a list of compiler variant names (e.g. C<p5.js_node> for Perlito5
 targeting the Node JavaScript VM, or C<rakudo.nqp> for Rakudo running NQP
 code instead of its native Perl 6 code) on the command line.  In this case,
 only the specified variants will be enabled for that run.  To list the known
 compiler variants, use the C<--list-variants> option.
+
+To choose only particular tests to run, specify a comma-separated list of
+test names with the C<--tests> option.  To see the list of known names, use
+the C<--list-tests> option.
 
 
 =head1 OPTIONS
@@ -517,6 +546,10 @@ Display this program's entire manpage
 
 List all known compiler variants
 
+=item --list-tests
+
+List all known tests
+
 =item --format=json
 
 Format the summary output in a particular format.  If the C<--outfile> option
@@ -532,6 +565,12 @@ C<--outfile> is set to C<-> (a single hyphen).  If this option is set and
 C<--format> is not, then the summary format defaults to the lowercased
 extension (F<ext> in F<path/to/file.ext>) of the C<--outfile>.  The default
 C<--outfile> is F<bench-YYYY-MM-DD.json>, where F<YYYY-MM-DD> is today's date.
+
+=item --tests=list,of,tests
+
+Enable only a subset of the available tests (instead of the default of all
+known tests), using a comma separated list of the test names.  To see the
+list of known test names, use the C<--list-tests> option.
 
 =back
 
