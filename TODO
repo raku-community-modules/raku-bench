@@ -34,7 +34,6 @@
     - dice.pl
     - mandelbrot-*.pl
   + diakopter++'s ideas:
-    - Push-then-join to contrast with the separate push and concat tests
     - String split using fixed string
     - String split using regex
     - Closure creation/invocation

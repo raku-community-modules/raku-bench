@@ -43,10 +43,22 @@
   nqp   => 'my $s := ""; my $i := 0; while ($i := $i + 1) <= 100000 { $s := $s ~ "x" }',
  },
  {
-  name  => 'while_push_1e3',
-  perl5 => 'my @a; my $i = 0; while (++$i <= 1000) { push @a, 1 }',
-  perl6 => 'my @a; my $i = 0; while (++$i <= 1000) { push @a, 1 }',
-  nqp   => 'my @a; my $i := 0; while ($i := $i + 1) <= 1000 { @a.push(1) }',
+  name  => 'while_push_join_1e4',
+  perl5 => 'my @a; my $i = 0; while (++$i <= 10000) { push @a, "x" }; my $s = join "" => @a;',
+  perl6 => 'my @a; my $i = 0; while (++$i <= 10000) { @a.push("x") }; my $s; $s = @a.join;',
+  nqp   => 'my @a; my $i := 0; while ($i := $i + 1) <= 10000 { @a.push("x"); }; my $s := nqp::join("",@a);',
+ },
+ {
+  name  => 'while_push_join_1e5',
+  perl5 => 'my @a; my $i = 0; while (++$i <= 100000) { push @a, "x" }; my $s = join "" => @a;',
+  perl6 => 'my @a; my $i = 0; while (++$i <= 100000) { @a.push("x") }; my $s; $s = @a.join;',
+  nqp   => 'my @a; my $i := 0; while ($i := $i + 1) <= 100000 { @a.push("x"); }; my $s := nqp::join("",@a);',
+ },
+ {
+  name  => 'while_push_1e4',
+  perl5 => 'my @a; my $i = 0; while (++$i <= 10000) { push @a, 1 }',
+  perl6 => 'my @a; my $i = 0; while (++$i <= 10000) { push @a, 1 }',
+  nqp   => 'my @a; my $i := 0; while ($i := $i + 1) <= 10000 { @a.push(1) }',
  },
  {
   name  => 'while_array_set_1e4',
@@ -109,9 +121,9 @@
   nqp   => undef,
  },
  {
-  name  => 'for_push_1e3',
-  perl5 => 'my @a; for (1 .. 1000) { push @a, 1 }',
-  perl6 => 'my @a; for (1 .. 1000) { push @a, 1 }',
+  name  => 'for_push_1e4',
+  perl5 => 'my @a; for (1 .. 10000) { push @a, 1 }',
+  perl6 => 'my @a; for (1 .. 10000) { push @a, 1 }',
   nqp   => undef,
  },
  {
