@@ -68,12 +68,37 @@ multi MAIN ('fetch', *@components) {
             next;
         }
 
+        # Work around Rakudo bug #115390 by splitting into multiple loops
+        # (And this time, it doesn't even seem to completely go away!)
+
+        # Fetch commits in bare mirror first, then requested checkouts
+        say '~~~> FETCHING';
         for $bare, $comp<checkouts>.list -> $dir {
             my $path = "$comp_dir/$dir";
             next unless $path.path.d;
 
+            say "----> $dir";
             chdir $path;
             run < git fetch >, $_ for < -t -u >;
+        }
+
+        # Find all tags known in this component
+        %*ENV<GIT_DIR> = "$comp_dir/$bare";
+        my $tag-list = open 'git tag', :p;
+        my @all-tags = $tag-list.lines;
+        $tag-list.close;
+        %*ENV.delete('GIT_DIR');
+
+        # Pull into non-tag checkouts
+        say '~~~> PULLING';
+        for $comp<checkouts>.list -> $dir {
+            my $path = "$comp_dir/$dir";
+            next unless "$path/.git".path.d;
+            next if $dir eq any(@all-tags);
+
+            say "----> $dir";
+            chdir $path;
+            run < git pull >;
         }
     }
 }
