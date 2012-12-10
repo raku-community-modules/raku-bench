@@ -162,4 +162,28 @@
   perl6 => 'my $s = " " x 1000 ~ "x" x 1000 ~ " " x 1000; $s.trim for 1 .. 1000',
   nqp   => undef,
  },
+ {
+  name  => 'visit_2d_indices_while',
+  perl5 => 'my $i = 0; while ($i < 100) { my $j = 0; while ($j < 100) { $i + $j; $j++ }; $i++ }',
+  perl6 => 'my $i = 0; while ($i < 100) { my $j = 0; while ($j < 100) { $i + $j; $j++ }; $i++ }',
+  nqp   => 'my $i := 0; while ($i < 100) { my $j := 0; while ($j < 100) { $i + $j; $j := $j + 1 }; $i := $j + 1 }',
+ },
+ {
+  name  => 'visit_2d_indices_loop',
+  perl5 => 'for  (my $i = 0; $i < 100; $i++) { for  (my $j = 0; $j < 100; $j++) { $i + $j } }',
+  perl6 => 'loop (my $i = 0; $i < 100; $i++) { loop (my $j = 0; $j < 100; $j++) { $i + $j } }',
+  nqp   => undef,
+ },
+ {
+  name  => 'visit_2d_indices_for',
+  perl5 => 'for my $i (0 .. 99) { for my $j (0 .. 99) { $i + $j } }',
+  perl6 => 'for ^100 -> $i { for ^100 -> $j { $i + $j } }',
+  nqp   => undef,
+ },
+ {
+  name  => 'visit_2d_indices_cross',
+  perl5 => undef,
+  perl6 => 'for ^100 X ^100 -> $i, $j { $i + $j }',
+  nqp   => undef,
+ },
 ]
