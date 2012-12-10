@@ -169,7 +169,7 @@ my %TESTS = (
                     skip  => [qw( niecza.nqp p6.pl p6.js_v8 )],
                     perl5 => [qw( BENCH/perl5/rc-forest-fire 30 20 10 )],
                     perl6 => [qw( BENCH/perl6/rc-forest-fire 30 20 10 )],
-                    nqp   => [qw( BENCH/nqp/rc-forest-fire 30 20 10 )],
+                    nqp   => [qw( BENCH/nqp/rc-forest-fire   30 20 10 )],
                    },
                   ],
             );
