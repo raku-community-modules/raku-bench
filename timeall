@@ -171,6 +171,13 @@ my %TESTS = (
                     perl6 => [qw( BENCH/perl6/rc-forest-fire 30 20 10 )],
                     nqp   => [qw( BENCH/nqp/rc-forest-fire   30 20 10 )],
                    },
+                   {
+                    name  => 'rc-man-or-boy-test',
+                    skip  => [qw( )],
+                    perl5 => [qw( BENCH/perl5/rc-man-or-boy-test 10 )],
+                    perl6 => [qw( BENCH/perl6/rc-man-or-boy-test 10 )],
+                    nqp   => [qw( BENCH/nqp/rc-man-or-boy-test   10 )],
+                   },
                   ],
             );
 my %FORMATTER = (
