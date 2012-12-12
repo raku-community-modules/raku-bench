@@ -3,3 +3,5 @@
 
 # Generated files
 bench-*.json
+/components
+/results
