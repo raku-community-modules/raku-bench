@@ -56,7 +56,7 @@
       . fib(30)                    # Fibonnaci, cache hits for just a single call
   + Known performance changes
     - Rakudo
-      . commit fc9c3b6046a3ff3d8ec162437bdd61ac0c19928c (flat iterating a list of parcels)
+      . commit fc9c3b6046a3ff3d8ec162437bdd61ac0c19928c (flat iterating a list of parcels: ((1, 2, 3) Z (4, 5, 6)) )
       . commit 1d4eb481ef5dc4e772042c896cda4a5b7b510d0c (unary hypers)
       . commit 0fde4a1e375a26da8d7b511aafdb6174e934b757 (parsing)
       . commit 2125adb2dc3f22f9fb877e3ea403d469037b729c (.map)
