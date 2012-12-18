@@ -1,22 +1,35 @@
 perl6-bench: A tool to benchmark and compare implementations of Perl family languages
 
-This is an EARLY RELEASE, and no attempt has been made to bulletproof the tools.
-A sample sequence for building, benchmarking, and comparing a few compilers is
-as follows:
+This is an EARLY RELEASE, and no attempt has been made to bulletproof the
+tools.  A sample sequence for building, benchmarking, and comparing a few
+compilers is as follows:
 
     ./bench setup
     ./bench extract nqp niecza rakudo
-    ./bench build nqp/2012.11 rakudo/2012.11 niecza/v22
-    ./bench time nqp/2012.11 rakudo/2012.11 niecza/v22
+    ./bench build   nqp/2012.11.1 rakudo/2012.11 niecza/v24
+    ./bench time    nqp/2012.11.1 rakudo/2012.11 niecza/v24
     ./bench analyze --compare results/*/*.json
 
-You will need at least perl5 5.10.x, and you may need to have some extra
-items in your PATH, such as a recent version of mono-sgen for Niecza and
-node/d8 for Perlito*/JS.  YMMV.
+You will need at least perl5 5.10.x, with the following modules installed:
+
+    Capture::Tiny
+    DateTime
+    List::MoreUtils
+    JSON
+    JSON::XS (best) or JSON::PP (slower)
+
+You will need a Perl 6 compiler to run the 'bench' interface (though you can
+benchmark the tests "manually" using the raw 'timeall' and 'analyze' Perl 5
+scripts in a pinch).  Current Rakudo is used by the author, but any Rakudo
+from late 2012 or later should do.  Patches welcomed to make 'bench' work
+well with other Perl 6 compilers.
+
+You may also need to have some extra items in your PATH, such as a recent
+version of mono/mono-sgen for Niecza and node/d8 for Perlito*/JS.  YMMV.
 
 Paths to the proper working directory of compilers not yet handled by the
 "./bench extract" mechanism can be set in the %COMPILERS hash at the top
-of the timeall script.  The default directories are assumed to be created
+of the 'timeall' script.  The default directories are assumed to be created
 by extract, or in parallel checkouts at the same directory level as the
 perl6-bench checkout.  For example, Perlito's directory is currently assumed
 to be ../Perlito/ relative to the bench directory; eventually it will be
