@@ -1,7 +1,11 @@
-perl6-bench: A tool to benchmark and compare implementations of Perl family languages
+perl6-bench: Tools to benchmark and compare Perl family language implementations
 
-This is an EARLY RELEASE, and no attempt has been made to bulletproof the
-tools.  A sample sequence for building, benchmarking, and comparing a few
+QUICK START
+-----------
+NOTE:  This is an EARLY RELEASE, and no attempt has been made to bulletproof
+       the tools.  Play nice.  :-)
+
+A sample sequence for building, benchmarking, and comparing a few
 compilers is as follows:
 
     ./bench setup
@@ -10,6 +14,25 @@ compilers is as follows:
     ./bench time    nqp/2012.11.1 rakudo/2012.11 niecza/v24
     ./bench analyze --compare results/*/*.json
 
+
+BENCHMARKING TIPS
+-----------------
+Make sure you stop background processes when benchmarking!  Mail programs,
+web browsers, media players, and server applications of many types are
+particularly suspect.  They tend to use lots of CPU and memory, run heavy
+background tasks at both regular and irregular intervals, and often chew a
+fair amount of I/O and cache capacity as well.  This will *strongly* affect
+the benchmark results.
+
+Memory usage can be particularly important.  The benchmarks are tuned to
+work within the memory footprint of a 32-bit machine with 2 GiB RAM or a
+64-bit machine with 3 GiB RAM.  However, running a mail client and a web
+browser at the same time when memory is already tight can result in heavy
+swapping, which will produce useless results (VERY SLOWLY to boot).
+
+
+PREREQUISITES
+-------------
 You will need at least perl5 5.10.x, with the following modules installed:
 
     Capture::Tiny
@@ -20,9 +43,9 @@ You will need at least perl5 5.10.x, with the following modules installed:
 
 You will need a Perl 6 compiler to run the 'bench' interface (though you can
 benchmark the tests "manually" using the raw 'timeall' and 'analyze' Perl 5
-scripts in a pinch).  Current Rakudo is used by the author, but any Rakudo
-from late 2012 or later should do.  Patches welcomed to make 'bench' work
-well with other Perl 6 compilers.
+scripts in a pinch).  The author generally uses bleeding-edge Rakudo, but any
+Rakudo from late 2012 or later should do.  Patches welcomed to make 'bench'
+work well with other Perl 6 compilers.
 
 You may also need to have some extra items in your PATH, such as a recent
 version of mono/mono-sgen for Niecza and node/d8 for Perlito*/JS.  YMMV.
@@ -32,8 +55,8 @@ Paths to the proper working directory of compilers not yet handled by the
 of the 'timeall' script.  The default directories are assumed to be created
 by extract, or in parallel checkouts at the same directory level as the
 perl6-bench checkout.  For example, Perlito's directory is currently assumed
-to be ../Perlito/ relative to the bench directory; eventually it will be
-clonable and extractable in the same way as nqp, niecza, and rakudo.
+to be ../Perlito/ relative to the perl6-bench directory; eventually it will
+be clonable and extractable in the same way as nqp, niecza, and rakudo.
 
 Compilers tested so far:
 
