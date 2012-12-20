@@ -1,5 +1,13 @@
 perl6-bench: Tools to benchmark and compare Perl family language implementations
 
+TABLE OF CONTENTS
+-----------------
+* QUICK START
+* NETWORK TRAFFIC
+* BENCHMARKING TIPS
+* PREREQUISITES
+
+
 QUICK START
 -----------
 NOTE:  This is an EARLY RELEASE, and no attempt has been made to bulletproof
@@ -8,11 +16,43 @@ NOTE:  This is an EARLY RELEASE, and no attempt has been made to bulletproof
 A sample sequence for building, benchmarking, and comparing a few
 compilers is as follows:
 
+    # First step chews network bandwidth to mirror repos; see next section
     ./bench setup
     ./bench extract nqp niecza rakudo
     ./bench build   nqp/2012.11.1 rakudo/2012.11 niecza/v24
     ./bench time    nqp/2012.11.1 rakudo/2012.11 niecza/v24
     ./bench analyze --compare results/*/*.json
+
+
+NETWORK TRAFFIC
+---------------
+perl6-bench tries to front-load as much of the network traffic as possible,
+so that you can run "./bench setup" once on a fast network, then disconnect
+and do benchmarking to your heart's content without touching the network
+again (unless you run "./bench fetch" to bring in new upstream commits).
+
+During the setup process, 'bench' clones a bare mirror of the git repos of
+every component it knows about.  After that, the extract command simply
+makes local clones of these bare mirrors as needed, not touching the network
+at all.  Also, special care is taken during component builds so that components
+such as NQP and Rakudo that want to automatically clone other components during
+build don't do so over the network, making fast local clones instead.
+
+Thus, after setup you can build, benchmark, and analyze without touching the
+network again.  Eventually though you may want to grab the latest changes to
+the component repos, e.g. to benchmark a new release when it comes out.  You
+can do this with "./bench fetch", which takes care to only update the bare
+mirrors across the network -- not requiring nearly as much bandwidth as the
+original setup since only new commits and tags are pulled -- and then update
+all extracted checkouts locally from those mirrors.
+
+NOTE: There is one exception to this magic -- Niecza's build process needs to
+download a ZIP of an older release in order to build a new one.  Unfortunately,
+because these are changed quite often, it would waste quite a bit of bandwidth
+to download all the ZIPs at once during setup if the user doesn't plan to
+benchmark *every* Niecza release.  For this reason, if you plan to benchmark
+Niecza when you are not on a fast network, you should at least *build* the
+Niecza releases you want to test while still well-connected.
 
 
 BENCHMARKING TIPS
