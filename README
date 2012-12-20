@@ -19,8 +19,8 @@ compilers is as follows:
     # First step chews network bandwidth to mirror repos; see next section
     ./bench setup
     ./bench extract nqp niecza rakudo
-    ./bench build   nqp/2012.11.1 rakudo/2012.11 niecza/v24
-    ./bench time    nqp/2012.11.1 rakudo/2012.11 niecza/v24
+    ./bench build   nqp/2012.12 rakudo/2012.12 niecza/v24
+    ./bench time    nqp/2012.12 rakudo/2012.12 niecza/v24
     ./bench analyze --compare results/*/*.json
 
 
