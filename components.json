@@ -22,9 +22,21 @@
             [ "make", "install" ]
         ]
     },
+    "nqp-js": {
+        "name":         "nqp-js",
+        "repo_url":     "git@github.com:pmurias/rakudo-js.git"
+    },
     "parrot": {
         "name":         "parrot",
         "repo_url":     "git://github.com/parrot/parrot.git"
+    },
+    "perl5": {
+        "name":         "perl5",
+        "repo_url":     "git://perl5.git.perl.org/perl.git"
+    },
+    "perlito": {
+        "name":         "perlito",
+        "repo_url":     "https://github.com/fglock/Perlito.git"
     },
     "rakudo": {
         "name":         "rakudo",
