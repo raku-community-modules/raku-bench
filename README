@@ -87,6 +87,14 @@ scripts in a pinch).  The author generally uses bleeding-edge Rakudo, but any
 Rakudo from late 2012 or later should do.  Patches welcomed to make 'bench'
 work well with other Perl 6 compilers.
 
+Your Perl 6 compiler will need the following modules installed:
+
+    JSON::Tiny
+    Shell::Command
+
+If you have panda installed, you should already have these, as they are
+installed during the panda boostrap procedure.
+
 You may also need to have some extra items in your PATH, such as a recent
 version of mono/mono-sgen for Niecza and node/d8 for Perlito*/JS.  YMMV.
 
