@@ -276,7 +276,7 @@ sub for-components (@components, &code) {
 #= Run code for every checkout in every requested component
 sub for-checkouts (@components, &code) {
     for-components @components, -> $comp, $name {
-        for $comp<checkouts>.list -> $checkout {
+        eager do for $comp<checkouts>.list -> $checkout {
             say "----> $checkout";
 
             code($comp, $name, $checkout);
