@@ -129,7 +129,6 @@ my %COMPILERS = (
                             language  => 'NQP',
                             compiler  => 'nqp',
                             vm        => 'parrot',
-                            dir       => 'BENCH/../nqp',
                             f_run     => [qw( install/bin/nqp --vmlibs=math_ops    )],
                             e_run     => [qw( install/bin/nqp --vmlibs=math_ops -e )],
                             show_ver  => [qw( install/bin/nqp --version            )],
