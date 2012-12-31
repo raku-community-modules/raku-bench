@@ -168,9 +168,9 @@ my %TESTS = (
                    {
                     name  => 'rc-man-or-boy-test',
                     skip  => [qw( )],
-                    perl5 => [qw( BENCH/perl5/rc-man-or-boy-test 10 )],
-                    perl6 => [qw( BENCH/perl6/rc-man-or-boy-test 10 )],
-                    nqp   => [qw( BENCH/nqp/rc-man-or-boy-test   10 )],
+                    perl5 => [qw( BENCH/perl5/rc-man-or-boy-test 9 )],
+                    perl6 => [qw( BENCH/perl6/rc-man-or-boy-test 9 )],
+                    nqp   => [qw( BENCH/nqp/rc-man-or-boy-test   9 )],
                    },
                   ],
             );
