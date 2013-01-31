@@ -79,7 +79,8 @@ multi MAIN ('fetch', *@components) {
 
             say "----> $dir";
             chdir $path;
-            run < git fetch >, $_ for < -t -u >;
+            run < git fetch -t >;
+            run < git fetch -u >;
         };
 
         # Find all tags known in this component
