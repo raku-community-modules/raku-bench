@@ -127,6 +127,13 @@
   nqp   => undef,
  },
  {
+  name  => 'for_push_1e5',
+  skip  => sub { shift->{compiler} eq 'rakudo' && !git_rev_ge('f6ee0c9b') },
+  perl5 => 'my @a; for (1 .. 100000) { push @a, 1 }',
+  perl6 => 'my @a; for (1 .. 100000) { push @a, 1 }',
+  nqp   => undef,
+ },
+ {
   name  => 'for_array_set_1e4',
   perl5 => 'my @a; $a[ $_ ] = $_ for 1 .. 10000',
   perl6 => 'my @a; @a[ $_ ] = $_ for 1 .. 10000',
