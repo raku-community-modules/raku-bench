@@ -19,7 +19,6 @@ use FindBin;
 use JSON;
 use Cwd;
 
-
 my %DEFAULT = (
                TEST_RUNS => 2,
               );
@@ -297,6 +296,8 @@ sub detect_versions {
     my %version;
     my $cwd = cwd;
 
+    my @detect_git_rev = qw( git describe --always --dirty );
+
     for my $group (@GROUPS) {
         for my $compiler (@{$COMPILERS{$group}}) {
             next unless $compiler->{enabled};
@@ -306,17 +307,31 @@ sub detect_versions {
             s/\bBENCH\b/$FindBin::Bin/g for $dir, @cmd;
 
             chdir $dir;
-            $version{$compiler->{name}} = `@cmd`;
+            $version{$compiler->{name}} = -d '.git' ? `@detect_git_rev` : `@cmd`;
         }
     }
 
     chdir $FindBin::Bin;
-    $version{bench} = `git describe --always --dirty`;
+    $version{bench} = `@detect_git_rev`;
 
     chomp for values %version;
 
     chdir $cwd;
     return \%version;
+}
+
+# Checks if the currently checked out git rev contains all commits from
+# ("is greater than or equal to") some other rev
+sub git_rev_ge {
+    my $ver = shift;
+
+    return unless -d '.git';
+
+    my $old_ver    = `git rev-parse $ver^0`;             chomp $old_ver;
+    my $cur_ver    = `git rev-parse HEAD`;               chomp $cur_ver;
+    my $merge_base = `git merge-base $old_ver $cur_ver`; chomp $merge_base;
+
+    return $merge_base eq $old_ver;
 }
 
 sub run_tests {
@@ -358,7 +373,11 @@ sub time_group {
         next unless $perl->{enabled};
 
         my $name = $perl->{name};
-        next if grep { $_ eq $name } @{$opt->{skip} || []};
+        my $skip = $opt->{skip};
+        if ($skip) {
+            next if ref $skip eq 'CODE'  && $skip->($perl);
+            next if ref $skip eq 'ARRAY' && grep { $_ eq $name } @$skip;
+        }
 
         my $dir  = $perl->{dir} || $START_CWD;
         my $comp = $perl->{"${test_type}_compile"} || [];
@@ -464,7 +483,7 @@ sub summarize_results_json {
 
     my $style = 1;
 
-    my $encoder = JSON->new->utf8->canonical;
+    my $encoder = JSON->new->utf8->canonical->allow_unknown;
        $encoder->pretty if $style;
 
     my %info = (
