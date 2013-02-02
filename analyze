@@ -275,8 +275,10 @@ sub summarize_results_text {
             }
             else {
                 # XXXX: May have to make this based on key instead of name
-                my $is_skip = !defined $test->{conf}{$perl->{group}}
-                            || grep { $_ eq $perl->{name} } @{$test->{conf}{skip} || []};
+                my $conf    =  $test->{conf};
+                my $is_skip =  !defined $conf->{$perl->{group}}
+                            || (grep { $_ eq $perl->{name} } @{$conf->{skip} || []})
+                            || (exists $conf->{skip} && !defined $conf->{skip});
                 $output .= sprintf "$spacer$RED%${longest_perl}s $CLEAR",
                        $is_skip ? 'SKIP' : 'FAIL';
             }
@@ -410,8 +412,10 @@ CSS
             }
             else {
                 # XXXX: May have to make this based on key instead of name
-                my $is_skip = !defined $test->{conf}{$perl->{group}}
-                            || grep { $_ eq $perl->{name} } @{$test->{conf}{skip} || []};
+                my $conf    =  $test->{conf};
+                my $is_skip =  !defined $conf->{$perl->{group}}
+                            || (grep { $_ eq $perl->{name} } @{$conf->{skip} || []})
+                            || (exists $conf->{skip} && !defined $conf->{skip});
                 my $class   = $is_skip ? 'bench_skip' : 'bench_fail';
                 my $message = $is_skip ? 'SKIP'       : 'FAIL';
                 $html .= qq{    <td class="$class">$message</td>\n};
