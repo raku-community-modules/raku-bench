@@ -153,7 +153,7 @@
  },
  {
   name  => 'reduce_int_comb_range_1e4',
-  perl5 => 'use List::Util "reduce"; reduce { $a + $b } map { 0+$_ } map { split "" } 1 .. 1000',
+  perl5 => 'use List::Util "reduce"; reduce { $a + $b } map { 0+$_ } map { split "" } 1 .. 10000',
   perl6 => '[+] (1 .. 10000).comb>>.Int',
   nqp   => undef,
  },
