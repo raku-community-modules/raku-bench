@@ -204,6 +204,20 @@ multi MAIN ('time', *@components, :$variants?, :$tests?, :$runs?) {
     }
 }
 
+#= Compare benchmark timings
+multi MAIN ('compare', *@timings, :$format?, :$style?, :$outfile?) {
+    needs-timings('compare');
+
+    my @options = as-options(:compare, :ignore-startup, :$format, :$style, :$outfile);
+
+    my @timings-files;
+    for explode-timings(@timings).kv -> $component, @files {
+        @timings-files.push: @files.map: "$TIMINGS_DIR/$component/" ~ *;
+    }
+
+    run "$PROGRAM_DIR/analyze", @options, @timings-files;
+}
+
 #= Clean up build trees in $COMPONENTS_DIR, keeping bare clones by default
 multi MAIN ('clean', *@components) {
     unless $COMPONENTS_DIR.path.d {
@@ -255,6 +269,21 @@ sub needs-setup ($action) {
             There is no '{ $COMPONENTS_DIR.path.basename }' tree, and thus there are no repos to $action.
             Please run: `$*PROGRAM_NAME setup`.
             COMPONENTS
+        exit 1;
+    }
+}
+
+#= Check whether timings dir exists and bail out if not (recommending steps to produce timings)
+sub needs-timings ($action) {
+    unless $TIMINGS_DIR.path.d {
+        print qq:to/TIMINGS/;
+            There is no '{ $TIMINGS_DIR.path.basename }' tree, and thus there are no timings to $action.
+            Please run:
+            `$*PROGRAM_NAME setup`   to prepare and clone components,
+            `$*PROGRAM_NAME extract` to extract Perls to be benchmarked,
+            `$*PROGRAM_NAME build`   to build the Perls and their components, and
+            `$*PROGRAM_NAME time`    to benchmark the built Perls and generate timings.
+            TIMINGS
         exit 1;
     }
 }
@@ -335,4 +364,32 @@ sub explode-components (@component-specs, :$chdir = True, :$default-to-dirs = Tr
     }
 
     return @exploded;
+}
+
+#= Expand a partially-specified list of timings files
+sub explode-timings (@timing-specs, :$chdir = True, :$default-to-dirs = True) {
+    chdir $TIMINGS_DIR if $chdir;
+    @timing-specs ||= dir('.').sort if $default-to-dirs;
+
+    my %exploded;
+    for @timing-specs -> $spec is copy {
+        # Remove optional leading "$TIMINGS_DIR/", which helps with tab completion
+        $spec .= subst(/^ $TIMINGS_DIR '/' /, '');  # ' -- Dang syntax highlighting
+        die "Don't know what to do with empty timing specification" unless $spec.chars;
+
+        my ($component, $files) = $spec.split: '/';
+
+        my @files;
+        if $files.defined && $files.chars {
+            @files = $files.split(',').map: { /'.json' $/ ?? $_ !! $_ ~ '.json' };
+        }
+        else {
+            @files = dir("$TIMINGS_DIR/$component",
+                         test => /'.json' $/).map(*.Str).sort;
+        }
+
+        %exploded{$component}.push: |@files;
+    }
+
+    return %exploded;
 }
