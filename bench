@@ -8,6 +8,7 @@ use Shell::Command;
 
 
 # Reduce directory insanity a bit by changing to bench root
+# and eliminating hardcoding for generated subdir names
 my $PROGRAM_DIR = ~($*PROGRAM_NAME ~~ /^(.*\/)/) || './';
 chdir $PROGRAM_DIR;
 $PROGRAM_DIR = cwd;
@@ -49,7 +50,7 @@ multi MAIN ('setup') {
         my $bare = "$name.git";
         say "----> Already cloned." if $bare.path.d && $name.path.d;
         run < git clone --mirror >, $repo, $bare unless $bare.path.d;
-        run < git clone -l     >, $bare, $name unless $name.path.d;
+        run < git clone -l       >, $bare, $name unless $name.path.d;
     }
 
     say 'Setup complete.';
@@ -235,12 +236,12 @@ multi MAIN ('realclean', Bool :$force) {
     run < git clean -dxf >;
 }
 
-#= Perform benchmark timings
+#= Perform benchmark timings (low-level command)
 multi MAIN ('timeall', *@options) {
     run('./timeall', |@options);
 }
 
-#= Analyze results from benchmark timings
+#= Analyze results from benchmark timings (low-level command)
 multi MAIN ('analyze', *@options_and_files) {
     run('./analyze', |@options_and_files);
 }
@@ -248,11 +249,13 @@ multi MAIN ('analyze', *@options_and_files) {
 
 # UTILITY ROUTINES
 
-#= Check whether 'setup' command has been run and bail out if not
+#= Check whether components dir exists and bail out if not (recommending 'setup' command)
 sub needs-setup ($action) {
     unless $COMPONENTS_DIR.path.d {
-        say "There is no 'components' tree, and thus there are no repos to $action.";
-        say "Please run `$*PROGRAM_NAME setup`.";
+        print qq:to/COMPONENTS/;
+            There is no '{ $COMPONENTS_DIR.path.basename }' tree, and thus there are no repos to $action.
+            Please run: `$*PROGRAM_NAME setup`.
+            COMPONENTS
         exit 1;
     }
 }
