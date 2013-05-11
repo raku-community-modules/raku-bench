@@ -190,18 +190,17 @@ multi MAIN ('build', *@components) {
 multi MAIN ('time', *@components, :$variants?, :$tests?, :$runs?) {
     needs-setup('benchmark Perls');
 
+    my @options  = as-options(:$tests, :$runs);
+
     for-checkouts @components, -> $comp, $name, $checkout {
         chdir "$COMPONENTS_DIR/$name/$checkout";
 
         my $timings_dir = "$TIMINGS_DIR/$name";
         mkpath $timings_dir;
 
-        my @variants   = $variants ?? $variants.split(',') !! $name;
-        my $tests_spec = $tests    ?? "--tests=$tests"     !! Nil;
-        my $runs_spec  = $runs     ?? "--runs=$runs"       !! Nil;
-
+        my @variants = $variants ?? $variants.split(',') !! $name;
         run "$PROGRAM_DIR/timeall", "--outfile=$timings_dir/$checkout.json",
-                                    $runs_spec, $tests_spec, @variants;
+                                    @options, @variants;
     }
 }
 
@@ -258,6 +257,20 @@ sub needs-setup ($action) {
             COMPONENTS
         exit 1;
     }
+}
+
+#= Convert pairs to command line option strings
+sub as-options (*%args) {
+    my @options;
+    for %args.kv -> $k, $v {
+        given $v {
+            when !.defined {}
+            when Bool      { @options.push: "--$k" if $v }
+            default        { @options.push: "--$k=$v"    }
+        }
+    }
+
+    return @options;
 }
 
 #= Simulate the behavior of `git clean -dxf`
