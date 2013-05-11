@@ -20,7 +20,8 @@ use JSON;
 use Cwd;
 
 my %DEFAULT = (
-               TEST_RUNS => 2,
+               TEST_RUNS        => 2,   # times to run each test, taking best time
+               MIN_STARTUP_RUNS => 10,  # minimum times to run startup time test
               );
 my @GROUPS    = qw( perl5 nqp perl6 );
 my %VM        = (
@@ -245,11 +246,12 @@ sub MAIN {
 
     # Run tests
     my (@results, $startup);
-    my $runs = $opt{runs} || $DEFAULT{TEST_RUNS};
+    my $runs         = $opt{runs} || $DEFAULT{TEST_RUNS};
+    my $startup_runs = max($runs, $DEFAULT{MIN_STARTUP_RUNS});
 
     eval {
         say "Measuring startup times ...";
-        my $times = time_all_compilers($runs, e => %$empty_test);
+        my $times = time_all_compilers($startup_runs, e => %$empty_test);
         $startup  = best_times($times);
 
         for my $test_type (sort keys %TESTS) {
