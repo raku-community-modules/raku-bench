@@ -73,7 +73,7 @@ multi MAIN ('fetch', *@components) {
 
         # Fetch commits in bare mirror first, then requested checkouts
         say '~~~> FETCHING';
-        eager do for $bare, $comp<checkouts>.list -> $dir {
+        for $bare, $comp<checkouts>.list -> $dir {
             my $path = "$comp_dir/$dir";
             next unless $path.path.d;
 
@@ -92,7 +92,7 @@ multi MAIN ('fetch', *@components) {
 
         # Pull into non-tag checkouts
         say '~~~> PULLING';
-        eager do for $comp<checkouts>.list -> $dir {
+        for $comp<checkouts>.list -> $dir {
             my $path = "$comp_dir/$dir";
             next unless "$path/.git".path.d;
             next if $dir eq any(@all-tags);
@@ -266,7 +266,7 @@ sub rmtree ($dir, :$noisy = True) {
 
 #= Run code for every requested component
 sub for-components (@components, &code) {
-    eager do for explode-components(@components) -> $comp {
+    for explode-components(@components) -> $comp {
         my $name = $comp<info><name>;
         say "==> $name";
 
@@ -277,7 +277,7 @@ sub for-components (@components, &code) {
 #= Run code for every checkout in every requested component
 sub for-checkouts (@components, &code) {
     for-components @components, -> $comp, $name {
-        eager do for $comp<checkouts>.list -> $checkout {
+        for $comp<checkouts>.list -> $checkout {
             say "----> $checkout";
 
             code($comp, $name, $checkout);
