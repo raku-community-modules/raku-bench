@@ -411,8 +411,10 @@ sub time_command {
 
     my (@times, $status);
     for my $i (1 .. $count) {
+        my @run = @$run;
+        my $start = time;
+
         if (@$compile) {
-            my $start = time;
             my ($out, $err) = capture { $status = system @$compile };
             if ($status) {
                 die "Test's compile command terminated by SIGINT.\n" if ($status & 127) == 2;
@@ -424,25 +426,15 @@ sub time_command {
             my ($fh, $filename) = tempfile(UNLINK => 1);
             print $fh $out;
             close $fh;
-            my @run = @$run;
             s/\bCOMPILED\b/$filename/g for @run;
-            $status = system @run;
-            push @times, time - $start;
-            if ($status) {
-                die "Test's run command terminated by SIGINT.\n" if ($status & 127) == 2;
-                warn "Failed to run command: @run\n";
-                return undef;
-            }
         }
-        else {
-            my $start  = time;
-            $status = system @$run;
-            push @times, time - $start;
-            if ($status) {
-                die "Test terminated by SIGINT.\n" if ($status & 127) == 2;
-                warn "Failed to run command: @$run\n";
-                return undef;
-            }
+
+        $status = system @run;
+        push @times, time - $start;
+        if ($status) {
+            die "Test's run command terminated by SIGINT.\n" if ($status & 127) == 2;
+            warn "Failed to run command: @run\n";
+            return undef;
         }
     }
 
