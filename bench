@@ -13,6 +13,7 @@ my $PROGRAM_DIR = ~($*PROGRAM_NAME ~~ /^(.*\/)/) || './';
 chdir $PROGRAM_DIR;
 $PROGRAM_DIR = cwd;
 my $COMPONENTS_DIR = "$PROGRAM_DIR/components";
+my $TIMINGS_DIR    = "$PROGRAM_DIR/timings";
 
 # This ends up getting used all over the place;
 # might as well just load it at startup
@@ -34,8 +35,7 @@ multi MAIN ('config') {
 #= Prepare for mass benchmarking
 multi MAIN ('setup') {
     say 'Creating directories ...';
-    mkdir 'components' unless 'components'.path.d;
-    mkdir 'results'    unless 'results'.path.d;
+    mkdir $COMPONENTS_DIR unless $COMPONENTS_DIR.path.d;
 
     say 'Cloning component repos ...';
     for $COMPONENTS.values -> $component {
@@ -193,19 +193,19 @@ multi MAIN ('time', *@components, :$variants?, :$tests?, :$runs?) {
     for-checkouts @components, -> $comp, $name, $checkout {
         chdir "$COMPONENTS_DIR/$name/$checkout";
 
-        my $results_dir = "$PROGRAM_DIR/results/$name";
-        mkpath $results_dir;
+        my $timings_dir = "$TIMINGS_DIR/$name";
+        mkpath $timings_dir;
 
         my @variants   = $variants ?? $variants.split(',') !! $name;
         my $tests_spec = $tests    ?? "--tests=$tests"     !! Nil;
         my $runs_spec  = $runs     ?? "--runs=$runs"       !! Nil;
 
-        run "$PROGRAM_DIR/timeall", "--outfile=$results_dir/$checkout.json",
+        run "$PROGRAM_DIR/timeall", "--outfile=$timings_dir/$checkout.json",
                                     $runs_spec, $tests_spec, @variants;
     }
 }
 
-#= Clean up build trees in components/, keeping bare clones by default
+#= Clean up build trees in $COMPONENTS_DIR, keeping bare clones by default
 multi MAIN ('clean', *@components) {
     unless $COMPONENTS_DIR.path.d {
         say "No 'components' tree exists, so there is nothing to clean.";
@@ -232,7 +232,7 @@ multi MAIN ('realclean', Bool :$force) {
 
     # OK, you asked for it!
     say "OK, performing realclean.";
-    rmtree $_ for < components results >;
+    rmtree $_ for $COMPONENTS_DIR, $TIMINGS_DIR;
     run < git clean -dxf >;
 }
 
@@ -295,8 +295,8 @@ sub explode-components (@component-specs, :$chdir = True, :$default-to-dirs = Tr
 
     my @exploded;
     for @component-specs -> $spec is copy {
-        # Remove optional leading 'components/', which helps with tab completion
-        $spec .= subst(/^ 'components/' /, '');  # ' -- Damn syntax highlighting
+        # Remove optional leading "$COMPONENTS_DIR/", which helps with tab completion
+        $spec .= subst(/^ $COMPONENTS_DIR '/' /, '');  # ' -- Dang syntax highlighting
         die "Don't know what to do with empty component specification" unless $spec.chars;
 
         my ($component, $checkouts) = $spec.split: '/';
