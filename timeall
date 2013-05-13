@@ -22,6 +22,7 @@ use Cwd;
 my %DEFAULT = (
                TEST_RUNS        => 2,   # times to run each test, taking best time
                MIN_STARTUP_RUNS => 10,  # minimum times to run startup time test
+               MIN_TIME         => 1.0, # minimum seconds to run scalable tests
               );
 my @GROUPS    = qw( perl5 nqp perl6 );
 my %VM        = (
@@ -161,9 +162,9 @@ my %TESTS = (
                    {
                     name  => 'rc-forest-fire',
                     skip  => [qw( niecza.nqp p6.pl p6.js_v8 )],
-                    perl5 => [qw( BENCH/perl5/rc-forest-fire 30 20 10 )],
-                    perl6 => [qw( BENCH/perl6/rc-forest-fire 30 20 10 )],
-                    nqp   => [qw( BENCH/nqp/rc-forest-fire   30 20 10 )],
+                    perl5 => [qw( BENCH/perl5/rc-forest-fire 30 20 SCALE )],
+                    perl6 => [qw( BENCH/perl6/rc-forest-fire 30 20 SCALE )],
+                    nqp   => [qw( BENCH/nqp/rc-forest-fire   30 20 SCALE )],
                    },
                    {
                     name  => 'rc-man-or-boy-test',
@@ -174,8 +175,10 @@ my %TESTS = (
                    },
                   ],
             );
+my (@COMPILERS, @TESTS);
+
 my %FORMATTER = (
-                 json         => \&summarize_results_json,
+                 json => \&summarize_results_json,
                 );
 my $START_CWD = cwd;
 
@@ -183,7 +186,63 @@ my $START_CWD = cwd;
 MAIN();
 
 sub MAIN {
-    # Process options
+    # Canonify compiler and test configuration
+    canonify_compilers();
+    canonify_tests();
+
+    # Process options and command line arguments
+    my $main_opt = process_options_and_arguments();
+
+    # Open outfile
+    my $out    = $main_opt->{outfile};
+    my $out_fh = $out eq '-' ? \*STDOUT : IO::File->new($out, '>')
+        or die "Could not open outfile '$out': $!";
+
+    # Record general test configuration and info
+    my %config = (
+                  default   => \%DEFAULT,
+                  vm        => \%VM,
+                  groups    => \@GROUPS,
+                  compilers => \@COMPILERS,
+                  tests     => \@TESTS,
+                 );
+
+    my %run    = (
+                  start_time => time,
+                  options    => $main_opt,
+                  versions   => detect_versions(),
+                 );
+
+    # Run tests
+    my $results = eval { run_all_tests($main_opt->{runs}) };
+    warn "\n$@\n" if $@;
+    $run{end_time} = time;
+
+    # Output results
+    $main_opt->{formatter}->(\%config, \%run, $results, $out_fh);
+    say "Benchmark data written to '$out'." if $out ne '-';
+}
+
+sub canonify_compilers {
+    for my $group (@GROUPS) {
+        for my $compiler (@{$COMPILERS{$group}}) {
+            $compiler->{group} = $group;
+            push @COMPILERS, $compiler;
+        }
+    }
+}
+
+sub canonify_tests {
+    for my $type (sort keys %TESTS) {
+        for my $test (@{$TESTS{$type}}) {
+            $test->{type}    = $type;
+            $test->{enabled} = 1 unless exists $test->{enabled};
+            push @TESTS, $test;
+        }
+    }
+}
+
+sub process_options_and_arguments {
     my %opt;
     GetOptions(\%opt, 'help|h|?!', 'man!', 'list-variants!', 'list-tests!',
                       'runs=i', 'format=s', 'outfile=s', 'tests=s')
@@ -193,6 +252,7 @@ sub MAIN {
     list_variants()          if $opt{'list-variants'};
     list_tests()             if $opt{'list-tests'};
 
+    # Canonicalize outfile and output format
     $opt{outfile} //= 'bench-' . DateTime->today->ymd . '.json';
     my $suffix      = (fileparse($opt{outfile}, qr/\.[^.]+$/))[2] || '.';
     my $ext         = lc substr $suffix, 1;
@@ -201,81 +261,22 @@ sub MAIN {
     $opt{format}    = lc $opt{format};
     my $formatter   = $FORMATTER{$opt{format}}
         or pod2usage(-msg => "Unknown output format '$opt{format}'");
-
-    # Open outfile
-    my $out_fh = $opt{outfile} eq '-' ? \*STDOUT : IO::File->new($opt{outfile}, '>')
-        or die "Could not open outfile '$opt{outfile}': $!";
-
-    # Allow selecting a subset of available compilers
-    if (@ARGV) {
-        for my $set (values %COMPILERS) {
-            for my $compiler (@$set) {
-                $compiler->{enabled} = 0 unless grep {$_ eq $compiler->{name}} @ARGV;
-            }
-        }
-    }
+    $opt{formatter} = $formatter;
 
     # Allow selecting a subset of available tests
-    my $empty_test = $TESTS{e}[0];
-    if ($opt{tests}) {
-        my %enabled = map {($_ => 1)} split ',' => $opt{tests};
+    enable_only_tests(split ',' => $opt{tests}) if $opt{tests};
 
-        while (my ($test_type, $tests) = each %TESTS) {
-            my @enabled;
-            for my $test (@$tests) {
-                push @enabled, $test if $enabled{$test->{name}};
-            }
-            $TESTS{$test_type} = \@enabled;
-        }
-    }
+    # Allow selecting a subset of available compilers
+    enable_only_compilers(@ARGV) if @ARGV;
 
-    # Record general test configuration and info
-    my %config = (
-                  default   => \%DEFAULT,
-                  groups    => \@GROUPS,
-                  vm        => \%VM,
-                  compilers => \%COMPILERS,
-                  tests     => \%TESTS,
-                 );
-
-    my %run    = (
-                  start_time => time,
-                  options    => \%opt,
-                  versions   => detect_versions(),
-                 );
-
-    # Run tests
-    my (@results, $startup);
-    my $runs         = $opt{runs} || $DEFAULT{TEST_RUNS};
-    my $startup_runs = max($runs, $DEFAULT{MIN_STARTUP_RUNS});
-
-    eval {
-        say "Measuring startup times ...";
-        my $times = time_all_compilers($startup_runs, e => %$empty_test);
-        $startup  = best_times($times);
-
-        for my $test_type (sort keys %TESTS) {
-            run_tests($test_type, $TESTS{$test_type}, \@results, $startup, $runs);
-        }
-    };
-    warn "\n$@\n" if $@;
-
-    $run{end_time} = time;
-
-    # Output results
-    $formatter->(\%config, \%run, \@results, $out_fh);
-    say "Benchmark data written to '$opt{outfile}'."
-        if $opt{outfile} ne '-';
+    return \%opt;
 }
 
 sub list_variants {
-    my $format = "%-10s   %-8s   %-7s   %-6s\n";
-
+    my     $format = "%-10s   %-8s   %-7s   %-6s\n";
     printf $format, qw( VARIANT COMPILER VM LANGUAGE );
 
-    my @compilers = sort { $a->{name} cmp $b->{name} }
-                    map  @$_, values %COMPILERS;
-
+    my @compilers = sort { $a->{name} cmp $b->{name} } @COMPILERS;
     for my $compiler (@compilers) {
         printf $format, @$compiler{qw( name compiler vm language )};
     }
@@ -284,12 +285,24 @@ sub list_variants {
 }
 
 sub list_tests {
-    my @tests = map @{$TESTS{$_}}, sort keys %TESTS;
-    my @names = map $_->{name}, @tests;
-
-    print "$_\n" for @names;
-
+    print "$_->{name}\n" for @TESTS;
     exit 0;
+}
+
+sub enable_only_tests {
+    my %enabled = map {($_ => 1)} @_;
+
+    for my $test (@TESTS) {
+        $test->{enabled} = 0 unless $enabled{$test->{name}};
+    }
+}
+
+sub enable_only_compilers {
+    my %enabled = map {($_ => 1)} @_;
+
+    for my $compiler (@COMPILERS) {
+        $compiler->{enabled} = 0 unless $enabled{$compiler->{name}};
+    }
 }
 
 sub detect_versions {
@@ -300,17 +313,15 @@ sub detect_versions {
 
     my @detect_git_rev = qw( git describe --always --dirty );
 
-    for my $group (@GROUPS) {
-        for my $compiler (@{$COMPILERS{$group}}) {
-            next unless $compiler->{enabled};
+    for my $compiler (@COMPILERS) {
+        next unless $compiler->{enabled};
 
-            my $dir = $compiler->{dir} || $START_CWD;
-            my @cmd = @{$compiler->{show_ver}};
-            s/\bBENCH\b/$FindBin::Bin/g for $dir, @cmd;
+        my $dir = $compiler->{dir} || $START_CWD;
+        my @cmd = @{$compiler->{show_ver}};
+        s/\bBENCH\b/$FindBin::Bin/g for $dir, @cmd;
 
-            chdir $dir;
-            $version{$compiler->{name}} = -d '.git' ? `@detect_git_rev` : `@cmd`;
-        }
+        chdir $dir;
+        $version{$compiler->{name}} = -d '.git' ? `@detect_git_rev` : `@cmd`;
     }
 
     chdir $FindBin::Bin;
@@ -336,13 +347,31 @@ sub git_rev_ge {
     return $merge_base eq $old_ver;
 }
 
+sub run_all_tests {
+    my ($opt_runs) = @_;
+
+    my $runs         = $opt_runs || $DEFAULT{TEST_RUNS};
+    my $startup_runs = max($runs, $DEFAULT{MIN_STARTUP_RUNS});
+    my $min_time     = $DEFAULT{MIN_TIME};
+    my $empty_test   = $TESTS{e}[0];
+
+    say "Measuring startup times ...";
+    my $times   = time_all_compilers($empty_test, $startup_runs);
+    my $startup = best_times($times);
+
+    my @results;
+    run_tests(\@TESTS, \@results, $startup, $runs);
+
+    return \@results;
+}
+
 sub run_tests {
-    my ($test_type, $tests, $results, $startup, $runs) = @_;
+    my ($tests, $results, $startup, $runs) = @_;
 
     for my $test (@$tests) {
-        my $name  = $test->{name};
+        my $name = $test->{name};
         say "Testing $name ...";
-        my $raw_times = time_all_compilers($runs, $test_type => %$test);
+        my $raw_times = time_all_compilers($test, $runs, $startup);
         my $best      = best_times($raw_times);
         my $cooked    = subtract_times($best, $startup);
         push @$results, {
@@ -356,36 +385,28 @@ sub run_tests {
 }
 
 sub time_all_compilers {
-    my ($runs, $test_type, %opt) = @_;
+    my ($test, $runs, $startup) = @_;
+
+    my $test_type = $test->{type};
+    my $cwd       = cwd;
     my %times;
 
-    for my $group (@GROUPS) {
-        time_group($runs, $group, $test_type, $COMPILERS{$group}, \%times, \%opt);
-    }
-
-    return \%times;
-}
-
-sub time_group {
-    my ($runs, $group_name, $test_type, $group_perls, $times, $opt) = @_;
-
-    my $cwd = cwd;
-
-    for my $perl (@$group_perls) {
+    for my $perl (@COMPILERS) {
         next unless $perl->{enabled};
 
         my $name = $perl->{name};
-        my $skip = $opt->{skip};
+        my $skip = $test->{skip};
         if ($skip) {
             next if ref $skip eq 'CODE'  && $skip->($perl);
             next if ref $skip eq 'ARRAY' && grep { $_ eq $name } @$skip;
         }
 
-        my $dir  = $perl->{dir} || $START_CWD;
-        my $comp = $perl->{"${test_type}_compile"} || [];
-        my $run  = $perl->{"${test_type}_run"};
-        my $args = $opt->{$group_name} // next;
-        my @args = ref $args ? @$args : ($args);
+        my $dir   = $perl->{dir} || $START_CWD;
+        my $comp  = $perl->{"${test_type}_compile"} || [];
+        my $run   = $perl->{"${test_type}_run"};
+        my $group = $perl->{group};
+        my $args  = $test->{$group} // next;
+        my @args  = ref $args ? @$args : ($args);
 
         s/\bBENCH\b/$FindBin::Bin/g for $dir, @$comp, @$run, @args;
 
@@ -400,18 +421,35 @@ sub time_group {
             chdir $dir or die "Could not change to $name directory '$dir': $!";
         }
 
-        $times->{$name} = time_command(\@compile, \@run, $runs);
+        my $scalable = grep /\bSCALE\b/ => @run;
+        my $scale    = $test->{scale} || 1;
+        my $lowest   = 0;
+        my (@all_times, $run_times);
+        do {
+            $run_times = time_command(\@compile, \@run, $runs, $scale);
+            if ($run_times) {
+                push @all_times, @$run_times;
+                $lowest  = min(map { $_->{time} } @$run_times);
+                $lowest -= $startup->{$name} if $startup;
+                $scale  *= 2;
+            }
+        } while ($scalable && $run_times && $lowest < $DEFAULT{MIN_TIME});
+
+        $times{$name} = \@all_times;
     }
 
     chdir $cwd;
+    return \%times;
 }
 
 sub time_command {
-    my ($compile, $run, $count) = @_;
+    my ($compile, $run, $count, $scale) = @_;
 
     my (@times, $status);
     for my $i (1 .. $count) {
         my @run = @$run;
+        s/\bSCALE\b/$scale/g for @run;
+
         my $start = time;
 
         if (@$compile) {
@@ -429,8 +467,9 @@ sub time_command {
             s/\bCOMPILED\b/$filename/g for @run;
         }
 
-        $status = system @run;
-        push @times, time - $start;
+        $status  = system @run;
+        my $time = time - $start;
+        push @times, { run => $i, scale => $scale, time => $time };
         if ($status) {
             die "Test's run command terminated by SIGINT.\n" if ($status & 127) == 2;
             warn "Failed to run command: @run\n";
@@ -446,7 +485,7 @@ sub best_times {
     my %best;
 
     while (my ($perl, $times) = each %$raw_times) {
-        $best{$perl} = $times ? min(@$times) : undef;
+        $best{$perl} = min(map { $_->{time} } @$times);
     }
 
     return \%best;
