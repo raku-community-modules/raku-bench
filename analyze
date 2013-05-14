@@ -266,7 +266,7 @@ sub summarize_results_text {
     my %lang_count;
        $lang_count{$_}++ for @lang_names;
     my @langs = uniq @lang_names;
-    my @lang_titles = map { center(" $_ ", $lang_count{$_} * ($longest_perl + $spacer_length + 1) - $spacer_length, bg => '-') } @langs;
+    my @lang_titles = map { center(" $_ ", $lang_count{$_} * ($longest_perl + $spacer_length + 2) - $spacer_length, bg => '-') } @langs;
 
     my $run    = $data->{run};
     my $start  = friendly_time($run->{start_time});
@@ -276,10 +276,12 @@ sub summarize_results_text {
     my $output = "$CLEAR\n==> perl6-bench version $run->{versions}{bench}$run_at$ignore\n"
                . "--- showing PEAK RATE (/s)$slow\n\n";
 
-    $output .= join($spacer => ' ' x $longest_test, @lang_titles) . "\n";
-    $output .= sprintf "$format\n", '',     @run_names if grep {length} @run_names;
-    $output .= sprintf "$format\n", '',     @comp_names;
-    $output .= sprintf "$format\n", 'TEST', @vm_names;
+    my $titles = join $spacer => @lang_titles;
+    $output   .= ' ' x $longest_test . "$spacer$titles\n";
+    $output   .= sprintf "$format\n", '',     @run_names if grep {length} @run_names;
+    $output   .= sprintf "$format\n", '',     @comp_names;
+    $output   .= sprintf "$format\n", 'TEST', @vm_names;
+    $output   .= ' ' x $longest_test . $spacer . '-' x length($titles) . "\n";
 
     my $time_type = $opt->{'ignore-startup'} ? 'cooked' : 'best';
     for my $test (@$times) {
