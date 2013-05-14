@@ -57,6 +57,8 @@
       . fib(30)                    # Fibonnaci, cache hits for just a single call
   + Known performance changes
     - Rakudo
+      . commits a9f3c63d3aa9854ad4e5ab05b0809659db42a0ec, 0d3c9b08fd28214d34f68fb222ae39aad84c16f0, b41219e4f001d6029e3bdb6adb69198376f0a085 (constant-fold stringy ops and &defined)
+      . commit 2696aab9 (revert double interpolation of quotes in regex)
       . commit 08b640344cfd2de9a44afc313959a75c6568bcc5 (repeated shift of large arrays/lists: @a.shift while @a;)
       .
       . commit fc9c3b6046a3ff3d8ec162437bdd61ac0c19928c (flat iterating a list of parcels: ((1, 2, 3) Z (4, 5, 6)) )
