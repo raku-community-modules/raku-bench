@@ -76,6 +76,7 @@ PREREQUISITES
 You will need at least perl5 5.10.x, with the following modules installed:
 
     Capture::Tiny
+    Data::Alias
     DateTime
     List::MoreUtils
     JSON
