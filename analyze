@@ -186,27 +186,38 @@ sub compare_scaled_times {
 
     my %times_by_scale;
     my %rates_by_scale;
+    my %rates_by_perl;
     while (my ($perl, $scale_times) = each %$times) {
-	while (my ($scale, $time) = each %$scale_times) {
-	    next unless defined $time;
-	    my $bounded = $times_by_scale{$scale}{$perl} = max($time, $min_time);
-	    my $rate    = $rates_by_scale{$scale}{$perl} = $scale / $bounded;
-	    $max_rate   = $rate if $max_rate < $rate;
-	}
+        while (my ($scale, $time) = each %$scale_times) {
+            next unless defined $time;
+            my $bounded = $times_by_scale{$scale}{$perl} = max($time, $min_time);
+            my $rate    = $rates_by_scale{$scale}{$perl} = $scale / $bounded;
+            $rates_by_perl{$perl}{$scale} = $rate;
+            $max_rate   = $rate if $max_rate < $rate;
+        }
     }
 
     my %relative_rates;
     while (my ($scale, $perl_rates) = each %rates_by_scale) {
-	while (my ($perl, $rate) = each %$perl_rates) {
-	    $relative_rates{$scale}{$perl} = $rate / $max_rate;
-	}
+        while (my ($perl, $rate) = each %$perl_rates) {
+            $relative_rates{$scale}{$perl} = $rate / $max_rate;
+        }
+    }
+
+    my %peak_rate;
+    while (my ($perl, $scale_rates) = each %rates_by_perl) {
+        my @sorted  = sort { $scale_rates->{$b} <=> $scale_rates->{$a} } keys %$scale_rates;
+        my $fastest = $sorted[0];
+        my $rate    = $scale_rates->{$fastest};
+        $peak_rate{$perl} = { scale => $fastest, rate => $rate, relative => $rate / $max_rate };
     }
 
     return {
-	    times_by_scale => \%times_by_scale,
-	    rates_by_scale => \%rates_by_scale,
-	    relative_rates => \%relative_rates,
-	   };
+            times_by_scale => \%times_by_scale,
+            rates_by_scale => \%rates_by_scale,
+            relative_rates => \%relative_rates,
+            peak_rate      => \%peak_rate,
+           };
 }
 
 sub summarize_results_json {
