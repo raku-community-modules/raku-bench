@@ -92,8 +92,8 @@ sub analyze_timings_files {
 }
 
 sub merge_timing_files {
-    my (%times, %compilers);
-    my (@test_order, @groups);
+    my (%times);
+    my (@test_order, @groups, @compilers);
     my (@start_times, @end_times, @versions);
 
     for my $file (@_) {
@@ -108,14 +108,12 @@ sub merge_timing_files {
         push @start_times, $data->{run}{start_time};
 
         # Merge compiler groups
-        my $compiler_groups = $data->{config}{compilers};
-        while (my ($group, $compilers) = each %$compiler_groups) {
-            for my $compiler (@$compilers) {
-                next unless $compiler->{enabled};
-                $compiler->{run} = $basename;
-                $compiler->{key} = "$compiler->{name}/$basename";
-                push @{$compilers{$group}}, $compiler;
-            }
+        my $compilers = $data->{config}{compilers};
+        for my $compiler (@$compilers) {
+            next unless $compiler->{enabled};
+            $compiler->{run} = $basename;
+            $compiler->{key} = "$compiler->{name}/$basename";
+            push @compilers, $compiler;
         }
 
         # Merge test timings
@@ -152,12 +150,10 @@ sub merge_timing_files {
         print STDERR "    $_\n" for @versions;
     }
 
-    $compilers{$_} ||= [] for @groups;
-
     my $merged = {
                   config => {
                              groups     => \@groups,
-                             compilers  => \%compilers,
+                             compilers  => \@compilers,
                             },
                   run    => {
                              start_time => $start_time,
