@@ -34,27 +34,7 @@ sub MAIN {
         or die "Could not open outfile '$out': $!";
 
     # Analyze results
-    my $time_type = $main_opt->{'ignore-startup'} ? 'cooked' : 'best';
-    my $analyze_timing_data = sub {
-        my $data = shift;
-
-        for my $test (@{$data->{times}}) {
-            $test->{compare} = compare_times($test->{$time_type});
-        }
-
-        $formatter->($data, $main_opt, $out_fh);
-    };
-
-    if ($main_opt->{compare}) {
-        my $merged = merge_timing_files(@ARGV);
-        $analyze_timing_data->($merged);
-    }
-    else {
-        for my $timing_file (@ARGV) {
-            my $data = load_timing_file($timing_file);
-            $analyze_timing_data->($data);
-        }
-    }
+    analyze_timings_files($main_opt, $out_fh, @ARGV);
 }
 
 sub process_options_and_arguments {
@@ -83,6 +63,32 @@ sub process_options_and_arguments {
     pod2usage(-msg => "Must list timing files to analyze") unless @ARGV;
 
     return \%opt;
+}
+
+sub analyze_timings_files {
+    my ($opt, $out_fh, @files) = @_;
+
+    my $time_type = $opt->{'ignore-startup'} ? 'cooked' : 'best';
+    my $analyze_timing_data = sub {
+        my $data = shift;
+
+        for my $test (@{$data->{times}}) {
+            $test->{compare} = compare_times($test->{$time_type});
+        }
+
+        $opt->{formatter}->($data, $opt, $out_fh);
+    };
+
+    if ($opt->{compare}) {
+        my $merged = merge_timing_files(@files);
+        $analyze_timing_data->($merged);
+    }
+    else {
+        for my $timing_file (@files) {
+            my $data = load_timing_file($timing_file);
+            $analyze_timing_data->($data);
+        }
+    }
 }
 
 sub merge_timing_files {
