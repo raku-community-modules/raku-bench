@@ -261,7 +261,7 @@ sub summarize_results_text {
 
     my $spacer_length = 3;
     my $spacer = ' ' x $spacer_length;
-    my $format = join $spacer => "%-${longest_test}s", (("%${longest_perl}s ") x @perls);
+    my $format = join $spacer => "%-${longest_test}s", (("%${longest_perl}s  ") x @perls);
 
     my %lang_count;
        $lang_count{$_}++ for @lang_names;
@@ -272,7 +272,9 @@ sub summarize_results_text {
     my $start  = friendly_time($run->{start_time});
     my $ignore = $opt->{'ignore-startup'} ? ' (ignoring startup time)' : '';
     my $run_at = $opt->{compare} ? '' : " run at $start";
-    my $output = "$CLEAR\n==> perl6-bench version $run->{versions}{bench}$run_at$ignore\n\n";
+    my $slow   = $opt->{compare} ? ' and TIMES SLOWER THAN FASTEST (x)' : '';
+    my $output = "$CLEAR\n==> perl6-bench version $run->{versions}{bench}$run_at$ignore\n"
+               . "--- showing PEAK RATE (/s)$slow\n\n";
 
     $output .= join($spacer => ' ' x $longest_test, @lang_titles) . "\n";
     $output .= sprintf "$format\n", '',     @run_names if grep {length} @run_names;
@@ -286,27 +288,30 @@ sub summarize_results_text {
         for my $perl (@perls) {
             my $key  = $perl->{key} || $perl->{name};
             my $peak = $test->{compare}{peak_rate}{$key};
-            my $time = $test->{$time_type}{$key}{$peak->{scale}};
-            if (defined $time) {
+            if (defined $peak) {
+                my $time = $test->{$time_type}{$key}{$peak->{scale}};
                 # $output .= sprintf "$spacer%${longest_perl}.3fs", $time;
                 $output .= sprintf "$spacer%${longest_perl}.0f/s", $peak->{rate};
             }
             else {
-                $output .= sprintf "$spacer%${longest_perl}s ", '-- ';
+                $output .= sprintf "$spacer%${longest_perl}s  ", '-- ';
             }
         }
         $output .= "\n";
+
+        next unless $opt->{compare};
 
         $output .= sprintf "%-${longest_test}s", '';
         for my $perl (@perls) {
             my $key  = $perl->{key} || $perl->{name};
             my $peak = $test->{compare}{peak_rate}{$key};
             my $rel  = $peak->{relative};
-            if (defined $rel) {
-                my $color = $rel > (1 / 2) ? $GREEN  :
-                            $rel > (1 /10) ? $YELLOW :
-                                             $RED    ;
-                $output .= sprintf "$spacer$color%${longest_perl}.3fx$CLEAR", $rel;
+            if ($rel) {
+                $rel =  1 / $rel;
+                my $color = $rel <  2 ? $GREEN  :
+                            $rel < 10 ? $YELLOW :
+                                        $RED    ;
+                $output .= sprintf "$spacer$color%${longest_perl}.1fx $CLEAR", $rel;
             }
             else {
                 # XXXX: May have to make this based on key instead of name
@@ -314,7 +319,7 @@ sub summarize_results_text {
                 my $is_skip =  !defined $conf->{$perl->{group}}
                             || (grep { $_ eq $perl->{name} } @{$conf->{skip} || []})
                             || (exists $conf->{skip} && !defined $conf->{skip});
-                $output .= sprintf "$spacer$RED%${longest_perl}s $CLEAR",
+                $output .= sprintf "$spacer$RED%${longest_perl}s  $CLEAR",
                        $is_skip ? 'SKIP' : 'FAIL';
             }
         }
