@@ -285,9 +285,11 @@ sub summarize_results_text {
         $output .= sprintf "%-${longest_test}s", $test->{name};
         for my $perl (@perls) {
             my $key  = $perl->{key} || $perl->{name};
-            my $best = $test->{$time_type}{$key};
-            if (defined $best) {
-                $output .= sprintf "$spacer%${longest_perl}.3fs", $best;
+            my $peak = $test->{compare}{peak_rate}{$key};
+            my $time = $test->{$time_type}{$key}{$peak->{scale}};
+            if (defined $time) {
+                # $output .= sprintf "$spacer%${longest_perl}.3fs", $time;
+                $output .= sprintf "$spacer%${longest_perl}.0f/s", $peak->{rate};
             }
             else {
                 $output .= sprintf "$spacer%${longest_perl}s ", '-- ';
@@ -297,12 +299,13 @@ sub summarize_results_text {
 
         $output .= sprintf "%-${longest_test}s", '';
         for my $perl (@perls) {
-            my $key = $perl->{key} || $perl->{name};
-            my $rel = $test->{compare}{$key};
+            my $key  = $perl->{key} || $perl->{name};
+            my $peak = $test->{compare}{peak_rate}{$key};
+            my $rel  = $peak->{relative};
             if (defined $rel) {
-                my $color = $rel <  2 ? $GREEN  :
-                            $rel < 10 ? $YELLOW :
-                                        $RED    ;
+                my $color = $rel > (1 / 2) ? $GREEN  :
+                            $rel > (1 /10) ? $YELLOW :
+                                             $RED    ;
                 $output .= sprintf "$spacer$color%${longest_perl}.3fx$CLEAR", $rel;
             }
             else {
@@ -463,16 +466,13 @@ CSS
 sub enabled_perls {
     my ($groups, $compilers) = @_;
 
-    my @perls;
-    for my $group (@$groups) {
-        for my $perl (@{$compilers->{$group}}) {
-            next unless $perl->{enabled};
-            $perl->{group} = $group;
-            push @perls, $perl;
-        }
+    my %by_group;
+    for my $perl (@$compilers) {
+        push @{$by_group{$perl->{group}} ||= []}, $perl
+            if $perl->{enabled};
     }
 
-    return @perls;
+    return map { @{$by_group{$_} || []} } @$groups;
 }
 
 sub friendly_time {
