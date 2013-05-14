@@ -358,6 +358,7 @@ sub run_all_tests {
     say "Measuring startup times ...";
     my $times   = time_all_compilers($empty_test, $startup_runs);
     my $startup = best_times($times);
+    $startup->{$_} = $startup->{$_}{1} for keys %$startup;
 
     my @results;
     run_tests(\@TESTS, \@results, $startup, $runs);
@@ -421,7 +422,7 @@ sub time_all_compilers {
             chdir $dir or die "Could not change to $name directory '$dir': $!";
         }
 
-        my $scalable = grep /\bSCALE\b/ => @run;
+        my $scalable = $test->{scalable} // ((grep /\bSCALE\b/ => @run) ? 1 : 0);
         my $scale    = $test->{scale} || 1;
         my $lowest   = 0;
         my (@all_times, $run_times);
@@ -485,7 +486,17 @@ sub best_times {
     my %best;
 
     while (my ($perl, $times) = each %$raw_times) {
-        $best{$perl} = min(map { $_->{time} } @$times);
+        my %runs_by_scale;
+        for my $run (@$times) {
+            push @{$runs_by_scale{$run->{scale}} ||= []}, $run;
+        }
+
+        my %best_by_scale;
+        while (my ($scale, $runs) = each %runs_by_scale) {
+            $best_by_scale{$scale} = min(map { $_->{time} } @$runs);
+        }
+
+        $best{$perl} = \%best_by_scale;
     }
 
     return \%best;
@@ -498,13 +509,11 @@ sub subtract_times {
 
     my %cooked;
 
-    while (my ($perl, $time) = each %$orig) {
-        if ($time) {
-            $cooked{$perl} = $time - ($offset->{$perl} || 0);
-            $cooked{$perl} = 0 if $cooked{$perl} < 0;
-        }
-        else {
-            $cooked{$perl} = $time;
+    while (my ($perl, $by_scale) = each %$orig) {
+        while (my ($scale, $time) = each %$by_scale) {
+            my $adjusted = ($time || 0) - ($offset->{$perl} || 0);
+               $adjusted = 0 if $adjusted < 0;
+            $cooked{$perl}{$scale} = $adjusted;
         }
     }
 
