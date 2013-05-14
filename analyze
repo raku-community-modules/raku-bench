@@ -73,7 +73,7 @@ sub analyze_timings_files {
         my $data = shift;
 
         for my $test (@{$data->{times}}) {
-            $test->{compare} = compare_times($test->{$time_type});
+            $test->{compare} = compare_scaled_times($test->{$time_type});
         }
 
         $opt->{formatter}->($data, $opt, $out_fh);
@@ -179,23 +179,34 @@ sub load_timing_file {
     return $decoder->decode($json);
 }
 
-sub compare_times {
-    my $times = shift;
-    my %relative;
-
-    my @sorted   = sort { $times->{$a} <=> $times->{$b} }
-                        grep { defined $times->{$_} } keys %$times;
-
+sub compare_scaled_times {
+    my $times    = shift;
     my $min_time = 1e-4;
-    my $shortest = $times->{$sorted[0] || ''} || $min_time;
-       $shortest = $min_time unless $shortest > $min_time;
+    my $max_rate = 0;
 
-    for my $perl (@sorted) {
-        $relative{$perl} = $times->{$perl} / $shortest;
-        $relative{$perl} = 1 unless $relative{$perl} > 1;
+    my %times_by_scale;
+    my %rates_by_scale;
+    while (my ($perl, $scale_times) = each %$times) {
+	while (my ($scale, $time) = each %$scale_times) {
+	    next unless defined $time;
+	    my $bounded = $times_by_scale{$scale}{$perl} = max($time, $min_time);
+	    my $rate    = $rates_by_scale{$scale}{$perl} = $scale / $bounded;
+	    $max_rate   = $rate if $max_rate < $rate;
+	}
     }
 
-    return \%relative;
+    my %relative_rates;
+    while (my ($scale, $perl_rates) = each %rates_by_scale) {
+	while (my ($perl, $rate) = each %$perl_rates) {
+	    $relative_rates{$scale}{$perl} = $rate / $max_rate;
+	}
+    }
+
+    return {
+	    times_by_scale => \%times_by_scale,
+	    rates_by_scale => \%rates_by_scale,
+	    relative_rates => \%relative_rates,
+	   };
 }
 
 sub summarize_results_json {
