@@ -25,7 +25,39 @@ my %FORMATTER = (
 MAIN();
 
 sub MAIN {
-    # Process options
+    # Process options and command line arguments
+    my $main_opt = process_options_and_arguments();
+
+    # Open outfile
+    my $out    = $main_opt->{outfile};
+    my $out_fh = $out eq '-' ? \*STDOUT : IO::File->new($out, '>')
+        or die "Could not open outfile '$out': $!";
+
+    # Analyze results
+    my $time_type = $main_opt->{'ignore-startup'} ? 'cooked' : 'best';
+    my $analyze_timing_data = sub {
+        my $data = shift;
+
+        for my $test (@{$data->{times}}) {
+            $test->{compare} = compare_times($test->{$time_type});
+        }
+
+        $formatter->($data, $main_opt, $out_fh);
+    };
+
+    if ($main_opt->{compare}) {
+        my $merged = merge_timing_files(@ARGV);
+        $analyze_timing_data->($merged);
+    }
+    else {
+        for my $timing_file (@ARGV) {
+            my $data = load_timing_file($timing_file);
+            $analyze_timing_data->($data);
+        }
+    }
+}
+
+sub process_options_and_arguments {
     my %opt;
     GetOptions(\%opt, 'help|h|?!', 'man!', 'format=s', 'style=s', 'outfile=s',
                       'ignore-startup|ignore_startup|ignorestartup!', 'compare!')
@@ -41,6 +73,7 @@ sub MAIN {
     $opt{format}    = lc $opt{format};
     my $formatter   = $FORMATTER{$opt{format}}
         or pod2usage(-msg => "Unknown output format '$opt{format}'");
+    $opt{formatter} = $formatter;
 
     $opt{style}   //= 'auto';
     $opt{style}     = lc $opt{style};
@@ -49,32 +82,7 @@ sub MAIN {
 
     pod2usage(-msg => "Must list timing files to analyze") unless @ARGV;
 
-    # Open outfile
-    my $out_fh = $opt{outfile} eq '-' ? \*STDOUT : IO::File->new($opt{outfile}, '>')
-        or die "Could not open outfile '$opt{outfile}': $!";
-
-    # Analyze results
-    my $time_type = $opt{'ignore-startup'} ? 'cooked' : 'best';
-    my $analyze_timing_data = sub {
-        my $data = shift;
-
-        for my $test (@{$data->{times}}) {
-            $test->{compare} = compare_times($test->{$time_type});
-        }
-
-        $formatter->($data, \%opt, $out_fh);
-    };
-
-    if ($opt{compare}) {
-        my $merged = merge_timing_files(@ARGV);
-        $analyze_timing_data->($merged);
-    }
-    else {
-        for my $timing_file (@ARGV) {
-            my $data = load_timing_file($timing_file);
-            $analyze_timing_data->($data);
-        }
-    }
+    return \%opt;
 }
 
 sub merge_timing_files {
