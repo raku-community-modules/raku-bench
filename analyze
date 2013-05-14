@@ -291,7 +291,7 @@ sub summarize_results_text {
             my $key  = $perl->{key} || $perl->{name};
             my $peak = $test->{compare}{peak_rate}{$key};
             if (defined $peak) {
-                my $time = $test->{$time_type}{$key}{$peak->{scale}};
+                # my $time = $test->{$time_type}{$key}{$peak->{scale}};
                 # $output .= sprintf "$spacer%${longest_perl}.3fs", $time;
                 $output .= sprintf "$spacer%${longest_perl}.0f/s", $peak->{rate};
             }
@@ -388,15 +388,17 @@ sub summarize_results_html_snippet {
 .bench_run             { text-align: center; padding-top: .1em; }
 .bench_compiler        { text-align: center; padding-top: .1em; }
 .bench_vm              { text-align: center; padding-top: .1em; }
-.bench_time_row    td  { padding-top: .2em; padding-bottom: 0; }
-.bench_compare_row td  { padding-top: 0; padding-bottom: .2em; }
+.bench_time_row    td  { }
+.bench_compare_row td  { }
+.bench_spacer_row      { height: .7em; }
+.bench_rate            { text-align: right; font-family: monospace; }
 .bench_time            { text-align: right; font-family: monospace; }
 .bench_no_time         { text-align: right; font-family: monospace; }
-.bench_good            { text-align: right; font-family: monospace; color: green; }
-.bench_bad             { text-align: right; font-family: monospace; color: #dd0;  }
-.bench_ugly            { text-align: right; font-family: monospace; color: red;   }
-.bench_skip            { text-align: right; font-family: monospace; color: red;   }
-.bench_fail            { text-align: right; font-family: monospace; color: red;   }
+.bench_good            { text-align: right; font-family: monospace; background-color: #3f7; color: black; }
+.bench_bad             { text-align: right; font-family: monospace; background-color: #ee0; color: black; }
+.bench_ugly            { text-align: right; font-family: monospace; background-color: #f55; color: white; }
+.bench_skip            { text-align: right; font-family: monospace; background-color: #666; color: white; }
+.bench_fail            { text-align: right; font-family: monospace; background-color: #f55; color: white; }
 </style>
 
 CSS
@@ -420,8 +422,9 @@ CSS
     my $run    = $data->{run};
     my $ignore = $opt->{'ignore-startup'} ? ' (ignoring startup time)' : '';
     my $run_at = $opt->{compare} ? '' : qq{ run at <span class="bench_start_time">} . friendly_time($run->{start_time}) . qq{</span>};
+    my $slow   = $opt->{compare} ? ' and TIMES SLOWER THAN FASTEST (<strong>x</strong>)' : '';
     $html .= qq{<table class="bench_summary" cellspacing="0" cellpadding="0">\n};
-    $html .= qq{<caption>perl6-bench version <span class="bench_ver">$run->{versions}{bench}</span>$run_at$ignore</caption>\n};
+    $html .= qq{<caption>perl6-bench version <span class="bench_ver">$run->{versions}{bench}</span>$run_at$ignore<br>showing PEAK RATE (<strong>/s</strong>)$slow</caption>\n};
     $html .= "<tr><th></th>\n"     . join('' => map qq{    <th class="bench_language" colspan="$lang_count{$_}">$_</th>\n} => @langs) . "</tr>\n";
     $html .= "<tr><th></th>\n"     . join('' => map qq{    <th class="bench_run">$_</th>\n} => @run_names) . "</tr>\n" if grep {length} @run_names;
     $html .= "<tr><th></th>\n"     . join('' => map qq{    <th class="bench_compiler">$_</th>\n} => @comp_names) . "</tr>\n";
@@ -432,9 +435,11 @@ CSS
         $html .= qq{<tr class="bench_time_row"><td>$test->{name}</td>\n};
         for my $perl (@perls) {
             my $key  = $perl->{key} || $perl->{name};
-            my $best = $test->{$time_type}{$key};
-            if (defined $best) {
-                $html .= sprintf qq{    <td class="bench_time">%.3fs</td>\n}, $best;
+            my $peak = $test->{compare}{peak_rate}{$key};
+            if (defined $peak) {
+                # my $time = $test->{$time_type}{$key}{$peak->{scale}};
+                # $html .= sprintf qq{    <td class="bench_time">%.3fs</td>\n}, $time;
+                $html .= sprintf qq{    <td class="bench_rate">%.0f/s</td>\n}, $peak->{rate};
             }
             else {
                 $html .= qq{    <td class="bench_no_time">--</td>\n};
@@ -442,15 +447,19 @@ CSS
         }
         $html .= "</tr>\n";
 
+        next unless $opt->{compare};
+
         $html .= qq{<tr class="bench_compare_row"><td></td>\n};
         for my $perl (@perls) {
-            my $key = $perl->{key} || $perl->{name};
-            my $rel = $test->{compare}{$key};
-            if (defined $rel) {
+            my $key  = $perl->{key} || $perl->{name};
+            my $peak = $test->{compare}{peak_rate}{$key};
+            my $rel  = $peak->{relative};
+            if ($rel) {
+                $rel =  1 / $rel;
                 my $class = $rel <  2 ? 'bench_good' :
                             $rel < 10 ? 'bench_bad'  :
                                         'bench_ugly' ;
-                $html .= sprintf qq{    <td class="$class">%.3fx</td>\n}, $rel;
+                $html .= sprintf qq{    <td class="$class">%.1fx</td>\n}, $rel;
             }
             else {
                 # XXXX: May have to make this based on key instead of name
@@ -463,7 +472,7 @@ CSS
                 $html .= qq{    <td class="$class">$message</td>\n};
             }
         }
-        $html .= "</tr>\n";
+        $html .= qq{</tr>\n<tr class="bench_spacer_row"></tr>\n};
     }
     $html .= "</table>\n";
 
