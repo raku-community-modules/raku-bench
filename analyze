@@ -19,6 +19,7 @@ my %FORMATTER = (
                  text         => \&summarize_results_text,
                  html         => \&summarize_results_html,
                  html_snippet => \&summarize_results_html_snippet,
+                 html_plot    => \&summarize_results_html_plot,
                 );
 
 
@@ -215,6 +216,7 @@ sub compare_scaled_times {
     return {
             times_by_scale => \%times_by_scale,
             rates_by_scale => \%rates_by_scale,
+            rates_by_perl  => \%rates_by_perl,
             relative_rates => \%relative_rates,
             peak_rate      => \%peak_rate,
            };
@@ -479,6 +481,110 @@ CSS
     print $out_fh $html;
 }
 
+sub summarize_results_html_plot {
+    my ($data, $opt, $out_fh) = @_;
+    my $html = <<'PLOT_HEADER';
+<html>
+<head>
+<title>jqPlot test</title>
+<link rel="stylesheet" type="text/css" href="jqplot/jquery.jqplot.min.css" />
+<!--[if lt IE 9]><script language="javascript" type="text/javascript" src="jqplot/excanvas.min.js"></script><![endif]-->
+<script type="text/javascript" src="jqplot/jquery.min.js"></script>
+<script type="text/javascript" src="jqplot/jquery.jqplot.min.js"></script>
+<script type="text/javascript" src="jqplot/plugins/jqplot.logAxisRenderer.min.js"></script>
+<script type="text/javascript" src="jqplot/plugins/jqplot.canvasTextRenderer.min.js"></script>
+<script type="text/javascript" src="jqplot/plugins/jqplot.highlighter.min.js"></script>
+<script type="text/javascript">
+  function do_plot (chart_div, title, series_data, series_labels) {
+    var series_conf = [];
+    for (var i in series_labels) {
+      series_conf.push({ label: series_labels[i] });
+    }
+
+    $.jqplot(chart_div, series_data, {
+      title: title,
+      series: series_conf,
+      highlighter: {
+        show: true,
+        tooltipAxes: "y"
+      },
+      legend: {
+        show: true,
+        placement: "outsideGrid"
+      },
+      axes: {
+        xaxis: {
+          renderer: $.jqplot.LogAxisRenderer,
+          base:     2
+        },
+        yaxis: {
+          renderer: $.jqplot.LogAxisRenderer,
+          base:     2
+        }
+      }
+    });
+  }
+</script>
+</head>
+
+<body>
+PLOT_HEADER
+
+    my $times      = $data->{times};
+    my @test_names = map { $_->{name} } @$times;
+    my $time_type  = $opt->{'ignore-startup'} ? 'cooked' : 'best';
+    my $groups     = $data->{config}{groups};
+    my $compilers  = $data->{config}{compilers};
+    my @perls      = enabled_perls($groups, $compilers);
+    my $labels     = join ', ' => map {'"' . ($_->{key} || $_->{name}) . '"'} @perls;
+
+    for my $test (@$times) {
+        $html .= <<"CHART_TOP";
+<div id="chart_$test->{name}" style="width: 900px"></div>
+<script type="text/javascript">
+  \$(function () {
+    var series_labels = [$labels];
+    var series_data   = [
+CHART_TOP
+
+	my @data_rows;
+        for my $perl (@perls) {
+            my $key = $perl->{key} || $perl->{name};
+            my $scale_rates = $test->{compare}{rates_by_perl}{$key};
+
+            my @data_points;
+            if ($scale_rates) {
+                for my $scale (sort { $a <=> $b } keys %$scale_rates) {
+                    push @data_points, "[$scale, $scale_rates->{$scale}]";
+                }
+            }
+	    else {
+		push @data_points, "[]";
+	    }
+
+            push @data_rows, '      [' . join(',' => @data_points) . ']';
+        }
+	$html .= join ",\n" => @data_rows;
+
+        $html .= <<"CHART_BOTTOM";
+
+    ];
+
+    do_plot("chart_$test->{name}", "$test->{name}", series_data, series_labels);
+  });
+</script>
+
+CHART_BOTTOM
+    }
+
+    $html .= <<'PLOT_FOOTER';
+</body>
+</html>
+PLOT_FOOTER
+
+    print $out_fh $html;
+}
+
 sub enabled_perls {
     my ($groups, $compilers) = @_;
 
@@ -533,14 +639,16 @@ Get basic help for this program
 
 Display this program's entire manpage
 
-=item --format=text|json|html|html_snippet
+=item --format=text|json|html|html_snippet|html_plot
 
 Format the summary output in a particular format.  If the C<--outfile> option
 is set, then the default output format is based on the lowercased extension
 of the output filename.  Otherwise the default is C<text>, which outputs a
 text-rendered summary table with ANSI coloring.  HTML output is also available,
 either in full document form (C<html>), or just a snippet containing the
-summary table (C<html_snippet>).  To save the results in computer-friendly
+summary table (C<html_snippet>).  For best visualization of performance at
+different scales, use C<html_plot> to get JavaScript/HTML5 output that will
+produce plotted result data.  To save the results in computer-friendly
 form, use the C<json> format.
 
 =item --style=0|1|auto
