@@ -8,6 +8,7 @@ TABLE OF CONTENTS
 * NETWORK TRAFFIC
 * BENCHMARKING TIPS
 * PREREQUISITES
+* COPYRIGHT
 
 -->
 
@@ -130,3 +131,21 @@ Compilers tested so far:
         niecza (no pir:: or nqp:: support)
 
 Enjoy!
+
+
+COPYRIGHT
+---------
+
+perl6-bench is Copyright 2012-2013, Geoffrey Broadwell.  This project is
+open source, and may be used, copied, modified, distributed, and redistributed
+under the terms of the
+[Artistic License 2.0](http://www.perlfoundation.org/artistic_license_2_0) .
+
+The `jqplot/` directory contains selected files from the jqPlot and jQuery
+projects; copyright details may be found in `jqplot/copyright.txt` .
+
+Some benchmarks have been based on other open-source programs; in particular,
+benchmarks named with a leading `rc-` prefix were modified from versions found
+on [Rosetta Code](http://rosettacode.org/wiki/Rosetta_Code) which licenses all
+content under the
+[GNU Free Documentation License 1.2](http://www.gnu.org/licenses/fdl-1.2.html) .
