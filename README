@@ -19,9 +19,9 @@ compilers is as follows:
     # First step chews network bandwidth to mirror repos; see next section
     ./bench setup
     ./bench extract nqp niecza rakudo
-    ./bench build   nqp/2012.12 rakudo/2012.12 niecza/v24
-    ./bench time    nqp/2012.12 rakudo/2012.12 niecza/v24
-    ./bench analyze --compare results/*/*.json
+    ./bench build   nqp/2013.04 rakudo/2012.04 niecza/v24
+    ./bench time    nqp/2013.04 rakudo/2013.04 niecza/v24
+    ./bench compare nqp/2013.04 rakudo/2013.04 niecza/v24
 
 
 NETWORK TRAFFIC
@@ -85,7 +85,7 @@ You will need at least perl5 5.10.x, with the following modules installed:
 You will need a Perl 6 compiler to run the 'bench' interface (though you can
 benchmark the tests "manually" using the raw 'timeall' and 'analyze' Perl 5
 scripts in a pinch).  The author generally uses bleeding-edge Rakudo, but any
-Rakudo from late 2012 or later should do.  Patches welcomed to make 'bench'
+Rakudo as of 2013.04 or later should do.  Patches welcomed to make 'bench'
 work well with other Perl 6 compilers.
 
 Your Perl 6 compiler will need the following modules installed:
