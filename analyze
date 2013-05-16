@@ -547,7 +547,7 @@ PLOT_HEADER
     var series_data   = [
 CHART_TOP
 
-	my @data_rows;
+        my @data_rows;
         for my $perl (@perls) {
             my $key = $perl->{key} || $perl->{name};
             my $scale_rates = $test->{compare}{rates_by_perl}{$key};
@@ -558,13 +558,13 @@ CHART_TOP
                     push @data_points, "[$scale, $scale_rates->{$scale}]";
                 }
             }
-	    else {
-		push @data_points, "[]";
-	    }
+            else {
+                push @data_points, "[]";
+            }
 
             push @data_rows, '      [' . join(',' => @data_points) . ']';
         }
-	$html .= join ",\n" => @data_rows;
+        $html .= join ",\n" => @data_rows;
 
         $html .= <<"CHART_BOTTOM";
 
