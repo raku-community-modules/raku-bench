@@ -493,6 +493,7 @@ sub summarize_results_html_plot {
 <script type="text/javascript" src="jqplot/jquery.jqplot.min.js"></script>
 <script type="text/javascript" src="jqplot/plugins/jqplot.logAxisRenderer.min.js"></script>
 <script type="text/javascript" src="jqplot/plugins/jqplot.canvasTextRenderer.min.js"></script>
+<script type="text/javascript" src="jqplot/plugins/jqplot.enhancedLegendRenderer.min.js"></script>
 <script type="text/javascript" src="jqplot/plugins/jqplot.highlighter.min.js"></script>
 <script type="text/javascript">
   function do_plot (chart_div, title, series_data, series_labels) {
@@ -509,6 +510,7 @@ sub summarize_results_html_plot {
         tooltipAxes: "y"
       },
       legend: {
+        renderer: $.jqplot.EnhancedLegendRenderer,
         show: true,
         placement: "outsideGrid"
       },
