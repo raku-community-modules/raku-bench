@@ -483,6 +483,7 @@ CSS
 
 sub summarize_results_html_plot {
     my ($data, $opt, $out_fh) = @_;
+
     my $html = <<'PLOT_HEADER';
 <html>
 <head>
@@ -527,10 +528,19 @@ sub summarize_results_html_plot {
     });
   }
 </script>
+<style type="text/css">
+.bench_ver             { font-family: monospace;  }
+.bench_start_time      { font-family: monospace;  }
+</style>
 </head>
 
 <body>
 PLOT_HEADER
+
+    my $run    = $data->{run};
+    my $ignore = $opt->{'ignore-startup'} ? ' (ignoring startup time)' : '';
+    my $run_at = $opt->{compare} ? '' : qq{ run at <span class="bench_start_time">} . friendly_time($run->{start_time}) . qq{</span>};
+    $html .= qq{<h2>perl6-bench version <span class="bench_ver">$run->{versions}{bench}</span>$run_at$ignore</h2>\n\n};
 
     my $times      = $data->{times};
     my @test_names = map { $_->{name} } @$times;
