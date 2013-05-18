@@ -508,7 +508,8 @@ sub summarize_results_html_plot {
       series: series_conf,
       highlighter: {
         show: true,
-        tooltipAxes: "y"
+        tooltipAxes: "y",
+        formatString: "%.1f/s"
       },
       legend: {
         renderer: $.jqplot.EnhancedLegendRenderer,
