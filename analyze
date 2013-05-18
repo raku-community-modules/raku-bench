@@ -492,10 +492,12 @@ sub summarize_results_html_plot {
 <!--[if lt IE 9]><script language="javascript" type="text/javascript" src="jqplot/excanvas.min.js"></script><![endif]-->
 <script type="text/javascript" src="jqplot/jquery.min.js"></script>
 <script type="text/javascript" src="jqplot/jquery.jqplot.min.js"></script>
-<script type="text/javascript" src="jqplot/plugins/jqplot.logAxisRenderer.min.js"></script>
+<script type="text/javascript" src="jqplot/plugins/jqplot.barRenderer.min.js"></script>
 <script type="text/javascript" src="jqplot/plugins/jqplot.canvasTextRenderer.min.js"></script>
+<script type="text/javascript" src="jqplot/plugins/jqplot.categoryAxisRenderer.min.js"></script>
 <script type="text/javascript" src="jqplot/plugins/jqplot.enhancedLegendRenderer.min.js"></script>
 <script type="text/javascript" src="jqplot/plugins/jqplot.highlighter.min.js"></script>
+<script type="text/javascript" src="jqplot/plugins/jqplot.logAxisRenderer.min.js"></script>
 <script type="text/javascript">
   function do_plot (chart_div, title, series_data, series_labels) {
     var series_conf = [];
@@ -520,6 +522,33 @@ sub summarize_results_html_plot {
         xaxis: {
           renderer: $.jqplot.LogAxisRenderer,
           base:     2
+        },
+        yaxis: {
+          renderer: $.jqplot.LogAxisRenderer,
+          base:     2
+        }
+      }
+    });
+  }
+
+  function do_bar (chart_div, title, bar_data, tick_labels) {
+    $.jqplot(chart_div, [bar_data], {
+      title: title,
+      seriesDefaults: {
+        renderer:$.jqplot.BarRenderer
+      },
+      highlighter: {
+        show: true,
+        tooltipAxes: "y",
+        formatString: "%.1f/s"
+      },
+      legend: {
+        show: false
+      },
+      axes: {
+        xaxis: {
+          renderer: $.jqplot.CategoryAxisRenderer,
+          ticks:    tick_labels
         },
         yaxis: {
           renderer: $.jqplot.LogAxisRenderer,
@@ -556,34 +585,51 @@ PLOT_HEADER
 <div id="chart_$test->{name}" style="width: 900px"></div>
 <script type="text/javascript">
   \$(function () {
-    var series_labels = [$labels];
-    var series_data   = [
+    var labels = [$labels];
+    var data   = [
 CHART_TOP
 
-        my @data_rows;
-        for my $perl (@perls) {
-            my $key = $perl->{key} || $perl->{name};
-            my $scale_rates = $test->{compare}{rates_by_perl}{$key};
+        my $chart_type;
+        my $by_scale = $test->{compare}{rates_by_scale};
+        if (1 == keys %$by_scale) {
+            $chart_type = 'bar';
 
+            my ($rates) = values %$by_scale;
             my @data_points;
-            if ($scale_rates) {
-                for my $scale (sort { $a <=> $b } keys %$scale_rates) {
-                    push @data_points, "[$scale, $scale_rates->{$scale}]";
-                }
+            for my $perl (@perls) {
+                my $key = $perl->{key} || $perl->{name};
+                push @data_points, $rates->{$key};
             }
-            else {
-                push @data_points, "[]";
-            }
-
-            push @data_rows, '      [' . join(',' => @data_points) . ']';
+            $html .= join ', ' => @data_points;
         }
-        $html .= join ",\n" => @data_rows;
+        else {
+            $chart_type = 'plot';
+
+            my @data_rows;
+            for my $perl (@perls) {
+                my $key = $perl->{key} || $perl->{name};
+                my $scale_rates = $test->{compare}{rates_by_perl}{$key};
+
+                my @data_points;
+                if ($scale_rates) {
+                    for my $scale (sort { $a <=> $b } keys %$scale_rates) {
+                        push @data_points, "[$scale,$scale_rates->{$scale}]";
+                    }
+                }
+                else {
+                    push @data_points, "[]";
+                }
+
+                push @data_rows, '      [' . join(',' => @data_points) . ']';
+            }
+            $html .= join ",\n" => @data_rows;
+        }
 
         $html .= <<"CHART_BOTTOM";
 
     ];
 
-    do_plot("chart_$test->{name}", "$test->{name}", series_data, series_labels);
+    do_$chart_type("chart_$test->{name}", "$test->{name}", data, labels);
   });
 </script>
 
