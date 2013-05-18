@@ -582,7 +582,7 @@ PLOT_HEADER
 
     for my $test (@$times) {
         $html .= <<"CHART_TOP";
-<div id="chart_$test->{name}" style="width: 900px"></div>
+<div id="chart_$test->{name}" style="max-width: 900px"></div>
 <script type="text/javascript">
   \$(function () {
     var labels = [$labels];
