@@ -26,10 +26,10 @@ my %DEFAULT = (
               );
 my @GROUPS    = qw( perl5 nqp perl6 );
 my %VM        = (
-                 perl5   => 'perl',
-                 node_js => 'nodejs',
-                 mono    => 'mono-sgen',
-                 v8      => 'BENCH/../v8/out/native/d8',
+                 perl5     => 'perl',
+                 'node.js' => 'nodejs',
+                 mono      => 'mono-sgen',
+                 d8        => 'BENCH/../v8/out/native/d8',
                 );
 my %COMPILERS = (
                  perl5 => [
@@ -40,9 +40,9 @@ my %COMPILERS = (
                             compiler  => 'perl5',
                             vm        => 'perl5',
                             dir       => 'BENCH',
-                            f_run     => [$VM{perl5}          ],
-                            e_run     => [$VM{perl5}, qw( -E )],
-                            show_ver  => [$VM{perl5}, qw( -E say+$] )],
+                            f_run     => [qw( VM           )],
+                            e_run     => [qw( VM -E        )],
+                            show_ver  => [qw( VM -E say+$] )],
                            },
                            {
                             name      => 'p5.pl',
@@ -50,9 +50,9 @@ my %COMPILERS = (
                             language  => 'Perl 5',
                             compiler  => 'perlito5',
                             vm        => 'perl5',
-                            f_run     => [$VM{perl5}, qw( -Ilib5 perlito5.pl -Isrc5/lib    )],
-                            e_run     => [$VM{perl5}, qw( -Ilib5 perlito5.pl -Isrc5/lib -e )],
-                            show_ver  => [$VM{perl5}, qw( -Ilib5 perlito5.pl --version     )],
+                            f_run     => [qw( VM -Ilib5 perlito5.pl -Isrc5/lib    )],
+                            e_run     => [qw( VM -Ilib5 perlito5.pl -Isrc5/lib -e )],
+                            show_ver  => [qw( VM -Ilib5 perlito5.pl --version     )],
                            },
                            {
                             name      => 'p5.js_node',
@@ -60,9 +60,9 @@ my %COMPILERS = (
                             language  => 'Perl 5',
                             compiler  => 'perlito5',
                             vm        => 'node.js',
-                            f_run     => [$VM{node_js}, qw( perlito5.js -Isrc5/lib    )],
-                            e_run     => [$VM{node_js}, qw( perlito5.js -Isrc5/lib -e )],
-                            show_ver  => [$VM{node_js}, qw( perlito5.js --version     )],
+                            f_run     => [qw( VM perlito5.js -Isrc5/lib    )],
+                            e_run     => [qw( VM perlito5.js -Isrc5/lib -e )],
+                            show_ver  => [qw( VM perlito5.js --version     )],
                            },
                            {
                             name      => 'p5.js_v8',
@@ -70,11 +70,11 @@ my %COMPILERS = (
                             language  => 'Perl 5',
                             compiler  => 'perlito5',
                             vm        => 'd8',
-                            f_compile => [$VM{v8}, qw( perlito5.js -- -Isrc5/lib -Cjs    )],
-                            e_compile => [$VM{v8}, qw( perlito5.js -- -Isrc5/lib -Cjs -e )],
-                            show_ver  => [$VM{v8}, qw( perlito5.js -- --version          )],
-                            f_run     => [$VM{v8}, qw( COMPILED -- )],
-                            e_run     => [$VM{v8}, qw( COMPILED -- )],
+                            f_compile => [qw( VM perlito5.js -- -Isrc5/lib -Cjs    )],
+                            e_compile => [qw( VM perlito5.js -- -Isrc5/lib -Cjs -e )],
+                            show_ver  => [qw( VM perlito5.js -- --version          )],
+                            f_run     => [qw( VM COMPILED -- )],
+                            e_run     => [qw( VM COMPILED -- )],
                            },
                           ],
                  perl6 => [
@@ -94,9 +94,9 @@ my %COMPILERS = (
                             language  => 'Perl 6',
                             compiler  => 'niecza',
                             vm        => 'mono',
-                            f_run     => [$VM{mono}, qw( run/Niecza.exe    )],
-                            e_run     => [$VM{mono}, qw( run/Niecza.exe -e )],
-                            show_ver  => [$VM{mono}, qw( run/Niecza.exe --version )],
+                            f_run     => [qw( VM run/Niecza.exe    )],
+                            e_run     => [qw( VM run/Niecza.exe -e )],
+                            show_ver  => [qw( VM run/Niecza.exe --version )],
                            },
                            {
                             name      => 'p6.pl',
@@ -104,11 +104,11 @@ my %COMPILERS = (
                             language  => 'Perl 6',
                             compiler  => 'perlito6',
                             vm        => 'perl5',
-                            f_compile => [$VM{perl5}, qw( -Ilib5 perlito6.pl -Cperl5    )],
-                            e_compile => [$VM{perl5}, qw( -Ilib5 perlito6.pl -Cperl5 -e )],
-                            show_ver  => [$VM{perl5}, qw( -Ilib5 perlito6.pl --version  )],
-                            f_run     => [$VM{perl5}, qw( -Ilib5 COMPILED )],
-                            e_run     => [$VM{perl5}, qw( -Ilib5 COMPILED )],
+                            f_compile => [qw( VM -Ilib5 perlito6.pl -Cperl5    )],
+                            e_compile => [qw( VM -Ilib5 perlito6.pl -Cperl5 -e )],
+                            show_ver  => [qw( VM -Ilib5 perlito6.pl --version  )],
+                            f_run     => [qw( VM -Ilib5 COMPILED )],
+                            e_run     => [qw( VM -Ilib5 COMPILED )],
                            },
                            {
                             name      => 'p6.js_v8',
@@ -116,11 +116,11 @@ my %COMPILERS = (
                             language  => 'Perl 6',
                             compiler  => 'perlito6',
                             vm        => 'd8',
-                            f_compile => [$VM{v8}, qw( perlito6.js -- -Cjs    )],
-                            e_compile => [$VM{v8}, qw( perlito6.js -- -Cjs -e )],
-                            show_ver  => [$VM{v8}, qw( perlito6.js -- --version )],
-                            f_run     => [$VM{v8}, qw( COMPILED -- )],
-                            e_run     => [$VM{v8}, qw( COMPILED -- )],
+                            f_compile => [qw( VM perlito6.js -- -Cjs    )],
+                            e_compile => [qw( VM perlito6.js -- -Cjs -e )],
+                            show_ver  => [qw( VM perlito6.js -- --version )],
+                            f_run     => [qw( VM COMPILED -- )],
+                            e_run     => [qw( VM COMPILED -- )],
                            },
                           ],
                  nqp   => [
@@ -160,9 +160,9 @@ my %COMPILERS = (
                             language  => 'NQP',
                             compiler  => 'niecza',
                             vm        => 'mono',
-                            f_run     => [$VM{mono}, qw( run/Niecza.exe    )],
-                            e_run     => [$VM{mono}, qw( run/Niecza.exe -e )],
-                            show_ver  => [$VM{mono}, qw( run/Niecza.exe --version )],
+                            f_run     => [qw( VM run/Niecza.exe    )],
+                            e_run     => [qw( VM run/Niecza.exe -e )],
+                            show_ver  => [qw( VM run/Niecza.exe --version )],
                            },
                           ],
                 );
@@ -315,6 +315,7 @@ sub detect_versions {
         my $dir = $compiler->{dir} || $START_CWD;
         my @cmd = @{$compiler->{show_ver}};
         s/\bBENCH\b/$FindBin::Bin/g for $dir, @cmd;
+        s/\bVM\b/$VM{$compiler->{vm}}/g for @cmd;
 
         chdir $dir;
         $version{$compiler->{name}} = -d '.git' ? `@detect_git_rev` : `@cmd`;
@@ -409,6 +410,7 @@ sub time_all_compilers {
         my @args  = ref $args ? @$args : ($args);
 
         s/\bBENCH\b/$FindBin::Bin/g for $dir, @$comp, @$run, @args;
+        s/\bVM\b/$VM{$perl->{vm}}/g for @$comp, @$run, @args;
 
         my @compile;
         if (@$comp) {
