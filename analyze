@@ -501,7 +501,7 @@ sub summarize_results_html_plot {
 <script type="text/javascript" src="jqplot/plugins/jqplot.highlighter.min.js"></script>
 <script type="text/javascript" src="jqplot/plugins/jqplot.logAxisRenderer.min.js"></script>
 <script type="text/javascript">
-  function do_plot (chart_div, title, series_data, series_labels) {
+  function do_plot (chart_div, title, series_data, series_labels, linear_x) {
     var series_conf = [];
     for (var i in series_labels) {
       series_conf.push({ label: series_labels[i] });
@@ -524,7 +524,7 @@ sub summarize_results_html_plot {
       },
       axes: {
         xaxis: {
-          renderer: $.jqplot.LogAxisRenderer,
+          renderer: linear_x ? $.jqplot.LinearAxisRenderer : $.jqplot.LogAxisRenderer,
           base:     2,
           tickRenderer: $.jqplot.CanvasAxisTickRenderer,
           tickOptions:  { angle: -30 }
@@ -639,11 +639,12 @@ CHART_TOP
             $html .= join ",\n" => @data_rows;
         }
 
+        my $is_linear = ($test->{conf}{scaling} // '') eq 'linear' ? 1 : 0;
         $html .= <<"CHART_BOTTOM";
 
     ];
 
-    do_$chart_type("chart_$test->{name}", "$test->{name}", data, labels);
+    do_$chart_type("chart_$test->{name}", "$test->{name}", data, labels, $is_linear);
   });
 </script>
 
