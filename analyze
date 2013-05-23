@@ -219,6 +219,7 @@ sub compare_scaled_times {
             rates_by_perl  => \%rates_by_perl,
             relative_rates => \%relative_rates,
             peak_rate      => \%peak_rate,
+            max_rate       => $max_rate,
            };
 }
 
@@ -493,6 +494,7 @@ sub summarize_results_html_plot {
 <script type="text/javascript" src="jqplot/jquery.min.js"></script>
 <script type="text/javascript" src="jqplot/jquery.jqplot.min.js"></script>
 <script type="text/javascript" src="jqplot/plugins/jqplot.barRenderer.min.js"></script>
+<script type="text/javascript" src="jqplot/plugins/jqplot.canvasAxisTickRenderer.min.js"></script>
 <script type="text/javascript" src="jqplot/plugins/jqplot.canvasTextRenderer.min.js"></script>
 <script type="text/javascript" src="jqplot/plugins/jqplot.categoryAxisRenderer.min.js"></script>
 <script type="text/javascript" src="jqplot/plugins/jqplot.enhancedLegendRenderer.min.js"></script>
@@ -510,8 +512,10 @@ sub summarize_results_html_plot {
       series: series_conf,
       highlighter: {
         show: true,
+        yvalues: 2,
         tooltipAxes: "y",
-        formatString: "%.1f/s"
+        tooltipLocation: "n",
+        formatString: "%.1f per second<br>%.0fx slower than fastest"
       },
       legend: {
         renderer: $.jqplot.EnhancedLegendRenderer,
@@ -521,7 +525,9 @@ sub summarize_results_html_plot {
       axes: {
         xaxis: {
           renderer: $.jqplot.LogAxisRenderer,
-          base:     2
+          base:     2,
+          tickRenderer: $.jqplot.CanvasAxisTickRenderer,
+          tickOptions:  { angle: -30 }
         },
         yaxis: {
           renderer: $.jqplot.LogAxisRenderer,
@@ -540,7 +546,8 @@ sub summarize_results_html_plot {
       highlighter: {
         show: true,
         tooltipAxes: "y",
-        formatString: "%.1f/s"
+        tooltipLocation: "n",
+        formatString: "%.1f per second"
       },
       legend: {
         show: false
@@ -581,6 +588,9 @@ PLOT_HEADER
     my $labels     = join ', ' => map {'"' . ($_->{key} || $_->{name}) . '"'} @perls;
 
     for my $test (@$times) {
+        # In compare mode, the 'empty' test data is just residual noise
+        next if $opt->{compare} && $test->{name} eq 'empty';
+
         $html .= <<"CHART_TOP";
 <div id="chart_$test->{name}" style="max-width: 900px"></div>
 <script type="text/javascript">
@@ -590,7 +600,9 @@ PLOT_HEADER
 CHART_TOP
 
         my $chart_type;
-        my $by_scale = $test->{compare}{rates_by_scale};
+        my $compare  = $test->{compare};
+        my $max_rate = $compare->{max_rate};
+        my $by_scale = $compare->{rates_by_scale};
         if (1 == keys %$by_scale) {
             $chart_type = 'bar';
 
@@ -598,7 +610,7 @@ CHART_TOP
             my @data_points;
             for my $perl (@perls) {
                 my $key = $perl->{key} || $perl->{name};
-                push @data_points, $rates->{$key};
+                push @data_points, $rates->{$key} || 0;
             }
             $html .= join ', ' => @data_points;
         }
@@ -608,12 +620,14 @@ CHART_TOP
             my @data_rows;
             for my $perl (@perls) {
                 my $key = $perl->{key} || $perl->{name};
-                my $scale_rates = $test->{compare}{rates_by_perl}{$key};
+                my $scale_rates = $compare->{rates_by_perl}{$key};
+                my $rel_rates   = $compare->{relative_rates};
 
                 my @data_points;
                 if ($scale_rates) {
                     for my $scale (sort { $a <=> $b } keys %$scale_rates) {
-                        push @data_points, "[$scale,$scale_rates->{$scale}]";
+                        my $max_rel = $max_rate / $scale_rates->{$scale};
+                        push @data_points, "[$scale,$scale_rates->{$scale},$max_rel]";
                     }
                 }
                 else {
