@@ -381,8 +381,11 @@ sub run_tests {
     my ($tests, $results, $startup, $runs) = @_;
 
     for my $test (@$tests) {
+        next unless $test->{enabled};
+
         my $name = $test->{name};
         say "Testing $name ...";
+
         my $raw_times = time_all_compilers($test, $runs, $startup);
         my $best      = best_times($raw_times);
         my $cooked    = subtract_times($best, $startup);
