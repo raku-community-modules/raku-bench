@@ -3,6 +3,7 @@
   + Add pmurias' nqp-js and rakudo-js compilers
 * Features
   + Check for prereqs (e.g. JDK 7) during setup command
+  + Check for built compiler before timing, if not there, recommend build
   + Documentation
     - WIP: manpage/usage
     - WIP: data expected from each test, and analysis of results
