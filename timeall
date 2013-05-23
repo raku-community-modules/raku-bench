@@ -247,6 +247,7 @@ sub canonify_tests {
         for my $test (@{$TESTS{$type}}) {
             $test->{type}    = $type;
             $test->{enabled} = 1 unless exists $test->{enabled};
+            $test->{scaling} = 'double' unless exists $test->{scaling};
             push @TESTS, $test;
         }
     }
@@ -442,7 +443,8 @@ sub time_all_compilers {
                 push @all_times, @$run_times;
                 $lowest  = min(map { $_->{time} } @$run_times);
                 $lowest -= $startup->{$name} if $startup;
-                $scale  *= 2;
+                $scale   = $test->{scaling} eq 'linear' ? $scale + 1
+                                                        : $scale * 2;
             }
         } while ($scalable && $run_times && $lowest < $DEFAULT{MIN_TIME});
 
