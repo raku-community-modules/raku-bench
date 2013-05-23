@@ -135,6 +135,16 @@ my %COMPILERS = (
                             show_ver  => [qw( install/bin/nqp --version            )],
                            },
                            {
+                            name      => 'nqp-jvm',
+                            enabled   => 1,
+                            language  => 'NQP',
+                            compiler  => 'nqp-jvm',
+                            vm        => 'jvm',
+                            f_run     => [qw( ./nqp           )],
+                            e_run     => [qw( ./nqp -e        )],
+                            show_ver  => [qw( ./nqp --version )],
+                           },
+                           {
                             name      => 'rakudo.nqp',
                             enabled   => 1,
                             language  => 'NQP',

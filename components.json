@@ -26,6 +26,18 @@
         "name":         "nqp-js",
         "repo_url":     "git@github.com:pmurias/rakudo-js.git"
     },
+    "nqp-jvm":    {
+        "name":         "nqp-jvm",
+        "repo_url":     "git://github.com/perl6/nqp.git",
+        "build_steps":  [
+            [ "make", "clean" ],
+            [ "git", "clean", "-dxf" ],
+            [ "rm", "-rf", "install" ],
+            [ "perl", "ConfigureJVM.pl" ],
+            [ "make" ],
+            [ "make", "install" ]
+        ]
+    },
     "parrot": {
         "name":         "parrot",
         "repo_url":     "git://github.com/parrot/parrot.git"
