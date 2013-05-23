@@ -22,7 +22,7 @@ use Cwd;
 my %DEFAULT = (
                TEST_RUNS        => 2,   # times to run each test, taking best time
                MIN_STARTUP_RUNS => 10,  # minimum times to run startup time test
-               MIN_TIME         => 1.0, # minimum seconds to run scalable tests
+               MIN_TIME         => 3.0, # minimum seconds to run scalable tests
               );
 my @GROUPS    = qw( perl5 nqp perl6 );
 my %VM        = (
