@@ -168,22 +168,7 @@ my %COMPILERS = (
                 );
 my %TESTS = (
              e => do "$FindBin::Bin/microbenchmarks.pl",
-             f => [
-                   {
-                    name  => 'rc-forest-fire',
-                    skip  => [qw( niecza.nqp p6.pl p6.js_v8 )],
-                    perl5 => [qw( BENCH/perl5/rc-forest-fire 30 20 SCALE )],
-                    perl6 => [qw( BENCH/perl6/rc-forest-fire 30 20 SCALE )],
-                    nqp   => [qw( BENCH/nqp/rc-forest-fire   30 20 SCALE )],
-                   },
-                   {
-                    name  => 'rc-man-or-boy-test',
-                    skip  => [qw( )],
-                    perl5 => [qw( BENCH/perl5/rc-man-or-boy-test 16 )],
-                    perl6 => [qw( BENCH/perl6/rc-man-or-boy-test 16 )],
-                    nqp   => [qw( BENCH/nqp/rc-man-or-boy-test   16 )],
-                   },
-                  ],
+             f => do "$FindBin::Bin/minibenchmarks.pl",
             );
 my (@COMPILERS, @TESTS);
 
