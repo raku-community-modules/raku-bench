@@ -172,6 +172,24 @@ multi MAIN ('extract', *@components) {
     }
 }
 
+#= List known components with clone status
+multi MAIN ('list-components') {
+    my @names = $COMPONENTS.keys.sort;
+    my $max-length = max('COMPONENT'.chars, @names>>.chars);
+    my $format = "%-{$max-length}s    %s\n";
+    printf $format, < COMPONENT STATUS >;
+    printf $format, < --------- ------ >;
+
+    my $missing;
+    for @names -> $name {
+        my $bare-dir = "$COMPONENTS_DIR/$name/$name.git";
+        my $desc     = $bare-dir.IO.d ?? 'cloned' !! do { $missing++; '[NOT FOUND]' };
+        printf $format, $name, $desc;
+    }
+
+    say "\nPlease run `$*PROGRAM_NAME setup` to clone missing components." if $missing;
+}
+
 #= List checked out component trees with matching git revision
 multi MAIN ('list-checkouts', *@components) {
     needs-setup('list');
