@@ -51,7 +51,7 @@
             [ "rm", "-rf", "install" ],
             "./Configure -des -Dprefix=`pwd`/install",
             [ "make" ],
-            [ "make", "install" ],
+            [ "make", "install" ]
         ]
     },
     "perlito": {
