@@ -176,7 +176,8 @@ multi MAIN ('extract', *@components) {
 multi MAIN ('list-checkouts', *@components) {
     needs-setup('list');
 
-    my $max-length = max(for-checkouts @components, -> $, $name, $checkout { "$name/$checkout".chars }, :quiet);
+    my @lengths = for-checkouts @components, -> $, $name, $checkout { "$name/$checkout".chars }, :quiet;
+    my $max-length = max('CHECKOUT'.chars, @lengths);
     my $format = "%-{$max-length}s    %s\n";
     printf $format, < CHECKOUT REVISION >;
     printf $format, < -------- -------- >;
