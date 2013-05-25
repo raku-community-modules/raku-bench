@@ -184,20 +184,15 @@ multi MAIN ('list-checkouts', *@components) {
     for-checkouts @components, -> $comp, $name, $checkout {
         my $subdir   = "$name/$checkout";
         my $comp-dir = "$COMPONENTS_DIR/$subdir";
+        my $desc     = '[NOT FOUND]';
         if $comp-dir.IO.d {
-            my $git-dir = "$comp-dir/.git";
-            if $git-dir.IO.d {
-                %*ENV<GIT_DIR> = $git-dir;
-                my $desc = qx/git describe --always/.chomp;
-                printf $format, $subdir, $desc;
-            }
-            else {
-                printf $format, $subdir, '[NOT A GIT CHECKOUT]';
+            given "$comp-dir/.git" {
+                when .IO.d { %*ENV<GIT_DIR> = $_;
+                             $desc = qx/git describe --always/.chomp }
+                default    { $desc = '[NOT A GIT CHECKOUT]' }
             }
         }
-        else {
-            printf $format, $subdir, '[NOT FOUND]';
-        }
+        printf $format, $subdir, $desc;
     }, :quiet;
 }
 
