@@ -8,6 +8,13 @@ my $Tree    := 1;
 my $Burning := 2;
 my @show    := ('  ', $GREEN ~ '木' ~ $CLEAR, $RED ~ '火' ~ $CLEAR);
 
+# Work around lack of floating-point rand in cross-backend NQP
+my $Int := nqp::knowhow().new_type(:name("Int"), :repr("P6bigint"));
+   $Int.HOW.compose($Int);
+sub compare-rand($max, $threshold) {
+    nqp::islt_I(nqp::rand_I(nqp::box_i($max, $Int), $Int), nqp::box_i($threshold, $Int));
+}
+
 class Forest {
     has @!grid;
     has @!neighbors;
@@ -16,7 +23,7 @@ class Forest {
     has $!p;
     has $!f;
 
-    method init ($width, $height, $p=0.01, $f=0.001) {
+    method init ($width, $height, $p=10, $f=1) {
         $!height := $height;
         $!width  := $width;
         $!p      := $p;
@@ -27,14 +34,14 @@ class Forest {
     }
 
     method init-grid () {
-        # @!grid := [ (pir::rand__NN(1.0) < .5 ?? $Tree !! $Empty) xx $!width ] xx $!height;
+        # @!grid := [ (compare-rand(1000, 500) ?? $Tree !! $Empty) xx $!width ] xx $!height;
         @!grid := [];
         my $i := 0;
         while $i < $!height {
             @!grid.push([]);
             my $j := 0;
             while $j < $!width {
-                @!grid[$i].push(pir::rand__NN(1.0) < .5 ?? $Tree !! $Empty);
+                @!grid[$i].push(compare-rand(1000, 500) ?? $Tree !! $Empty);
                 $j := $j + 1;
             }
             $i := $i + 1;
@@ -75,14 +82,14 @@ class Forest {
             while $j < $!width {
                 my $cell := @!grid[$i][$j];
                 if    $cell == $Empty {
-                    @new[$i][$j] := pir::rand__NN(1.0) < $!p ?? $Tree !! $Empty
+                    @new[$i][$j] := compare-rand(1000, $!p) ?? $Tree !! $Empty
                 }
                 elsif $cell == $Tree {
                     my $burn_tree := 0;
                     for @!neighbors[$i][$j] {
                         $burn_tree := 1 if @!grid[$_[1]][$_[0]] == $Burning;
                     }
-                    $burn_tree := 1 if pir::rand__NN(1.0) < $!f;
+                    $burn_tree := 1 if compare-rand(1000, $!f);
                     @new[$i][$j] := $burn_tree ?? $Burning !! $Tree;
                 }
                 elsif $cell == $Burning {
