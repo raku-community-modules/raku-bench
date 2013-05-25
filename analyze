@@ -515,7 +515,7 @@ sub summarize_results_html_plot {
         yvalues: 2,
         tooltipAxes: "y",
         tooltipLocation: "n",
-        formatString: "%.1f per second<br>%.0fx slower than fastest"
+        formatString: "<strong>%.1f</strong> per second<br><strong>%.0f</strong>x slower than fastest"
       },
       legend: {
         renderer: $.jqplot.EnhancedLegendRenderer,
@@ -547,7 +547,7 @@ sub summarize_results_html_plot {
         show: true,
         tooltipAxes: "y",
         tooltipLocation: "n",
-        formatString: "%.1f per second"
+        formatString: "<strong>%.1f</strong> per second"
       },
       legend: {
         show: false
@@ -568,6 +568,7 @@ sub summarize_results_html_plot {
 <style type="text/css">
 .bench_ver             { font-family: monospace;  }
 .bench_start_time      { font-family: monospace;  }
+.jqplot-highlighter-tooltip, .jqplot-canvasOverlay-tooltip { background: rgba(208,208,208,1) !important; }
 </style>
 </head>
 
