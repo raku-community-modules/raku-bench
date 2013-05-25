@@ -44,7 +44,15 @@
     },
     "perl5": {
         "name":         "perl5",
-        "repo_url":     "git://perl5.git.perl.org/perl.git"
+        "repo_url":     "git://perl5.git.perl.org/perl.git",
+        "build_steps":  [
+            [ "make", "clean" ],
+            [ "git", "clean", "-dxf" ],
+            [ "rm", "-rf", "install" ],
+            "./Configure -des -Dprefix=`pwd`/install",
+            [ "make" ],
+            [ "make", "install" ],
+        ]
     },
     "perlito": {
         "name":         "perlito",

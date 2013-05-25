@@ -23,10 +23,10 @@ compilers is as follows:
 
     # First step chews network bandwidth to mirror repos; see next section
     ./bench setup
-    ./bench extract nqp niecza rakudo
-    ./bench build   nqp/2013.05 rakudo/2013.05 niecza/v24
-    ./bench time    nqp/2013.05 rakudo/2013.05 niecza/v24
-    ./bench compare nqp/2013.05 rakudo/2013.05 niecza/v24
+    ./bench extract perl5/v5.18.0 nqp/2013.05 rakudo/2013.05 niecza/v24
+    ./bench build   perl5/v5.18.0 nqp/2013.05 rakudo/2013.05 niecza/v24
+    ./bench time    perl5/v5.18.0 nqp/2013.05 rakudo/2013.05 niecza/v24
+    ./bench compare perl5/v5.18.0 nqp/2013.05 rakudo/2013.05 niecza/v24
 
 
 NETWORK TRAFFIC

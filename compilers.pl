@@ -6,10 +6,9 @@
             language  => 'Perl 5',
             compiler  => 'perl5',
             vm        => 'perl5',
-            dir       => 'BENCH',
-            f_run     => [qw( VM           )],
-            e_run     => [qw( VM -E        )],
-            show_ver  => [qw( VM -E say+$] )],
+            f_run     => [qw( install/bin/perl           )],
+            e_run     => [qw( install/bin/perl -E        )],
+            show_ver  => [qw( install/bin/perl -E say+$] )],
            },
            {
             name      => 'p5.pl',
