@@ -310,24 +310,24 @@ sub rmtree ($dir, :$noisy = True) {
 }
 
 #= Run code for every requested component
-sub for-components (@components, &code) {
+sub for-components (@components, &code, :$quiet) {
     for explode-components(@components) -> $comp {
         my $name = $comp<info><name>;
-        say "==> $name";
+        say "==> $name" unless $quiet;
 
         code($comp, $name);
     }
 }
 
 #= Run code for every checkout in every requested component
-sub for-checkouts (@components, &code) {
+sub for-checkouts (@components, &code, :$quiet) {
     for-components @components, -> $comp, $name {
         for $comp<checkouts>.list -> $checkout {
-            say "----> $checkout";
+            say "----> $checkout" unless $quiet;
 
             code($comp, $name, $checkout);
         }
-    }
+    }, :$quiet;
 }
 
 #= Expand a partially-specified list of components and checkouts
