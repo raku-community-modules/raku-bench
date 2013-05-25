@@ -172,6 +172,35 @@ multi MAIN ('extract', *@components) {
     }
 }
 
+#= List checked out component trees with matching git revision
+multi MAIN ('list-checkouts', *@components) {
+    needs-setup('list');
+
+    my $max-length = max(for-checkouts @components, -> $, $name, $checkout { "$name/$checkout".chars }, :quiet);
+    my $format = "%-{$max-length}s    %s\n";
+    printf $format, < CHECKOUT REVISION >;
+    printf $format, < -------- -------- >;
+
+    for-checkouts @components, -> $comp, $name, $checkout {
+        my $subdir   = "$name/$checkout";
+        my $comp-dir = "$COMPONENTS_DIR/$subdir";
+        if $comp-dir.IO.d {
+            my $git-dir = "$comp-dir/.git";
+            if $git-dir.IO.d {
+                %*ENV<GIT_DIR> = $git-dir;
+                my $desc = qx/git describe --always/.chomp;
+                printf $format, $subdir, $desc;
+            }
+            else {
+                printf $format, $subdir, '[NOT A GIT CHECKOUT]';
+            }
+        }
+        else {
+            printf $format, $subdir, '[NOT FOUND]';
+        }
+    }, :quiet;
+}
+
 #= Build checked out component trees
 multi MAIN ('build', *@components) {
     needs-setup('build components');
