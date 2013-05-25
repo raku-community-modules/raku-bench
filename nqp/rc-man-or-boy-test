@@ -1,5 +1,5 @@
-# Increase Parrot recursion limit
-pir::getinterp__P().recursion_limit(100000);
+# Increase Parrot recursion limit, without breaking on other nqp backends
+try { nqp::getcomp('nqp').eval('pir::getinterp__P().recursion_limit(100000)') }
 
 sub A ($k, $x1, $x2, $x3, $x4, $x5) {
     my $B := sub () { A(--$k, $B, $x1, $x2, $x3, $x4) };
