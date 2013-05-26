@@ -20,6 +20,8 @@
     - Query/total by tag
     - Run only tests in tag
 * More tests!
+  + Miscellaneous known-slow tasks:
+    - qq:to// unindent
   + Import benchmarks from github:perl6/bench-scripts
     - non-str-comb.pl
     - pick-words.pl        # Needs support for data/
