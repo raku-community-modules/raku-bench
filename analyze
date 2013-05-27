@@ -488,7 +488,7 @@ sub summarize_results_html_plot {
     my $html = <<'PLOT_HEADER';
 <html>
 <head>
-<title>jqPlot test</title>
+<title>Benchmark Plots</title>
 <link rel="stylesheet" type="text/css" href="jqplot/jquery.jqplot.min.css" />
 <!--[if lt IE 9]><script language="javascript" type="text/javascript" src="jqplot/excanvas.min.js"></script><![endif]-->
 <script type="text/javascript" src="jqplot/jquery.min.js"></script>
@@ -515,7 +515,10 @@ sub summarize_results_html_plot {
         yvalues: 2,
         tooltipAxes: "y",
         tooltipLocation: "n",
-        formatString: "<strong>%.1f</strong> per second<br><strong>%.0f</strong>x slower than fastest"
+        formatString: "<strong>%.1f</strong> per second<br><strong>%.0f</strong>x slower than fastest",
+        tooltipContentEditor: function (str, i, j) {
+          return '<span class="highlight-series-label">' + series_labels[i] + '</span><br>' + str;
+        }
       },
       legend: {
         renderer: $.jqplot.EnhancedLegendRenderer,
@@ -566,9 +569,11 @@ sub summarize_results_html_plot {
   }
 </script>
 <style type="text/css">
-.bench_ver             { font-family: monospace;  }
-.bench_start_time      { font-family: monospace;  }
-.jqplot-highlighter-tooltip, .jqplot-canvasOverlay-tooltip { background: rgba(208,208,208,1) !important; }
+.bench_ver                    { font-family: monospace;  }
+.bench_start_time             { font-family: monospace;  }
+.jqplot-highlighter-tooltip,
+.jqplot-canvasOverlay-tooltip { background: #eee !important; }
+.highlight-series-label       { color: blue; font-weight: bold; }
 </style>
 </head>
 
