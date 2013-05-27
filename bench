@@ -254,7 +254,7 @@ multi MAIN ('compare', *@timings, :$format?, :$style?, :$outfile?) {
     my @options = as-options(:compare, :ignore-startup, :$format, :$style, :$outfile);
 
     my @timings-files;
-    for explode-timings(@timings).kv -> $component, @files {
+    for explode-timings(@timings, :!chdir).kv -> $component, @files {
         @timings-files.push: @files.map: "$TIMINGS_DIR/$component/" ~ *;
     }
 
@@ -337,8 +337,8 @@ sub as-options (*%args) {
     for %args.kv -> $k, $v {
         given $v {
             when !.defined {}
-            when Bool      { @options.push: "--$k" if $v }
-            default        { @options.push: "--$k=$v"    }
+            when Bool      { @options.push: $v ?? "--$k" !! "--no$k" }
+            default        { @options.push: "--$k=$v"                }
         }
     }
 
@@ -376,7 +376,7 @@ sub for-checkouts (@components, &code, :$quiet) {
 #= Expand a partially-specified list of components and checkouts
 sub explode-components (@component-specs, :$chdir = True, :$default-to-dirs = True) {
     chdir $COMPONENTS_DIR if $chdir;
-    @component-specs ||= dir('.').sort if $default-to-dirs;
+    @component-specs ||= dir($COMPONENTS_DIR).sort if $default-to-dirs;
 
     my @exploded;
     for @component-specs -> $spec is copy {
@@ -412,7 +412,7 @@ sub explode-components (@component-specs, :$chdir = True, :$default-to-dirs = Tr
 #= Expand a partially-specified list of timings files
 sub explode-timings (@timing-specs, :$chdir = True, :$default-to-dirs = True) {
     chdir $TIMINGS_DIR if $chdir;
-    @timing-specs ||= dir('.').sort if $default-to-dirs;
+    @timing-specs ||= dir($TIMINGS_DIR).sort if $default-to-dirs;
 
     my %exploded;
     for @timing-specs -> $spec is copy {
@@ -428,7 +428,7 @@ sub explode-timings (@timing-specs, :$chdir = True, :$default-to-dirs = True) {
         }
         else {
             @files = dir("$TIMINGS_DIR/$component",
-                         test => /'.json' $/).map(*.Str).sort;
+                         test => /'.json' $/).map(*.basename.Str).sort;
         }
 
         %exploded{$component}.push: |@files;
