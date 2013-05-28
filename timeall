@@ -22,7 +22,7 @@ use Cwd;
 my %DEFAULT = (
                TEST_RUNS        => 2,   # times to run each test, taking best time
                MIN_STARTUP_RUNS => 10,  # minimum times to run startup time test
-               MIN_TIME         => 3.0, # minimum seconds to run scalable tests
+               ENOUGH_TIME      => 3.0, # minimum run time (seconds) to give clean timing data for scalable tests
               );
 my @GROUPS    = qw( perl5 nqp perl6 );
 my %VM        = (
@@ -75,7 +75,7 @@ sub MAIN {
                  );
 
     # Run tests
-    my $results = eval { run_all_tests($main_opt->{runs}) };
+    my $results = eval { run_all_tests($main_opt) };
     warn "\n$@\n" if $@;
     $run{end_time} = time;
 
@@ -107,7 +107,7 @@ sub canonify_tests {
 sub process_options_and_arguments {
     my %opt;
     GetOptions(\%opt, 'help|h|?!', 'man!', 'list-variants!', 'list-tests!',
-                      'runs=i', 'format=s', 'outfile=s', 'tests=s')
+                      'runs=i', 'enough-time=f', 'format=s', 'outfile=s', 'tests=s')
         or pod2usage(-verbose => 0);
     pod2usage(-verbose => 1) if $opt{help};
     pod2usage(-verbose => 2) if $opt{man};
@@ -211,26 +211,26 @@ sub git_rev_ge {
 }
 
 sub run_all_tests {
-    my ($opt_runs) = @_;
+    my ($opt) = @_;
 
-    my $runs         = $opt_runs || $DEFAULT{TEST_RUNS};
+    my $runs         = $opt->{runs} || $DEFAULT{TEST_RUNS};
     my $startup_runs = max($runs, $DEFAULT{MIN_STARTUP_RUNS});
-    my $min_time     = $DEFAULT{MIN_TIME};
+    my $enough_time  = $opt->{'enough-time'} || $DEFAULT{ENOUGH_TIME};
     my $empty_test   = $TESTS{e}[0];
 
     say "Measuring startup times ...";
-    my $times   = time_all_compilers($empty_test, $startup_runs);
+    my $times   = time_all_compilers($empty_test, $startup_runs, $enough_time);
     my $startup = best_times($times);
     $startup->{$_} = $startup->{$_}{1} for keys %$startup;
 
     my @results;
-    run_tests(\@TESTS, \@results, $startup, $runs);
+    run_tests(\@TESTS, \@results, $startup, $runs, $enough_time);
 
     return \@results;
 }
 
 sub run_tests {
-    my ($tests, $results, $startup, $runs) = @_;
+    my ($tests, $results, $startup, $runs, $enough_time) = @_;
 
     for my $test (@$tests) {
         next unless $test->{enabled};
@@ -238,7 +238,7 @@ sub run_tests {
         my $name = $test->{name};
         say "Testing $name ...";
 
-        my $raw_times = time_all_compilers($test, $runs, $startup);
+        my $raw_times = time_all_compilers($test, $runs, $enough_time, $startup);
         my $best      = best_times($raw_times);
         my $cooked    = subtract_times($best, $startup);
         push @$results, {
@@ -252,7 +252,7 @@ sub run_tests {
 }
 
 sub time_all_compilers {
-    my ($test, $runs, $startup) = @_;
+    my ($test, $runs, $enough_time, $startup) = @_;
 
     my $test_type = $test->{type};
     my $cwd       = cwd;
@@ -418,7 +418,8 @@ timeall -- Benchmark Perl-family compilers against each other
 =head1 SYNOPSIS
 
     timeall [--help|-h|-?] [--man] [--list-variants] [--list-tests]
-    timeall [--runs=2] [--format=json] [--outfile=path/to/file.ext]
+    timeall [--runs=2] [--enough-time=3.0]
+            [--format=json] [--outfile=path/to/file.ext]
             [--tests=list,of,tests] [<enabled compiler variants>]
 
 =head1 DESCRIPTION
@@ -490,6 +491,12 @@ measurements and the effects of random background processes, but rapidly
 reaches diminishing returns.  Many times it's more effective to just turn off
 as many background processes (such as email clients) as possible while
 benchmarking.
+
+=item --enough-time=3.0
+
+Set the amount of time a scalable test must run (not including startup and
+compile time) before the timing data is considered "good enough", causing
+F<timeall> to stop scaling up that test and go on to the next one.
 
 =item --format=json
 

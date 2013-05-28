@@ -230,10 +230,10 @@ multi MAIN ('build', *@components) {
 }
 
 #= Run timing benchmarks on (variants of) built components
-multi MAIN ('time', *@components, :$variants?, :$tests?, :$runs?) {
+multi MAIN ('time', *@components, :$variants?, :$tests?, :$runs?, :$enough-time?) {
     needs-setup('benchmark Perls');
 
-    my @options  = as-options(:$tests, :$runs);
+    my @options  = as-options(:$tests, :$runs, :$enough-time);
 
     for-checkouts @components, -> $comp, $name, $checkout {
         chdir "$COMPONENTS_DIR/$name/$checkout";
