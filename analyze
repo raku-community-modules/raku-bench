@@ -499,13 +499,14 @@ sub summarize_results_html_plot {
 <script type="text/javascript" src="jqplot/jquery.jqplot.min.js"></script>
 <script type="text/javascript" src="jqplot/plugins/jqplot.barRenderer.min.js"></script>
 <script type="text/javascript" src="jqplot/plugins/jqplot.canvasAxisTickRenderer.min.js"></script>
+<script type="text/javascript" src="jqplot/plugins/jqplot.canvasAxisLabelRenderer.min.js"></script>
 <script type="text/javascript" src="jqplot/plugins/jqplot.canvasTextRenderer.min.js"></script>
 <script type="text/javascript" src="jqplot/plugins/jqplot.categoryAxisRenderer.min.js"></script>
 <script type="text/javascript" src="jqplot/plugins/jqplot.enhancedLegendRenderer.min.js"></script>
 <script type="text/javascript" src="jqplot/plugins/jqplot.highlighter.min.js"></script>
 <script type="text/javascript" src="jqplot/plugins/jqplot.logAxisRenderer.min.js"></script>
 <script type="text/javascript">
-  function do_plot (chart_div, title, series_data, series_labels, linear_x) {
+  function do_plot (chart_div, title, series_data, series_labels, opt) {
     var series_conf = [];
     for (var i in series_labels) {
       series_conf.push({ label: series_labels[i] });
@@ -531,14 +532,18 @@ sub summarize_results_html_plot {
       },
       axes: {
         xaxis: {
-          renderer: linear_x ? $.jqplot.LinearAxisRenderer : $.jqplot.LogAxisRenderer,
-          base:     2,
-          tickRenderer: $.jqplot.CanvasAxisTickRenderer,
-          tickOptions:  { angle: -30 }
+          label:         opt.x_label,
+          labelRenderer: $.jqplot.CanvasAxisLabelRenderer,
+          renderer:      opt.linear_x ? $.jqplot.LinearAxisRenderer : $.jqplot.LogAxisRenderer,
+          base:          2,
+          tickRenderer:  $.jqplot.CanvasAxisTickRenderer,
+          tickOptions:   { angle: -30 }
         },
         yaxis: {
-          renderer: $.jqplot.LogAxisRenderer,
-          base:     2
+          label:         opt.y_label,
+          labelRenderer: $.jqplot.CanvasAxisLabelRenderer,
+          renderer:      $.jqplot.LogAxisRenderer,
+          base:          2
         }
       }
     });
@@ -602,7 +607,7 @@ PLOT_HEADER
         next if $opt->{compare} && $test->{name} eq 'empty';
 
         $html .= <<"CHART_TOP";
-<div id="chart_$test->{name}" style="max-width: 900px"></div>
+<div id="chart_$test->{name}" style="max-width: 900px; margin-top: 3em"></div>
 <script type="text/javascript">
   \$(function () {
     var labels = [$labels];
@@ -649,12 +654,20 @@ CHART_TOP
             $html .= join ",\n" => @data_rows;
         }
 
-        my $is_linear = ($test->{conf}{scaling} // '') eq 'linear' ? 1 : 0;
+        my $conf      = $test->{conf};
+        my $is_linear = ($conf->{scaling} // '') eq 'linear' ? 1 : 0;
+        my $x_label   =  $conf->{x_label} // 'Iterations per Run';
+        my $y_label   =  $conf->{y_label} // 'Iterations per Second';
         $html .= <<"CHART_BOTTOM";
 
     ];
 
-    do_$chart_type("chart_$test->{name}", "$test->{name}", data, labels, $is_linear);
+    var opt = {
+      linear_x: $is_linear,
+      x_label:  "$x_label",
+      y_label:  "$y_label"
+    };
+    do_$chart_type("chart_$test->{name}", "$test->{name}", data, labels, opt);
   });
 </script>
 
