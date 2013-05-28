@@ -70,9 +70,9 @@
  {
   name  => 'postwhile_nil',
   scale => 1 << 10,
-  perl5 => 'my $i = -SCALE; ()  while ++$i;',
-  perl6 => 'my $i = -SCALE; Nil while ++$i;',
-  nqp   => 'my $i := -SCALE; () while $i := $i + 1;',
+  perl5 => 'my $i = -SCALE || exit(0); ()  while ++$i;',
+  perl6 => 'my $i = -SCALE || exit(0); Nil while ++$i;',
+  nqp   => 'my $i := -SCALE || exit(0); () while $i := $i + 1;',
  },
  {
   name  => 'loop_empty',

@@ -248,10 +248,11 @@ multi MAIN ('time', *@components, :$variants?, :$tests?, :$runs?, :$enough-time?
 }
 
 #= Compare benchmark timings
-multi MAIN ('compare', *@timings, :$format?, :$style?, :$outfile?) {
+multi MAIN ('compare', *@timings, :$format?, :$style?, :$outfile?,
+            :$ignore-startup = True, :$ignore-compile = True) {
     needs-timings('compare');
 
-    my @options = as-options(:compare, :ignore-startup, :$format, :$style, :$outfile);
+    my @options = as-options(:compare, :$ignore-startup, :$ignore-compile, :$format, :$style, :$outfile);
 
     my @timings-files;
     for explode-timings(@timings, :!chdir).kv -> $component, @files {

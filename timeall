@@ -289,20 +289,35 @@ sub time_all_compilers {
             chdir $dir or die "Could not change to $name directory '$dir': $!";
         }
 
-        my $scalable = $test->{scalable} // ((grep /\bSCALE\b/ => @run) ? 1 : 0);
-        my $scale    = $test->{scale} || 1;
-        my $lowest   = 0;
-        my (@all_times, $run_times);
-        do {
-            $run_times = time_command(\@compile, \@run, $runs, $scale);
+        my  @all_times;
+        my  $scalable = $test->{scalable} // ((grep /\bSCALE\b/ => @run) ? 1 : 0);
+        if ($scalable) {
+            my $scale  = $test->{scale} || 1;
+            my $lowest = 0;
+
+            # Determine 0-scale time (mostly compile time)
+            my  $run_times = time_command(\@compile, \@run, $runs, 0);
             if ($run_times) {
                 push @all_times, @$run_times;
-                $lowest  = min(map { $_->{time} } @$run_times);
-                $lowest -= $startup->{$name} if $startup;
-                $scale   = $test->{scaling} eq 'linear' ? $scale + 1
-                                                        : $scale * 2;
+                my $min_run_time = min(map { $_->{time} } @$run_times);
+                my $startup_time = $startup ? $startup->{$name} || 0 : 0;
+                my $ignore_time  = max($startup_time, $min_run_time);
+
+                # Run scaled timing loop
+                while ($run_times && $lowest < $enough_time) {
+                    $run_times = time_command(\@compile, \@run, $runs, $scale) or last;
+                    push @all_times, @$run_times;
+                    $lowest  = min(map { $_->{time} } @$run_times);
+                    $lowest -= $ignore_time;
+                    $scale   = $test->{scaling} eq 'linear' ? $scale + 1
+                                                            : $scale * 2;
+                }
             }
-        } while ($scalable && $run_times && $lowest < $DEFAULT{MIN_TIME});
+        }
+        else {
+            my $run_times = time_command(\@compile, \@run, $runs, 1);
+            push @all_times, @$run_times if $run_times;
+        }
 
         $times{$name} = \@all_times;
     }

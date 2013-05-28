@@ -41,7 +41,8 @@ sub MAIN {
 sub process_options_and_arguments {
     my %opt;
     GetOptions(\%opt, 'help|h|?!', 'man!', 'format=s', 'style=s', 'outfile=s',
-                      'ignore-startup|ignore_startup|ignorestartup!', 'compare!')
+                      'ignore-startup|ignore_startup|ignorestartup!',
+                      'ignore-compile|ignore_compile|ignorecompile!', 'compare!')
         or pod2usage(-verbose => 0);
     pod2usage(-verbose => 1) if $opt{help};
     pod2usage(-verbose => 2) if $opt{man};
@@ -69,12 +70,14 @@ sub process_options_and_arguments {
 sub analyze_timings_files {
     my ($opt, $out_fh, @files) = @_;
 
-    my $time_type = $opt->{'ignore-startup'} ? 'cooked' : 'best';
+    my $time_type      = $opt->{'ignore-startup'} ? 'cooked' : 'best';
+    my $ignore_compile = $opt->{'ignore-compile'};
     my $analyze_timing_data = sub {
         my $data = shift;
 
         for my $test (@{$data->{times}}) {
-            $test->{compare} = compare_scaled_times($test->{$time_type});
+            $test->{compare} = compare_scaled_times($test->{$time_type},
+                                                    $ignore_compile);
         }
 
         $opt->{formatter}->($data, $opt, $out_fh);
@@ -181,7 +184,7 @@ sub load_timing_file {
 }
 
 sub compare_scaled_times {
-    my $times    = shift;
+    my ($times, $ignore_compile) = @_;
     my $min_time = 1e-4;
     my $max_rate = 0;
 
@@ -189,9 +192,10 @@ sub compare_scaled_times {
     my %rates_by_scale;
     my %rates_by_perl;
     while (my ($perl, $scale_times) = each %$times) {
+        my $compile_time = $ignore_compile ? $scale_times->{0} || 0 : 0;
         while (my ($scale, $time) = each %$scale_times) {
-            next unless defined $time;
-            my $bounded = $times_by_scale{$scale}{$perl} = max($time, $min_time);
+            next unless $scale && defined $time;
+            my $bounded = $times_by_scale{$scale}{$perl} = max($time - $compile_time, $min_time);
             my $rate    = $rates_by_scale{$scale}{$perl} = $scale / $bounded;
             $rates_by_perl{$perl}{$scale} = $rate;
             $max_rate   = $rate if $max_rate < $rate;
