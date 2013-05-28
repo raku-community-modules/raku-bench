@@ -277,7 +277,12 @@ sub summarize_results_text {
 
     my $run    = $data->{run};
     my $start  = friendly_time($run->{start_time});
-    my $ignore = $opt->{'ignore-startup'} ? ' (ignoring startup time)' : '';
+
+    my @ignore;
+    push @ignore, 'startup time' if $opt->{'ignore-startup'};
+    push @ignore, 'compile time' if $opt->{'ignore-compile'};
+    my $ignore = @ignore ? ' (ignoring ' . join(' and ' => @ignore) . ')' : '';
+
     my $run_at = $opt->{compare} ? '' : " run at $start";
     my $slow   = $opt->{compare} ? ' and TIMES SLOWER THAN FASTEST (x)' : '';
     my $output = "$CLEAR\n==> perl6-bench version $run->{versions}{bench}$run_at$ignore\n"
@@ -427,7 +432,12 @@ CSS
     my @langs = uniq @lang_names;
 
     my $run    = $data->{run};
-    my $ignore = $opt->{'ignore-startup'} ? ' (ignoring startup time)' : '';
+
+    my @ignore;
+    push @ignore, 'startup time' if $opt->{'ignore-startup'};
+    push @ignore, 'compile time' if $opt->{'ignore-compile'};
+    my $ignore = @ignore ? ' (ignoring ' . join(' and ' => @ignore) . ')' : '';
+
     my $run_at = $opt->{compare} ? '' : qq{ run at <span class="bench_start_time">} . friendly_time($run->{start_time}) . qq{</span>};
     my $slow   = $opt->{compare} ? ' and TIMES SLOWER THAN FASTEST (<strong>x</strong>)' : '';
     $html .= qq{<table class="bench_summary" cellspacing="0" cellpadding="0">\n};
@@ -590,7 +600,12 @@ sub summarize_results_html_plot {
 PLOT_HEADER
 
     my $run    = $data->{run};
-    my $ignore = $opt->{'ignore-startup'} ? ' (ignoring startup time)' : '';
+
+    my @ignore;
+    push @ignore, 'startup time' if $opt->{'ignore-startup'};
+    push @ignore, 'compile time' if $opt->{'ignore-compile'};
+    my $ignore = @ignore ? ' (ignoring ' . join(' and ' => @ignore) . ')' : '';
+
     my $run_at = $opt->{compare} ? '' : qq{ run at <span class="bench_start_time">} . friendly_time($run->{start_time}) . qq{</span>};
     $html .= qq{<h2>perl6-bench version <span class="bench_ver">$run->{versions}{bench}</span>$run_at$ignore</h2>\n\n};
 
