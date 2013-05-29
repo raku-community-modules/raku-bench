@@ -22,7 +22,7 @@ use Cwd;
 my %DEFAULT = (
                TEST_RUNS        => 2,   # times to run each test, taking best time
                MIN_STARTUP_RUNS => 10,  # minimum times to run startup time test
-               ENOUGH_TIME      => 3.0, # minimum run time (seconds) to give clean timing data for scalable tests
+               ENOUGH_TIME      => 5.0, # minimum run time (seconds) to give clean timing data for scalable tests
               );
 my @GROUPS    = qw( perl5 nqp perl6 );
 my %VM        = (
@@ -213,24 +213,25 @@ sub git_rev_ge {
 sub run_all_tests {
     my ($opt) = @_;
 
-    my $runs         = $opt->{runs} || $DEFAULT{TEST_RUNS};
-    my $startup_runs = max($runs, $DEFAULT{MIN_STARTUP_RUNS});
-    my $enough_time  = $opt->{'enough-time'} || $DEFAULT{ENOUGH_TIME};
-    my $empty_test   = $TESTS{e}[0];
+    my $runs          = $opt->{runs} || $DEFAULT{TEST_RUNS};
+    my $startup_runs  = max($runs, $DEFAULT{MIN_STARTUP_RUNS});
+    my $overhead_runs = $startup_runs;
+    my $enough_time   = $opt->{'enough-time'} || $DEFAULT{ENOUGH_TIME};
+    my $empty_test    = $TESTS{e}[0];
 
     say "Measuring startup times ...";
-    my $times   = time_all_compilers($empty_test, $startup_runs, $enough_time);
+    my $times   = time_all_compilers($empty_test, $startup_runs, 0, $enough_time);
     my $startup = best_times($times);
     $startup->{$_} = $startup->{$_}{1} for keys %$startup;
 
     my @results;
-    run_tests(\@TESTS, \@results, $startup, $runs, $enough_time);
+    run_tests(\@TESTS, \@results, $startup, $runs, $overhead_runs, $enough_time);
 
     return \@results;
 }
 
 sub run_tests {
-    my ($tests, $results, $startup, $runs, $enough_time) = @_;
+    my ($tests, $results, $startup, $runs, $overhead_runs, $enough_time) = @_;
 
     for my $test (@$tests) {
         next unless $test->{enabled};
@@ -238,7 +239,7 @@ sub run_tests {
         my $name = $test->{name};
         say "Testing $name ...";
 
-        my $raw_times = time_all_compilers($test, $runs, $enough_time, $startup);
+        my $raw_times = time_all_compilers($test, $runs, $overhead_runs, $enough_time, $startup);
         my $best      = best_times($raw_times);
         my $cooked    = subtract_times($best, $startup);
         push @$results, {
@@ -252,7 +253,7 @@ sub run_tests {
 }
 
 sub time_all_compilers {
-    my ($test, $runs, $enough_time, $startup) = @_;
+    my ($test, $runs, $overhead_runs, $enough_time, $startup) = @_;
 
     my $test_type = $test->{type};
     my $cwd       = cwd;
@@ -296,7 +297,7 @@ sub time_all_compilers {
             my $lowest = 0;
 
             # Determine 0-scale time (mostly compile time)
-            my  $run_times = time_command(\@compile, \@run, $runs, 0);
+            my  $run_times = time_command(\@compile, \@run, $overhead_runs, 0);
             if ($run_times) {
                 push @all_times, @$run_times;
                 my $min_run_time = min(map { $_->{time} } @$run_times);
