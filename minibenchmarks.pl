@@ -1,7 +1,7 @@
 [
  {
   name  => 'rc-forest-fire',
-  skip  => [qw( niecza.nqp p6.pl p6.js_v8 )],
+  skip  => [qw( niecza.nqp nqp-moarvm p6.pl p6.js_v8 )],
   scale => 1 << 3,
   x_label => 'Frames per Run',
   y_label => 'Frames per Second',
@@ -11,7 +11,7 @@
  },
  {
   name  => 'rc-man-or-boy-test',
-  skip  => [qw( )],
+  skip  => [qw( nqp-moarvm )],
   scale => 10,
   scaling => 'linear',
   x_label => 'k Parameter',
