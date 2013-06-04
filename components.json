@@ -1,4 +1,18 @@
 {
+    "moarvm": {
+        "name":         "moarvm",
+        "repo_url":     "git://github.com/MoarVM/MoarVM.git",
+        "build_steps":  [
+            [ "make", "realclean" ],
+            [ "git", "clean", "-dxf" ],
+            [ "rm", "-rf", "nqp-cc/install", "nqp-cc/parrot", "nqp-cc/nqp" ],
+            [ "perl", "Configure.pl" ],
+            [ "make" ],
+            [ "git", "clone", "-l", "../../parrot/parrot.git", "nqp-cc/parrot" ],
+            [ "git", "clone", "-l", "../../nqp/nqp.git", "nqp-cc/nqp" ],
+            "cd nqp-cc && perl Configure.pl --gen-parrot && make"
+        ]
+    },
     "niecza": {
         "name":         "niecza",
         "repo_url":     "git://github.com/sorear/niecza.git",
