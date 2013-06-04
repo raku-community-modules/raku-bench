@@ -75,8 +75,7 @@ sub MAIN {
                  );
 
     # Run tests
-    my $results = eval { run_all_tests($main_opt) };
-    warn "\n$@\n" if $@;
+    my $results = run_all_tests($main_opt);
     $run{end_time} = time;
 
     # Output results
@@ -225,8 +224,8 @@ sub run_all_tests {
     $startup->{$_} = $startup->{$_}{1} for keys %$startup;
 
     my @results;
-    run_tests(\@TESTS, \@results, $startup, $runs, $overhead_runs, $enough_time);
-
+    eval { run_tests(\@TESTS, \@results, $startup, $runs, $overhead_runs, $enough_time) };
+    warn "\n$@\n" if $@;
     return \@results;
 }
 
