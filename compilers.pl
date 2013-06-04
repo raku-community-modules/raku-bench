@@ -111,6 +111,17 @@
             show_ver  => [qw( ./nqp --version )],
            },
            {
+            name      => 'nqp-moarvm',
+            enabled   => 1,
+            language  => 'NQP',
+            compiler  => 'nqp',
+            vm        => 'moarvm',
+            dir       => 'nqp-cc',
+            f_run     => [qw( install/bin/nqp nqp-moar-cc.nqp           )],
+            e_run     => [qw( install/bin/nqp nqp-moar-cc.nqp -e        )],
+            show_ver  => [qw( install/bin/nqp nqp-moar-cc.nqp --version )],
+           },
+           {
             name      => 'rakudo.nqp',
             enabled   => 1,
             language  => 'NQP',
