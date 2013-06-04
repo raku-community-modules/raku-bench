@@ -104,7 +104,7 @@
             name      => 'nqp-jvm',
             enabled   => 1,
             language  => 'NQP',
-            compiler  => 'nqp-jvm',
+            compiler  => 'nqp',
             vm        => 'jvm',
             f_run     => [qw( ./nqp           )],
             e_run     => [qw( ./nqp -e        )],
