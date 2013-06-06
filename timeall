@@ -186,8 +186,8 @@ sub detect_versions {
 
         my $dir = $compiler->{dir} || $START_CWD;
         my @cmd = @{$compiler->{show_ver}};
-        s/\bBENCH\b/$FindBin::Bin/g for $dir, @cmd;
-        s/\bVM\b/$VM{$compiler->{vm}}/g for @cmd;
+        s/\bVM\b/$VM{$compiler->{vm}}/g for       @cmd;
+        s/\bBENCH\b/$FindBin::Bin/g     for $dir, @cmd;
 
         chdir $dir;
         $version{$compiler->{name}} = -d '.git' ? `@detect_git_rev` : `@cmd`;
@@ -271,8 +271,8 @@ sub time_all_compilers {
         my $name = $perl->{name};
         my $skip = $test->{skip};
         if ($skip) {
-            next if ref $skip eq 'CODE'  && $skip->($perl);
-            next if ref $skip eq 'ARRAY' && grep { $_ eq $name } @$skip;
+            say("--> skipping"), next if ref $skip eq 'CODE'  && $skip->($perl);
+            say("--> skipping"), next if ref $skip eq 'ARRAY' && grep { $_ eq $name } @$skip;
         }
 
         my $dir   = $perl->{dir} || $START_CWD;
@@ -282,8 +282,9 @@ sub time_all_compilers {
         my $args  = $test->{$group} // next;
         my @args  = ref $args ? @$args : ($args);
 
-        s/\bBENCH\b/$FindBin::Bin/g for $dir, @$comp, @$run, @args;
-        s/\bVM\b/$VM{$perl->{vm}}/g for @$comp, @$run, @args;
+        s/\bVM\b/$VM{$perl->{vm}}/g      for       @$comp, @$run, @args;
+        s/\bBENCH\b/$FindBin::Bin/g      for $dir, @$comp, @$run, @args;
+        s{\bDATA\b}{$FindBin::Bin/data}g for $dir, @$comp, @$run, @args;
 
         my @compile;
         if (@$comp) {
