@@ -55,7 +55,6 @@
  },
  {
   name  => 'while_push_join',
-  skip  => [qw( nqp-moarvm )],
   scale => 1 << 7,
   perl5 => 'my @a; my $i = 0; while (++$i <= SCALE) { push @a, "x" }; my $s = join "" => @a;',
   perl6 => 'my @a; my $i = 0; while (++$i <= SCALE) { @a.push("x") }; my $s; $s = @a.join;',
@@ -63,7 +62,6 @@
  },
  {
   name  => 'while_push',
-  skip  => [qw( nqp-moarvm )],
   scale => 1 << 7,
   perl5 => 'my @a; my $i = 0; while (++$i <= SCALE) { push @a, 1 }',
   perl6 => 'my @a; my $i = 0; while (++$i <= SCALE) { push @a, 1 }',
@@ -85,19 +83,17 @@
  },
  {
   name  => 'postwhile_nil',
-  skip  => [qw( nqp-moarvm )],
   scale => 1 << 10,
   perl5 => 'my $i = -SCALE || exit(0); ()  while ++$i;',
   perl6 => 'my $i = -SCALE || exit(0); Nil while ++$i;',
-  nqp   => 'my $i := -SCALE || exit(0); () while $i := $i + 1;',
+  nqp   => 'my $i := -SCALE || nqp::exit(0); () while $i := $i + 1;',
  },
  {
   name  => 'postwhile_nil_native',
-  skip  => [qw( nqp-moarvm )],
   scale => 1 << 10,
   perl5 => 'use integer; my $i = -SCALE || exit(0); ()  while ++$i;',
   perl6 => 'my int $i = -SCALE || exit(0); Nil while ++$i;',
-  nqp   => 'my int $i := -SCALE || exit(0); () while $i := $i + 1;',
+  nqp   => 'my int $i := -SCALE || nqp::exit(0); () while $i := $i + 1;',
  },
  {
   name  => 'loop_empty',
