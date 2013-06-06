@@ -344,6 +344,8 @@ sub time_command {
 
     my (@times, $status);
     for my $i (1 .. $count) {
+        say "    $i" if $verbose;
+
         my @run = @$run;
         s/\bSCALE\b/$scale/g for @run;
 
