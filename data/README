@@ -1,0 +1,6 @@
+The 'american-english' word list file is from the Debian/Ubuntu/Linux Mint
+'wamerican' package, which is in turn based on lists found at:
+http://wordlist.sourceforge.net/
+
+The 'panda-projects.json' JSON file is a copy of the Panda ecosystem projects
+file as of 2013-06-06, found at: http://feather.perl6.nl:3000/projects.json
