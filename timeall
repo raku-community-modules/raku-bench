@@ -164,6 +164,13 @@ sub enable_only_compilers {
     for my $compiler (@COMPILERS) {
         $compiler->{enabled} = 0 unless $enabled{$compiler->{name}};
     }
+
+    # Catch mistakes
+    my %known = map {($_->{name} => 1)} @COMPILERS;
+    for my $enabled (@_) {
+        die "Compiler variant '$enabled' is unknown!  To list compiler variants, use:\n    $0 --list-variants\n"
+            unless $known{$enabled};
+    }
 }
 
 sub detect_versions {
