@@ -105,7 +105,7 @@ sub canonify_tests {
 
 sub process_options_and_arguments {
     my %opt;
-    GetOptions(\%opt, 'help|h|?!', 'man!', 'list-variants!', 'list-tests!',
+    GetOptions(\%opt, 'help|h|?!', 'man!', 'list-variants!', 'list-tests!', 'verbose!',
                       'runs=i', 'enough-time=f', 'format=s', 'outfile=s', 'tests=s')
         or pod2usage(-verbose => 0);
     pod2usage(-verbose => 1) if $opt{help};
@@ -219,18 +219,18 @@ sub run_all_tests {
     my $empty_test    = $TESTS{e}[0];
 
     say "Measuring startup times ...";
-    my $times   = time_all_compilers($empty_test, $startup_runs, 0, $enough_time);
+    my $times   = time_all_compilers($empty_test, $startup_runs, 0, $enough_time, $opt->{verbose});
     my $startup = best_times($times);
     $startup->{$_} = $startup->{$_}{1} for keys %$startup;
 
     my @results;
-    eval { run_tests(\@TESTS, \@results, $startup, $runs, $overhead_runs, $enough_time) };
+    eval { run_tests(\@TESTS, \@results, $startup, $runs, $overhead_runs, $enough_time, $opt->{verbose}) };
     warn "\n$@\n" if $@;
     return \@results;
 }
 
 sub run_tests {
-    my ($tests, $results, $startup, $runs, $overhead_runs, $enough_time) = @_;
+    my ($tests, $results, $startup, $runs, $overhead_runs, $enough_time, $verbose) = @_;
 
     for my $test (@$tests) {
         next unless $test->{enabled};
@@ -238,7 +238,7 @@ sub run_tests {
         my $name = $test->{name};
         say "Testing $name ...";
 
-        my $raw_times = time_all_compilers($test, $runs, $overhead_runs, $enough_time, $startup);
+        my $raw_times = time_all_compilers($test, $runs, $overhead_runs, $enough_time, $verbose, $startup);
         my $best      = best_times($raw_times);
         my $cooked    = subtract_times($best, $startup);
         push @$results, {
@@ -252,7 +252,7 @@ sub run_tests {
 }
 
 sub time_all_compilers {
-    my ($test, $runs, $overhead_runs, $enough_time, $startup) = @_;
+    my ($test, $runs, $overhead_runs, $enough_time, $verbose, $startup) = @_;
 
     my $test_type = $test->{type};
     my $cwd       = cwd;
@@ -296,8 +296,10 @@ sub time_all_compilers {
             my $lowest = 0;
 
             # Determine 0-scale time (mostly compile time)
-            my  $run_times = time_command(\@compile, \@run, $overhead_runs, 0);
+            say '+++ Determining compile time for this test ...' if $verbose;
+            my  $run_times = time_command(\@compile, \@run, $overhead_runs, 0, $verbose);
             if ($run_times) {
+                say '+++ Running scaled timings for this test ...' if $verbose;
                 push @all_times, @$run_times;
                 my $min_run_time = min(map { $_->{time} } @$run_times);
                 my $startup_time = $startup ? $startup->{$name} || 0 : 0;
@@ -305,7 +307,7 @@ sub time_all_compilers {
 
                 # Run scaled timing loop
                 while ($run_times && $lowest < $enough_time) {
-                    $run_times = time_command(\@compile, \@run, $runs, $scale) or last;
+                    $run_times = time_command(\@compile, \@run, $runs, $scale, $verbose) or last;
                     push @all_times, @$run_times;
                     $lowest  = min(map { $_->{time} } @$run_times);
                     $lowest -= $ignore_time;
@@ -315,7 +317,7 @@ sub time_all_compilers {
             }
         }
         else {
-            my $run_times = time_command(\@compile, \@run, $runs, 1);
+            my $run_times = time_command(\@compile, \@run, $runs, 1, $verbose);
             push @all_times, @$run_times if $run_times;
         }
 
@@ -327,7 +329,10 @@ sub time_all_compilers {
 }
 
 sub time_command {
-    my ($compile, $run, $count, $scale) = @_;
+    my ($compile, $run, $count, $scale, $verbose) = @_;
+
+    say "... performing $count run" . ($count == 1 ? '' : 's') . " at scale $scale"
+        if $verbose;
 
     my (@times, $status);
     for my $i (1 .. $count) {
@@ -433,7 +438,7 @@ timeall -- Benchmark Perl-family compilers against each other
 =head1 SYNOPSIS
 
     timeall [--help|-h|-?] [--man] [--list-variants] [--list-tests]
-    timeall [--runs=2] [--enough-time=3.0]
+    timeall [--verbose] [--runs=2] [--enough-time=3.0]
             [--format=json] [--outfile=path/to/file.ext]
             [--tests=list,of,tests] [<enabled compiler variants>]
 
@@ -496,6 +501,11 @@ List all known compiler variants
 =item --list-tests
 
 List all known tests
+
+=item --verbose
+
+Display additional information when performing tests that can help when
+determining when and how a compiler is breaking on a given test.
 
 =item --runs=2
 
