@@ -1,5 +1,13 @@
 [
  {
+  name  => 'parse-json',
+  skip  => [qw( )],
+  scale => 1 << 3,
+  perl5 => undef,
+  perl6 => [qw( BENCH/perl6/parse-json DATA/panda-projects.json SCALE )],
+  nqp   => [qw( BENCH/nqp/parse-json   DATA/panda-projects.json SCALE )],
+ },
+ {
   name  => 'rc-forest-fire',
   skip  => [qw( niecza.nqp nqp-moarvm p6.pl p6.js_v8 )],
   scale => 1 << 3,

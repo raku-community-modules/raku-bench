@@ -1,0 +1,168 @@
+# JSON parsing copied from JSON::Tiny with changes to work in NQP
+# and other very minor changes
+
+grammar JSON::Tiny::Grammar {
+    token TOP       { ^ \s* [ <object> | <array> ] \s* $ }
+    rule object     { '{' ~ '}' <pairlist>     }
+    rule pairlist   { <?> <pair> * % \,             }
+    rule pair       { <?> <string> ':' <value>     }
+    rule array      { '[' ~ ']' <arraylist>    }
+    rule arraylist  { <?> <value>* % [ \, ]        }
+
+    proto token value {*}
+    token value:sym<number> {
+        '-'?
+        [ 0 | <[1..9]> <[0..9]>* ]
+        [ \. <[0..9]>+ ]?
+        [ <[eE]> [\+|\-]? <[0..9]>+ ]?
+    }
+    token value:sym<true>    { <sym>    }
+    token value:sym<false>   { <sym>    }
+    token value:sym<null>    { <sym>    }
+    token value:sym<object>  { <object> }
+    token value:sym<array>   { <array>  }
+    token value:sym<string>  { <string> }
+
+    token string {
+        \" ~ \" ( <str> | \\ <str_escape> )*
+    }
+
+    token str {
+        <-["\\\t\n]>+
+    }
+
+    token str_escape {
+        <["\\/bfnrt]> | u <xdigit>**4
+    }
+}
+
+class JSON::Tiny::Actions {
+    method TOP($/) {
+        make ($<object> || $<array>).ast;
+    }
+
+    method object($/) {
+        my %object := nqp::hash();
+	%object{$_[0]} := $_[1] for $<pairlist>.ast;
+        make %object;
+    }
+
+    method pairlist($/) {
+        my @flattened;
+        @flattened.push($_.ast) for $<pair>;
+        make @flattened;
+    }
+
+    method pair($/) {
+        make [$<string>.ast, $<value>.ast];
+    }
+
+    method array($/) {
+        make $<arraylist>.ast;
+    }
+
+    method arraylist($/) {
+        my @values;
+        @values.push($_.ast) for $<value>;
+        make @values;
+    }
+
+    method string($/) {
+        if nqp::elems($/[0]) == 1 {
+            make ($/[0][0]<str> || $/[0][0]<str_escape>).ast
+        }
+        else {
+            my @mapped;
+            for $/[0] {
+                my $str := $_<str> || $_<str_escape>;
+                @mapped.push($str.ast);
+            }
+            make join('', @mapped);
+        }
+    }
+
+    method value:sym<number>($/) { make +(~$/) }
+    method value:sym<string>($/) { make $<string>.ast }
+    method value:sym<true>($/)   { make 1  }
+    method value:sym<false>($/)  { make 0 }
+    method value:sym<null>($/)   { make NQPMu }
+    method value:sym<object>($/) { make $<object>.ast }
+    method value:sym<array>($/)  { make $<array>.ast }
+
+    method str($/)               { make ~$/ }
+
+    method str_escape($/) {
+        if $<xdigit> {
+            # make chr(:16($<xdigit>.join));  # preferred version of next line, but it doesn't work on Niecza yet
+            make chr(eval("0x" ~ join('', $<xdigit>)));
+        } else {
+            my %h := nqp::hash('\\', "\\",
+                               '/',  "/",
+                               'b',  "\b",
+                               'n',  "\n",
+                               't',  "\t",
+                               'f',  "\f",
+                               'r',  "\r",
+                               '"',  "\"");
+            make %h{~$/};
+        }
+    }
+}
+
+sub from-json($text) {
+    my $a := JSON::Tiny::Actions.new();
+    my $o := JSON::Tiny::Grammar.parse($text, :actions($a));
+    $o.ast;
+}
+
+sub to-json($d) {
+    my @mapped;
+    if   !nqp::isconcrete($d) {
+        'null'
+    }
+    elsif nqp::islist($d) {
+        @mapped.push(to-json($_)) for $d;
+        '[ '
+        ~ join(', ', @mapped)
+        ~ ' ]';
+    }
+    elsif nqp::ishash($d) {
+        @mapped.push(to-json($_.key) ~ ' : ' ~ to-json($_.value)) for $d;
+        '{ '
+        ~ join(', ', @mapped)
+        ~ ' }';
+    }
+    elsif nqp::isnum($d) {
+        ~$d;
+    }
+    elsif nqp::isint($d) {
+        ~$d;
+    }
+    elsif nqp::isstr($d) {
+        '"'
+    	# ~ $d.trans(['"',  '\\',   "\b", "\f", "\n", "\r", "\t"],
+    	#            ['\"', '\\\\', '\b', '\f', '\n', '\r', '\t'])\
+    	#         .subst(/<-[\c32..\c126]>/, { ord(~$_).fmt('\u%04x') }, :g)
+        ~ $d
+        ~ '"';
+    }
+    else {
+        die("Can't serialize an object of type " ~ $d.WHAT.perl);
+    }
+}
+
+sub main($json-file, $count) {
+    my $json := slurp($json-file);
+
+    my int $i := 0;
+    while $i < $count {
+        my $data := from-json($json);
+        $i := $i + 1;
+    }
+}
+
+# XXXX: Perl 6/NQP incompatibility: whether MAIN's args include the program name
+sub MAIN (*@args) {
+    @args.shift if @args == 3;
+    main(|@args);
+}
