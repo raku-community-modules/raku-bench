@@ -49,7 +49,6 @@
   + colomon++'s ideas:
     - Ten most frequently used words in Hamlet and not Much Ado About Nothing
       . http://perl6advent.wordpress.com/2012/12/13/day-13-bags-and-sets/
-      . needs support for data/
     - 'is cached' versus non-cached performance
       . fact(10000) + fact(10001)  # Factorial, cache only hits on multiple calls
       . fib(30)                    # Fibonnaci, cache hits for just a single call
