@@ -98,20 +98,86 @@ sub canonify_tests {
             $test->{type}    = $type;
             $test->{enabled} = 1 unless exists $test->{enabled};
             $test->{scaling} = 'double' unless exists $test->{scaling};
+            add_test_tags($test);
             push @TESTS, $test;
         }
     }
 }
 
+sub add_test_tags {
+    my $test = shift;
+    my %tags = map {( $_ => 1 )} @{$test->{tags} || []};
+
+    for my $lang (@GROUPS) {
+        my $code = $test->{$lang};
+        if (defined $code) {
+            $tags{"has-lang:$lang"} = 1;
+
+            my $text = ref $code ? "@$code" : $code;
+            $tags{"scalable"} = 1 if $text =~ /\bSCALE\b/;
+        }
+    }
+
+    $test->{tags} = [ sort keys %tags ];
+}
+
+sub tests_matching {
+    my $query     = shift;
+    my @terms     = split /,/ => $query;
+    my @required  = grep /^(?!-)/ => @terms;
+    my @forbidden = map { substr($_, 1) } grep /^-/ => @terms;
+
+    my %known = map {( $_ => 1)} known_tags();
+    for my $tag (@required) {
+        die "Unknown required tag '$tag'!\n" unless $known{$tag};
+    }
+    for my $tag (@forbidden) {
+        die "Unknown forbidden tag '$tag'!\n" unless $known{$tag};
+    }
+
+    my @matching;
+    TEST: for my $test (@TESTS) {
+        my $tags = $test->{tags};
+        my %tags = map {( $_ => 1 )} @$tags;
+        for (@forbidden) {
+            next TEST if     $tags{$_};
+        }
+        for (@required) {
+            next TEST unless $tags{$_};
+        }
+
+        push @matching, $test;
+    }
+
+    return @matching;
+}
+
+sub test_names_matching {
+    return map { $_->{name} } tests_matching(@_);
+}
+
+sub known_tags {
+    my %known;
+    for my $test (@TESTS) {
+        $known{$_} = 1 for @{$test->{tags}};
+    }
+
+    return sort keys %known;
+}
+
 sub process_options_and_arguments {
     my %opt;
     GetOptions(\%opt, 'help|h|?!', 'man!', 'list-variants!', 'list-tests!', 'verbose!',
-                      'runs=i', 'enough-time=f', 'format=s', 'outfile=s', 'tests=s')
+                      'runs=i', 'enough-time=f', 'format=s', 'outfile=s', 'tests=s',
+                      'list-tags!', 'list-tests-tagged=s', 'tests-tagged=s')
         or pod2usage(-verbose => 0);
     pod2usage(-verbose => 1) if $opt{help};
     pod2usage(-verbose => 2) if $opt{man};
     list_variants()          if $opt{'list-variants'};
-    list_tests()             if $opt{'list-tests'};
+    list_tags()              if $opt{'list-tags'};
+
+    list_tests(tests_matching($opt{'list-tests-tagged'})) if defined $opt{'list-tests-tagged'};
+    list_tests(@TESTS) if $opt{'list-tests'};
 
     # Canonicalize outfile and output format
     $opt{outfile} //= 'bench-' . DateTime->today->ymd . '.json';
@@ -126,6 +192,7 @@ sub process_options_and_arguments {
 
     # Allow selecting a subset of available tests
     enable_only_tests(split ',' => $opt{tests}) if $opt{tests};
+    enable_only_tests(test_names_matching($opt{'tests-tagged'})) if $opt{'tests-tagged'};
 
     # Allow selecting a subset of available compilers
     enable_only_compilers(@ARGV) if @ARGV;
@@ -146,7 +213,12 @@ sub list_variants {
 }
 
 sub list_tests {
-    print "$_->{name}\n" for @TESTS;
+    print "$_->{name}\n" for @_;
+    exit 0;
+}
+
+sub list_tags {
+    print "$_\n" for known_tags();
     exit 0;
 }
 
@@ -448,9 +520,11 @@ timeall -- Benchmark Perl-family compilers against each other
 =head1 SYNOPSIS
 
     timeall [--help|-h|-?] [--man] [--list-variants] [--list-tests]
+            [--list-tags] [--list-tests-tagged=required-tag,-forbidden-tag]
     timeall [--verbose] [--runs=2] [--enough-time=3.0]
             [--format=json] [--outfile=path/to/file.ext]
-            [--tests=list,of,tests] [<enabled compiler variants>]
+            [--tests=list,of,tests] [--tests-tagged=required,-forbidden]
+            [<enabled compiler variants>]
 
 =head1 DESCRIPTION
 
@@ -489,7 +563,9 @@ compiler variants, use the C<--list-variants> option.
 
 To choose only particular tests to run, specify a comma-separated list of
 test names with the C<--tests> option.  To see the list of known names, use
-the C<--list-tests> option.
+the C<--list-tests> option.  To choose particular test sets by tag, use the
+C<--tests-tagged> option; to see what tests will be chosen with a particular
+tag query, use the C<--list-tests-tagged> option.
 
 
 =head1 OPTIONS
@@ -498,19 +574,33 @@ the C<--list-tests> option.
 
 =item --help|-h|-?
 
-Get basic help for this program
+Get basic help for this program.
 
 =item --man
 
-Display this program's entire manpage
+Display this program's entire manpage.
 
 =item --list-variants
 
-List all known compiler variants
+List all known compiler variants.
 
 =item --list-tests
 
-List all known tests
+List all known tests.
+
+=item --list-tags
+
+List all known tags.
+
+=item --list-tests-tagged=required-tag,-forbidden-tag
+
+List tests according to a tag query, specifying which tags a test is
+required to have and which tags it must B<not> have.  Tags should be
+separated by commas, with no spaces.  Add a leading  C<-> (minus sign)
+in front of any tags that must be disallowed; the default is to require
+matching tests to have all listed tags.  This option merely lists
+matching tests; to run matching tests, use the same query with the
+C<--tests-tagged> option.
 
 =item --verbose
 
@@ -554,6 +644,15 @@ C<--outfile> is F<bench-YYYY-MM-DD.json>, where F<YYYY-MM-DD> is today's date.
 Enable only a subset of the available tests (instead of the default of all
 known tests), using a comma separated list of the test names.  To see the
 list of known test names, use the C<--list-tests> option.
+
+=item --list-tests-tagged=required-tag,-forbidden-tag
+
+Enable only tests that match a tag query specifying which tags a test is
+required to have and which tags it must B<not> have.  Tags should be
+separated by commas, with no spaces.  Add a leading  C<-> (minus sign)
+in front of any tag that must be disallowed; the default is to require
+matching tests to have all listed tags.  To see which tests a tag query
+will run, use the same query with the C<--list-tests-tagged> option.
 
 =back
 
