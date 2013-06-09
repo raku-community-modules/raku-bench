@@ -22,6 +22,7 @@
 * More tests!
   + Miscellaneous known-slow tasks:
     - qq:to// unindent
+    - IO: bytes, chars, lines, slurp/spew
   + Import benchmarks from github:perl6/bench-scripts
     - non-str-comb.pl
     - pick-words.pl        # Needs support for data/
