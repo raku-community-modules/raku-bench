@@ -90,5 +90,18 @@
             [ "make" ],
             [ "make", "install" ]
         ]
+    },
+    "rakudo-jvm": {
+        "name":         "rakudo-jvm",
+        "repo_url":     "git://github.com/rakudo/rakudo.git",
+        "release_tags": "^ 20\\d\\d \\D \\d\\d [\\.\\d+]? $",
+        "build_steps":  [
+            [ "git", "clean", "-dxf" ],
+            [ "rm", "-rf", "install", "nqp", "parrot" ],
+            [ "git", "clone", "-l", "../../nqp/nqp.git" ],
+            " cd nqp && perl ConfigureJVM.pl && make && make install ",
+            [ "perl", "ConfigureJVM.pl", "--with-nqp=nqp/install/nqp" ],
+            [ "make" ]
+        ]
     }
 }
