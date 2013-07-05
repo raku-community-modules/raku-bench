@@ -50,7 +50,7 @@
   name  => 'while_concat_native',
   scale => 1 << 10,
   perl5 => 'use integer; my $s = ""; my $i = 0; while (++$i <= SCALE) { $s .= "x" }',
-  perl6 => 'my str $s = ""; my int $i = 0; while (++$i <= SCALE) { $s ~= "x" }',
+  perl6 => 'my str $s = ""; my int $i = 0; while (($i = $i + 1) <= SCALE) { $s ~= "x" }',
   nqp   => 'my str $s := ""; my int $i := 0; while ($i := $i + 1) <= SCALE { $s := $s ~ "x" }',
  },
  {
@@ -58,14 +58,14 @@
   scale => 1 << 7,
   perl5 => 'my @a; my $i = 0; while (++$i <= SCALE) { push @a, "x" }; my $s = join "" => @a;',
   perl6 => 'my @a; my $i = 0; while (++$i <= SCALE) { @a.push("x") }; my $s; $s = @a.join;',
-  nqp   => 'my @a; my $i := 0; while ($i := $i + 1) <= SCALE { @a.push("x"); }; my $s := nqp::join("",@a);',
+  nqp   => 'my @a; my $i := 0; while ($i := $i + 1) <= SCALE { nqp::push(@a, "x"); }; my $s := nqp::join("",@a);',
  },
  {
   name  => 'while_push',
   scale => 1 << 7,
   perl5 => 'my @a; my $i = 0; while (++$i <= SCALE) { push @a, 1 }',
   perl6 => 'my @a; my $i = 0; while (++$i <= SCALE) { push @a, 1 }',
-  nqp   => 'my @a; my $i := 0; while ($i := $i + 1) <= SCALE { @a.push(1) }',
+  nqp   => 'my @a; my $i := 0; while ($i := $i + 1) <= SCALE { nqp::push(@a, 1) }',
  },
  {
   name  => 'while_array_set',
@@ -92,7 +92,7 @@
   name  => 'postwhile_nil_native',
   scale => 1 << 10,
   perl5 => 'use integer; my $i = -SCALE || exit(0); ()  while ++$i;',
-  perl6 => 'my int $i = -SCALE || exit(0); Nil while ++$i;',
+  perl6 => 'my int $i = -SCALE || exit(0); Nil while ($i = $i + 1);',
   nqp   => 'my int $i := -SCALE || nqp::exit(0); () while $i := $i + 1;',
  },
  {
@@ -106,7 +106,7 @@
   name  => 'loop_empty_native',
   scale => 1 << 10,
   perl5 => 'use integer; for (my $i = 1; $i <= SCALE; ++$i) { }',
-  perl6 => 'loop (my int $i = 1; $i <= SCALE; ++$i) { }',
+  perl6 => 'loop (my int $i = 1; $i <= SCALE; $i = $i + 1) { }',
   nqp   => undef,
  },
  {
@@ -148,7 +148,7 @@
   name  => 'for_postinc_native',
   scale => 1 << 10,
   perl5 => 'use integer; my $i = 0; for (1 .. SCALE) { $i++ }',
-  perl6 => 'my int $i = 0; for (1 .. SCALE) { $i++ }',
+  perl6 => 'my int $i = 0; for (1 .. SCALE) { $i = $i + 1 }',
   nqp   => undef,
  },
  {
@@ -239,21 +239,21 @@
   name  => 'visit_2d_indices_while_native',
   scale => 1 << 3,
   perl5 => 'use integer; my $i = 0; while ($i < SCALE) { my $j = 0; while ($j < SCALE) { $i + $j; $j++ }; $i++ }',
-  perl6 => 'my int $i = 0; while ($i < SCALE) { my int $j = 0; while ($j < SCALE) { $i + $j; $j++ }; $i++ }',
+  perl6 => 'my int $i = 0; while ($i < SCALE) { my int $j = 0; while ($j < SCALE) { $i + $j; $j = $j + 1 }; $i = $i + 1 }',
   nqp   => 'my int $i := 0; while ($i < SCALE) { my int $j := 0; while ($j < SCALE) { $i + $j; $j := $j + 1 }; $i := $i + 1 }',
  },
  {
   name  => 'visit_2d_indices_loop',
   scale => 1 << 3,
   perl5 => 'for  (my $i = 0; $i < SCALE; $i++) { for  (my $j = 0; $j < SCALE; $j++) { $i + $j } }',
-  perl6 => 'loop (my $i = 0; $i < SCALE; $i++) { loop (my $j = 0; $j < SCALE; $j++) { $i + $j } }',
+  perl6 => 'loop (my $i = 0; $i < SCALE; $i+) { loop (my $j = 0; $j < SCALE; $j++) { $i + $j } }',
   nqp   => undef,
  },
  {
   name  => 'visit_2d_indices_loop_native',
   scale => 1 << 3,
   perl5 => 'use integer; for (my $i = 0; $i < SCALE; $i++) { for (my $j = 0; $j < SCALE; $j++) { $i + $j } }',
-  perl6 => 'loop (my int $i = 0; $i < SCALE; $i++) { loop (my int $j = 0; $j < SCALE; $j++) { $i + $j } }',
+  perl6 => 'loop (my int $i = 0; $i < SCALE; $i = $i + 1) { loop (my int $j = 0; $j < SCALE; $j = $j + 1) { $i + $j } }',
   nqp   => undef,
  },
  {
