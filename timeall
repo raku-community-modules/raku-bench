@@ -311,11 +311,14 @@ sub run_all_tests {
 sub run_tests {
     my ($tests, $results, $startup, $runs, $overhead_runs, $enough_time, $verbose) = @_;
 
+    my $testcount = +@$tests;
+    my $testnum = 0;
     for my $test (@$tests) {
+        $testnum++;
         next unless $test->{enabled};
 
         my $name = $test->{name};
-        say "Testing $name ...";
+        say "$testnum/$testcount: Testing $name ...";
 
         my $raw_times = time_all_compilers($test, $runs, $overhead_runs, $enough_time, $verbose, $startup);
         my $best      = best_times($raw_times);
