@@ -55,6 +55,16 @@
             show_ver  => [qw( install/bin/perl6 --version )],
            },
            {
+            name      => 'rakudo-jvm',
+            enabled   => 1,
+            language  => 'Perl 6',
+            compiler  => 'rakudo-jvm',
+            vm        => 'jvm',
+            f_run     => [qw( ./perl6    )],
+            e_run     => [qw( ./perl6 -e )],
+            show_ver  => [qw( ./perl6 --version )],
+           },
+           {
             name      => 'niecza',
             enabled   => 1,
             language  => 'Perl 6',
