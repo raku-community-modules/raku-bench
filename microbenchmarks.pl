@@ -50,7 +50,7 @@
   name  => 'while_concat_native',
   scale => 1 << 10,
   perl5 => 'use integer; my $s = ""; my $i = 0; while (++$i <= SCALE) { $s .= "x" }',
-  perl6 => 'my str $s = ""; my int $i = 0; while (($i = $i + 1) <= SCALE) { $s ~= "x" }',
+  perl6 => 'my str $s = ""; my int $i = 0; while (($i = $i + 1) <= SCALE) { $s = $s ~ "x" }',
   nqp   => 'my str $s := ""; my int $i := 0; while ($i := $i + 1) <= SCALE { $s := $s ~ "x" }',
  },
  {
@@ -162,21 +162,21 @@
   name  => 'for_concat_native',
   scale => 1 << 10,
   perl5 => 'use integer; my $s = ""; for (1 .. SCALE) { $s .= "x" }',
-  perl6 => 'my str $s = ""; for (1 .. SCALE) { $s ~= "x" }',
+  perl6 => 'my str $s = ""; for (1 .. SCALE) { $s = $s ~ "x" }',
   nqp   => undef,
  },
  {
   name  => 'for_concat_2',
   scale => 1 << 10,
   perl5 => 'my $x = "a"; my $y = ""; for (1 .. SCALE) { $y .= ($x . $x) }',
-  perl6 => 'my $x = "a"; my $y = ""; for (1 .. SCALE) { $y ~= ($x ~ $x) }',
+  perl6 => 'my $x = "a"; my $y = ""; for (1 .. SCALE) { $y = ($x ~ $x) }',
   nqp   => undef,
  },
  {
   name  => 'for_concat_2_native',
   scale => 1 << 10,
   perl5 => 'use integer; my $x = "a"; my $y = ""; for (1 .. SCALE) { $y .= ($x . $x) }',
-  perl6 => 'my str $x = "a"; my str $y = ""; for (1 .. SCALE) { $y ~= ($x ~ $x) }',
+  perl6 => 'my str $x = "a"; my str $y = ""; for (1 .. SCALE) { $y = $y ~ $x ~ $x }',
   nqp   => undef,
  },
  {
@@ -246,7 +246,7 @@
   name  => 'visit_2d_indices_loop',
   scale => 1 << 3,
   perl5 => 'for  (my $i = 0; $i < SCALE; $i++) { for  (my $j = 0; $j < SCALE; $j++) { $i + $j } }',
-  perl6 => 'loop (my $i = 0; $i < SCALE; $i+) { loop (my $j = 0; $j < SCALE; $j++) { $i + $j } }',
+  perl6 => 'loop (my $i = 0; $i < SCALE; $i++) { loop (my $j = 0; $j < SCALE; $j++) { $i + $j } }',
   nqp   => undef,
  },
  {
