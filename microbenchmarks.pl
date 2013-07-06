@@ -224,7 +224,7 @@
  {
   name  => 'trim_string',
   scale => 1 << 7,
-  perl5 => 'my $s = " " x SCALE . "x" x SCALE . " " x SCALE; my ($result) = /^\s*(.*?)\s*$/s for 1 .. SCALE',
+  perl5 => 'my $s = " " x SCALE . "x" x SCALE . " " x SCALE; my ($result) = $s =~ /^\s*(.*?)\s*$/s for 1 .. SCALE',
   perl6 => 'my $s = " " x SCALE ~ "x" x SCALE ~ " " x SCALE; $s.trim for 1 .. SCALE',
   nqp   => undef,
  },
