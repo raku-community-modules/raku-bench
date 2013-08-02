@@ -6,7 +6,7 @@
             [ "make", "realclean" ],
             [ "git", "clean", "-dxf" ],
             [ "rm", "-rf", "nqp-cc/install", "nqp-cc/parrot", "nqp-cc/nqp" ],
-            [ "perl", "Configure.pl" ],
+            [ "perl", "Configure.pl", "--optimize" ],
             [ "make" ],
             [ "git", "clone", "-l", "../../parrot/parrot.git", "nqp-cc/parrot" ],
             [ "git", "clone", "-l", "../../nqp/nqp.git", "nqp-cc/nqp" ],
