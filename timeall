@@ -427,11 +427,15 @@ sub time_command {
         my $start = time;
 
         if (@$compile) {
-            my ($out, $err) = capture { $status = system @$compile };
+            my ($out, $err, $status) = capture { eval system @$compile };
             if ($status) {
                 die "Test's compile command terminated by SIGINT.\n" if ($status & 127) == 2;
                 warn "Failed to run compile command: @$compile\n"
                      . (length $err ? "Error:\n$err\n" : '');
+                return undef;
+            }
+            if ($out =~ /Segmentation/) {
+                warn "segfaulted";
                 return undef;
             }
 
@@ -441,8 +445,13 @@ sub time_command {
             s/\bCOMPILED\b/$filename/g for @run;
         }
 
-        $status  = system @run;
+        my ($out, $err, $status)  = capture { system @run };
         my $time = time - $start;
+        if ($out =~ /Segmentation/ || $err =~ /Segmentation/) {
+            warn "segfaulted";
+            return undef;
+        }
+        say "$out  $err";
         push @times, { run => $i, scale => $scale, time => $time };
         if ($status) {
             die "Test's run command terminated by SIGINT.\n" if ($status & 127) == 2;
