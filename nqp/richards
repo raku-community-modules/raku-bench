@@ -1,0 +1,483 @@
+
+my int $COUNT := 1000;
+my int $DATA_SIZE := 4;
+
+my int $ID_IDLE       := 0;
+my int $ID_WORKER     := 1;
+my int $ID_HANDLER_A  := 2;
+my int $ID_HANDLER_B  := 3;
+my int $ID_DEVICE_A   := 4;
+my int $ID_DEVICE_B   := 5;
+my int $NUMBER_OF_IDS := 6;
+
+my int $KIND_DEVICE   := 0;
+my int $KIND_WORK     := 1;
+
+my int $STATE_RUNNING       := 0;
+my int $STATE_RUNNABLE      := 1;
+my int $STATE_SUSPENDED     := 2;
+my int $STATE_HELD          := 4;
+
+my int $STATE_SUSPENDED_RUNNABLE := $STATE_SUSPENDED +| $STATE_RUNNABLE;
+
+my int $EXPECTED_QUEUE_COUNT := 2322;
+my int $EXPECTED_HOLD_COUNT  := 928;
+
+my int $packet_ctr;
+
+sub run_richards() {
+    my $sched := Scheduler.new();
+
+    $sched.addIdleTask($ID_IDLE, 0, NQPMu, $COUNT);
+
+    my $q := Packet.new(NQPMu, $ID_WORKER, $KIND_WORK);
+       $q := Packet.new($q,    $ID_WORKER, $KIND_WORK);
+    $sched.addWorkerTask($ID_WORKER, 1000, $q);
+
+    $q := Packet.new(NQPMu, $ID_DEVICE_A, $KIND_DEVICE);
+    $q := Packet.new($q,    $ID_DEVICE_A, $KIND_DEVICE);
+    $q := Packet.new($q,    $ID_DEVICE_A, $KIND_DEVICE);
+    $sched.addHandlerTask($ID_HANDLER_A, 2000, $q);
+
+    $q := Packet.new(NQPMu, $ID_DEVICE_B, $KIND_DEVICE);
+    $q := Packet.new($q,    $ID_DEVICE_B, $KIND_DEVICE);
+    $q := Packet.new($q,    $ID_DEVICE_B, $KIND_DEVICE);
+    $sched.addHandlerTask($ID_HANDLER_B, 3000, $q);
+
+    $sched.addDeviceTask($ID_DEVICE_A, 4000, NQPMu);
+
+    $sched.addDeviceTask($ID_DEVICE_B, 5000, NQPMu);
+
+    $sched.schedule();
+
+    if $COUNT == 1000 {
+        $sched.confirm_counts($EXPECTED_QUEUE_COUNT, $EXPECTED_HOLD_COUNT);
+    }
+}
+
+class Scheduler {
+    has $!queue_count;
+    has $!hold_count;
+    has @!blocks;
+    has $!head;
+    has $!current_tcb;
+    has $!current_id;
+
+    method new() {
+        my $new := self.CREATE;
+        
+        my @l := nqp::list();
+        nqp::setelems(@l, $NUMBER_OF_IDS);
+        nqp::bindattr($new, Scheduler, '@!blocks', @l);
+
+        nqp::bindattr($new, Scheduler, '$!head', NQPMu);
+        nqp::bindattr($new, Scheduler, '$!current_tcb', NQPMu);
+        nqp::bindattr($new, Scheduler, '$!current_id', NQPMu);
+        
+        $new;
+    }
+
+    method addIdleTask($id, $prio, $queue, $count) {
+        self.addRunningTask($id, $prio, $queue, IdleTask.new(self, 1, $count));
+    }
+    method addWorkerTask($id, $prio, $queue) {
+        self.addTask($id, $prio, $queue, WorkerTask.new(self, $ID_HANDLER_A, 0));
+    }
+    method addHandlerTask($id, $prio, $queue) {
+        self.addTask($id, $prio, $queue, HandlerTask.new(self));
+    }
+    method addDeviceTask($id, $prio, $queue) {
+        self.addTask($id, $prio, $queue, DeviceTask.new(self))
+    }
+    method addRunningTask($id, $prio, $queue, $task) {
+        self.addTask($id, $prio, $queue, $task);
+        $!current_tcb.set_running;
+    }
+    method addTask($id, $prio, $queue, $task) {
+        $!current_tcb := TaskControlBlock.new($!head, $id, $prio, $queue, $task);
+        $!head := $!current_tcb;
+        @!blocks[$id] := $!current_tcb;
+    }
+
+    method suspend_current() {
+        $!current_tcb.mark_as_suspended();
+        return $!current_tcb;
+    }
+
+    method hold_current() {
+        $!hold_count := $!hold_count + 1;
+        $!current_tcb.mark_as_held();
+        return $!current_tcb.link;
+    }
+
+    method release($id) {
+        my $tcb := @!blocks[$id];
+        if $tcb =:= NQPMu {
+            return $tcb
+        }
+        $tcb.mark_as_not_held;
+        if $tcb.prio > $!current_tcb.prio {
+            return $tcb
+        } else {
+            return $!current_tcb;
+        }
+    }
+
+    method queue($packet) {
+        my $t := @!blocks[$packet.id];
+        if $t =:= NQPMu {
+            return $t
+        }
+        $!queue_count := $!queue_count + 1;
+        $packet.link(NQPMu);
+        $packet.id($!current_id);
+        return $t.check_priority_add($!current_tcb, $packet);
+    }
+
+    method schedule() {
+        $!current_tcb := $!head;
+        while !($!current_tcb =:= NQPMu) {
+            if $!current_tcb.is_held_or_suspended {
+                $!current_tcb := $!current_tcb.link
+            } else {
+                $!current_id := $!current_tcb.id;
+                $!current_tcb := $!current_tcb.run;
+            }
+        }
+    }
+
+    method confirm_counts($queue, $hold) {
+        if $!queue_count != $queue || $!hold_count != $hold {
+            nqp::die("counts mismatched: $!queue_count vs. $queue and $!hold_count vs. $hold");
+        }
+    }
+}
+
+class TaskControlBlock {
+    has $!link;
+    has $!id;
+    has $!prio;
+    has $!queue;
+    has $!task;
+    has $!state;
+
+    method new($link, $id, $prio, $queue, $task) {
+        my $new := self.CREATE();
+        nqp::bindattr($new, TaskControlBlock, '$!link', $link);
+        nqp::bindattr($new, TaskControlBlock, '$!id', $id);
+        nqp::bindattr($new, TaskControlBlock, '$!prio', $prio);
+        nqp::bindattr($new, TaskControlBlock, '$!queue', $queue);
+        nqp::bindattr($new, TaskControlBlock, '$!task', $task);
+
+        my $state;
+        if $queue =:= NQPMu {
+            $state := $STATE_SUSPENDED;
+        } else {
+            $state := $STATE_SUSPENDED_RUNNABLE;
+        }
+        nqp::bindattr($new, TaskControlBlock, '$!state', $state);
+
+
+        $new;
+    }
+
+    method run() {
+        my $packet;
+        if $!state == $STATE_SUSPENDED_RUNNABLE {
+            $packet := $!queue;
+            $!queue := $packet.link;
+
+            if $!queue =:= NQPMu {
+                $!state := $STATE_RUNNING;
+            } else {
+                $!state := $STATE_RUNNABLE;
+            }
+        } else {
+            $packet := NQPMu
+        }
+        return $!task.run($packet);
+    }
+
+    method link(*@link) {
+        if +@link {
+            $!link := @link[0];
+        }
+        $!link;
+    }
+    method id(*@id) {
+        if +@id {
+            $!id := @id[0];
+        }
+        $!id;
+    }
+    method prio(*@prio) {
+        if +@prio {
+            $!prio := @prio[0];
+        }
+        $!prio;
+    }
+
+    method set_running() {
+        $!state := $STATE_RUNNING;
+    }
+
+    method mark_as_suspended() {
+        $!state := $!state +| $STATE_SUSPENDED;
+    }
+
+    method is_held_or_suspended() {
+        ($!state +& $STATE_HELD) || ($!state == $STATE_SUSPENDED)
+    }
+
+    method mark_as_not_held() {
+        if $!state +& $STATE_HELD {
+            $!state := $!state - $STATE_HELD;
+        }
+    }
+    method mark_as_held() {
+        $!state := $!state +| $STATE_HELD;
+    }
+    method mark_as_runnable() {
+        $!state := $!state +| $STATE_RUNNABLE;
+    }
+
+    method check_priority_add($task, $packet) {
+        if $!queue =:= NQPMu {
+            $!queue := $packet;
+            self.mark_as_runnable;
+            if $!prio > $task.prio {
+                return self
+            }
+        } else {
+            $!queue := $packet.add_to($!queue);
+        }
+        return $task;
+    }
+}
+
+
+class IdleTask {
+    has $!scheduler;
+    has $!v1;
+    has $!count;
+
+    method new($scheduler, $v1, $count) {
+        my $new := self.CREATE();
+        nqp::bindattr($new, IdleTask, '$!scheduler', $scheduler);
+        nqp::bindattr($new, IdleTask, '$!v1', $v1);
+        nqp::bindattr($new, IdleTask, '$!count', $count);
+        $new;
+    }
+
+    method run($packet) {
+        $!count := $!count - 1;
+        if $!count == 0 {
+            return $!scheduler.hold_current()
+        } else {
+            if ($!v1 +& 1) == 0 {
+                $!v1 := nqp::bitshiftr_i($!v1, 1);
+                return $!scheduler.release($ID_DEVICE_A);
+            } else {
+                $!v1 := nqp::bitxor_i(nqp::bitshiftr_i($!v1, 1), 0xD008);
+                return $!scheduler.release($ID_DEVICE_B);
+            }
+        }
+    }
+}
+
+class DeviceTask {
+    has $!scheduler;
+    has $!v1;
+
+    method new($scheduler) {
+        my $new := self.CREATE();
+
+        nqp::bindattr($new, DeviceTask, '$!scheduler', $scheduler);
+        nqp::bindattr($new, DeviceTask, '$!v1', NQPMu);
+
+        $new;
+    }
+
+    method run($packet) {
+        if $packet =:= NQPMu {
+            if $!v1 =:= NQPMu {
+                return $!scheduler.suspend_current();
+            } else {
+                my $v := $!v1;
+                $!v1 := NQPMu;
+                return $!scheduler.queue($v);
+            }
+        } else {
+            $!v1 := $packet;
+            return $!scheduler.hold_current();
+        }
+    }
+}
+
+class WorkerTask {
+    has $!scheduler;
+    has $!v1;
+    has  $!v2;
+
+    method new($scheduler, $v1, $v2) {
+        my $new := self.CREATE();
+
+        nqp::bindattr($new, WorkerTask, '$!scheduler', $scheduler);
+        nqp::bindattr($new, WorkerTask, '$!v1', $v1);
+        nqp::bindattr($new, WorkerTask, '$!v2', $v2);
+
+        $new;
+    }
+
+    method run($packet) {
+        if $packet =:= NQPMu {
+            return $!scheduler.suspend_current();
+        } else {
+            if ($!v1 == $ID_HANDLER_A) {
+                $!v1 := $ID_HANDLER_B
+            } else {
+                $!v1 := $ID_HANDLER_A
+            }
+            $packet.id($!v1);
+            $packet.a1(0);
+
+            my int $i := 0;
+            while $i < $DATA_SIZE {
+                $!v2 := $!v2 + 1;
+                if $!v2 > 26 {
+                    $!v2 := 1
+                }
+                $packet.a2[$i] := $!v2;
+                $i := $i + 1;
+            }
+            return $!scheduler.queue($packet);
+        }
+    }
+}
+
+class HandlerTask {
+    has $!scheduler;
+    has $!v1;
+    has $!v2;
+
+    method new($scheduler) {
+        my $new := self.CREATE();
+
+        nqp::bindattr($new, HandlerTask, '$!scheduler', $scheduler);
+        nqp::bindattr($new, HandlerTask, '$!v1', NQPMu);
+        nqp::bindattr($new, HandlerTask, '$!v2', NQPMu);
+
+        $new;
+    }
+
+    method run($packet) {
+        if !($packet =:= NQPMu) {
+            if $packet.kind == $KIND_WORK {
+                $!v1 := $packet.add_to($!v1);
+            } else {
+                $!v2 := $packet.add_to($!v2);
+            }
+        }
+        if !($!v1 =:= NQPMu) {
+            my int $count := $!v1.a1;
+            my $v;
+            if $count < $DATA_SIZE {
+                if !($!v2 =:= NQPMu) {
+                    $v := $!v2;
+                    $!v2 := $!v2.link;
+                    $v.a1($!v1.a2[$count]);
+                    $!v1.a1($count + 1);
+                    return $!scheduler.queue($v);
+                }
+            } else {
+                $v := $!v1;
+                $!v1 := $!v1.link;
+                return $!scheduler.queue($v);
+            }
+        }
+        $!scheduler.suspend_current();
+    }
+}
+
+class Packet {
+    has $!link;
+    has  $!id;
+    has  $!kind;
+    has  $!a1;
+    has @!a2;
+    has $!name;
+
+    method new($link, int $id, int $kind) {
+        my $new := self.CREATE();
+        nqp::bindattr($new, Packet, '$!link', $link);
+        nqp::bindattr($new, Packet, '$!id', $id);
+        nqp::bindattr($new, Packet, '$!kind', $kind);
+        nqp::bindattr($new, Packet, '$!a1', 0);
+
+        my @a2 := nqp::list_i();
+        nqp::setelems(@a2, $DATA_SIZE);
+        nqp::bindattr($new, Packet, '@!a2', @a2);
+        
+        nqp::bindattr($new, Packet, '$!name', $packet_ctr);
+        $packet_ctr := $packet_ctr + 1;
+
+        $new;
+    }
+
+    method id(*@id) {
+        if +@id {
+            $!id := @id[0];
+        }
+        $!id;
+    }
+    method a1(*@a1) {
+        if +@a1 {
+            $!a1 := @a1[0];
+        }
+        $!a1;
+    }
+    method a2(*@a2) {
+        if +@a2 {
+            @!a2 := @a2[0];
+        }
+        @!a2;
+    }
+    method link(*@link) {
+        if +@link {
+            $!link := @link[0];
+        }
+        $!link;
+    }
+    method kind(*@kind) {
+        if +@kind {
+            $!kind := @kind[0];
+        }
+        $!kind;
+    }
+
+    method add_to($queue) {
+        $!link := NQPMu;
+        if $queue =:= NQPMu {
+            return self;
+        }
+        my $peek := $queue;
+        my $next := $queue;
+        while !($peek =:= NQPMu) {
+            $next := $peek;
+            $peek := $next.link;
+        }
+        $next.link(self);
+        $queue;
+    }
+
+    method Str() {
+        if $!link =:= NQPMu {
+            return "Packet($!name) -|";
+        } else {
+            return "Packet($!name) - " ~ $!link.Str;
+        }
+    }
+}
+
+
+run_richards();
