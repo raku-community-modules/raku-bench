@@ -45,7 +45,7 @@
           ],
  perl6 => [
            {
-            name      => 'rakudo',
+            name      => 'rakudo-parrot',
             enabled   => 1,
             language  => 'Perl 6',
             compiler  => 'rakudo',
@@ -58,7 +58,7 @@
             name      => 'rakudo-jvm',
             enabled   => 1,
             language  => 'Perl 6',
-            compiler  => 'rakudo-jvm',
+            compiler  => 'rakudo',
             vm        => 'jvm',
             f_run     => [qw( ./perl6    )],
             e_run     => [qw( ./perl6 -e )],
@@ -101,7 +101,7 @@
           ],
  nqp   => [
            {
-            name      => 'nqp',
+            name      => 'nqp-parrot',
             enabled   => 1,
             language  => 'NQP',
             compiler  => 'nqp',

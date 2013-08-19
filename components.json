@@ -22,8 +22,8 @@
             [ "make" ]
         ]
     },
-    "nqp":    {
-        "name":         "nqp",
+    "nqp-parrot": {
+        "name":         "nqp-parrot",
         "repo_url":     "git://github.com/perl6/nqp.git",
         "release_tags": "^ 20\\d\\d \\D \\d\\d [\\.\\d+]? $",
         "build_steps":  [
@@ -76,8 +76,8 @@
             "perl -Ilib5     perlito6.pl -Cjs src6/util/perlito6.pl > perlito6.js"
         ]
     },
-    "rakudo": {
-        "name":         "rakudo",
+    "rakudo-parrot": {
+        "name":         "rakudo-parrot",
         "repo_url":     "git://github.com/rakudo/rakudo.git",
         "release_tags": "^ 20\\d\\d \\D \\d\\d [\\.\\d+]? $",
         "build_steps":  [
