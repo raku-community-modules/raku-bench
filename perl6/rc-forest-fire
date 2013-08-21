@@ -6,7 +6,7 @@ enum Cell-State <Empty Tree Burning>;
 my @show = ('  ', $GREEN ~ '木' ~ $CLEAR, $RED ~ '火' ~ $CLEAR);
 
 class Forest {
-    has Cell-State @!grid;
+    has @!grid;
     has @!neighbors;
     has Int $.height;
     has Int $.width;
