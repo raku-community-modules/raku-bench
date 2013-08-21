@@ -9,7 +9,7 @@
             [ "perl", "Configure.pl" ],
             [ "make" ],
             [ "git", "clone", "-l", "../../parrot/parrot.git", "nqp-cc/parrot" ],
-            [ "git", "clone", "-l", "../../nqp/nqp.git", "nqp-cc/nqp" ],
+            [ "git", "clone", "-l", "../../nqp-parrot/nqp-parrot.git", "nqp-cc/nqp" ],
             "cd nqp-cc && perl Configure.pl --gen-parrot && make"
         ]
     },
@@ -85,7 +85,7 @@
             [ "git", "clean", "-dxf" ],
             [ "rm", "-rf", "install", "nqp", "parrot" ],
             [ "git", "clone", "-l", "../../parrot/parrot.git" ],
-            [ "git", "clone", "-l", "../../nqp/nqp.git" ],
+            [ "git", "clone", "-l", "../../nqp-parrot/nqp-parrot.git", "nqp" ],
             [ "perl", "Configure.pl", "--gen-parrot" ],
             [ "make" ],
             [ "make", "install" ]
@@ -99,7 +99,7 @@
             [ "make", "realclean" ],
             [ "git", "clean", "-dxf" ],
             [ "rm", "-rf", "install-jvm", "nqp" ],
-            [ "git", "clone", "-l", "../../nqp/nqp.git" ],
+            [ "git", "clone", "-l", "../../nqp-jvm/nqp-jvm.git", "nqp" ],
             [ "perl", "ConfigureJVM.pl", "--gen-nqp" ],
             [ "make" ],
             [ "make", "install" ]
