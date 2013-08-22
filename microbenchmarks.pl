@@ -168,8 +168,8 @@
  {
   name  => 'for_concat_2',
   scale => 1 << 10,
-  perl5 => 'my $x = "a"; my $y = ""; for (1 .. SCALE) { $y .= ($x . $x) }',
-  perl6 => 'my $x = "a"; my $y = ""; for (1 .. SCALE) { $y = ($x ~ $x) }; 1',
+  perl5 => 'my $x = "a"; my $y = ""; for (1 .. SCALE) { $y .= ($x . $x) }; 1',
+  perl6 => 'my $x = "a"; my $y = ""; for (1 .. SCALE) { $y ~= ($x ~ $x) }; 1',
   nqp   => undef,
  },
  {
