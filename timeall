@@ -311,12 +311,11 @@ sub run_all_tests {
 sub run_tests {
     my ($tests, $results, $startup, $runs, $overhead_runs, $enough_time, $verbose) = @_;
 
-    my $testcount = +@$tests;
-    my $testnum = 0;
-    for my $test (@$tests) {
+    my @enabled   = grep { $_->{enabled} } @$tests;
+    my $testcount = @enabled;
+    my $testnum   = 0;
+    for my $test (@enabled) {
         $testnum++;
-        next unless $test->{enabled};
-
         my $name = $test->{name};
         say "$testnum/$testcount: Testing $name ...";
 
