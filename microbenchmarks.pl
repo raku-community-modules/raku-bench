@@ -273,7 +273,7 @@
  {
   name => 'create_and_iterate_hash_kv',
   scale => 1 << 3,
-  perl5 => undef,
+  perl5 => 'my %h; for (0 .. (SCALE - 1)) { %h{$_} = $_ }; while (my ($k, $v) = each %h) { $k == $v }; 1',
   perl6 => 'my %h; for ^SCALE { %h{$_} = $_ }; for %h.kv -> $k, $v { $k == $v }; 1',
   nqp   => undef,
  },
