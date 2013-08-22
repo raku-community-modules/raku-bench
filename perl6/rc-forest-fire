@@ -44,7 +44,7 @@ class Forest {
             given @!grid[$i][$j] {
                 when Empty   { @new[$i][$j] = rand < $!p ?? Tree !! Empty }
                 when Tree    { @new[$i][$j] =
-                     (@!neighbors[$i][$j].any === Burning or rand < $!f) ?? Burning !! Tree;
+                     (any(@!neighbors[$i][$j]) === Burning or rand < $!f) ?? Burning !! Tree;
                 }
                 when Burning { @new[$i][$j] = Empty }
             }
