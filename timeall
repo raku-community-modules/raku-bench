@@ -311,11 +311,14 @@ sub run_all_tests {
 sub run_tests {
     my ($tests, $results, $startup, $runs, $overhead_runs, $enough_time, $verbose) = @_;
 
+    my $testcount = +@$tests;
+    my $testnum = 0;
     for my $test (@$tests) {
+        $testnum++;
         next unless $test->{enabled};
 
         my $name = $test->{name};
-        say "Testing $name ...";
+        say "$testnum/$testcount: Testing $name ...";
 
         my $raw_times = time_all_compilers($test, $runs, $overhead_runs, $enough_time, $verbose, $startup);
         my $best      = best_times($raw_times);
@@ -424,11 +427,15 @@ sub time_command {
         my $start = time;
 
         if (@$compile) {
-            my ($out, $err) = capture { $status = system @$compile };
+            my ($out, $err, $status) = capture { eval system @$compile };
             if ($status) {
                 die "Test's compile command terminated by SIGINT.\n" if ($status & 127) == 2;
                 warn "Failed to run compile command: @$compile\n"
                      . (length $err ? "Error:\n$err\n" : '');
+                return undef;
+            }
+            if ($out =~ /Segmentation/) {
+                warn "segfaulted";
                 return undef;
             }
 
@@ -438,8 +445,13 @@ sub time_command {
             s/\bCOMPILED\b/$filename/g for @run;
         }
 
-        $status  = system @run;
+        my ($out, $err, $status)  = capture { system @run };
         my $time = time - $start;
+        if ($out =~ /Segmentation/ || $err =~ /Segmentation/) {
+            warn "segfaulted";
+            return undef;
+        }
+        say "$out  $err";
         push @times, { run => $i, scale => $scale, time => $time };
         if ($status) {
             die "Test's run command terminated by SIGINT.\n" if ($status & 127) == 2;

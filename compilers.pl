@@ -121,7 +121,7 @@
             show_ver  => [qw( ./nqp --version )],
            },
            {
-            name      => 'nqp-moarvm',
+            name      => 'moarvm',
             enabled   => 1,
             language  => 'NQP',
             compiler  => 'nqp',
