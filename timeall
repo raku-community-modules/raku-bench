@@ -450,7 +450,7 @@ sub time_command {
             warn "segfaulted";
             return undef;
         }
-        say "$out  $err";
+
         push @times, { run => $i, scale => $scale, time => $time };
         if ($status) {
             die "Test's run command terminated by SIGINT.\n" if ($status & 127) == 2;
