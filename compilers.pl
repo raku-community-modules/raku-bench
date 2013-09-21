@@ -50,8 +50,8 @@
             language  => 'Perl 6',
             compiler  => 'rakudo',
             vm        => 'parrot',
-            f_run     => [qw( install/bin/perl6    )],
-            e_run     => [qw( install/bin/perl6 -e )],
+            f_run     => [qw( install/bin/perl6 --optimize=3    )],
+            e_run     => [qw( install/bin/perl6 --optimize=3 -e )],
             show_ver  => [qw( install/bin/perl6 --version )],
            },
            {
@@ -60,8 +60,8 @@
             language  => 'Perl 6',
             compiler  => 'rakudo',
             vm        => 'jvm',
-            f_run     => [qw( ./perl6    )],
-            e_run     => [qw( ./perl6 -e )],
+            f_run     => [qw( ./perl6 --optimize=3    )],
+            e_run     => [qw( ./perl6 --optimize=3 -e )],
             show_ver  => [qw( ./perl6 --version )],
            },
            {
