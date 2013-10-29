@@ -145,7 +145,7 @@ multi MAIN ('extract', *@components) {
             @revs = grep / <{ $tag_regex }> /, @all-tags;
         }
 
-        %*ENV.delete('GIT_DIR');
+        %*ENV<GIT_DIR>:delete;
 
         # Work around Rakudo bug #115390 by splitting into multiple loops
         for @revs -> $rev {
