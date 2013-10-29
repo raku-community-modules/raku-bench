@@ -1,17 +1,7 @@
 {
     "moarvm": {
         "name":         "moarvm",
-        "repo_url":     "git://github.com/MoarVM/MoarVM.git",
-        "build_steps":  [
-            [ "make", "realclean" ],
-            [ "git", "clean", "-dxf" ],
-            [ "rm", "-rf", "nqp-cc/install", "nqp-cc/parrot", "nqp-cc/nqp" ],
-            [ "perl", "Configure.pl", "--optimize" ],
-            [ "make" ],
-            [ "git", "clone", "-l", "../../parrot/parrot.git", "nqp-cc/parrot" ],
-            [ "git", "clone", "-l", "../../nqp-parrot/nqp-parrot.git", "nqp-cc/nqp" ],
-            "cd nqp-cc && perl Configure.pl --gen-parrot && make"
-        ]
+        "repo_url":     "git://github.com/MoarVM/MoarVM.git"
     },
     "niecza": {
         "name":         "niecza",
@@ -20,6 +10,19 @@
         "build_steps":  [
             [ "make", "realclean" ],
             [ "make" ]
+        ]
+    },
+    "nqp-moarvm": {
+        "name":         "nqp-moarvm",
+        "repo_url":     "git://github.com/perl6/nqp.git",
+        "release_tags": "^ 20\\d\\d \\D \\d\\d [\\.\\d+]? $",
+        "build_steps":  [
+            [ "make", "realclean" ],
+            [ "rm", "-rf", "install", "moarvm" ],
+            [ "git", "clone", "-l", "../../moarvm/moarvm.git" ],
+            [ "perl", "Configure.pl", "--backends=moar", "--gen-moar" ],
+            [ "make" ],
+            [ "make", "install" ]
         ]
     },
     "nqp-parrot": {
@@ -31,7 +34,7 @@
             [ "git", "clean", "-dxf" ],
             [ "rm", "-rf", "install", "parrot" ],
             [ "git", "clone", "-l", "../../parrot/parrot.git" ],
-            [ "perl", "Configure.pl", "--gen-parrot" ],
+            [ "perl", "Configure.pl", "--backends=parrot", "--gen-parrot" ],
             [ "make" ],
             [ "make", "install" ]
         ]
@@ -44,10 +47,10 @@
         "name":         "nqp-jvm",
         "repo_url":     "git://github.com/perl6/nqp.git",
         "build_steps":  [
-            [ "make", "clean" ],
+            [ "make", "realclean" ],
             [ "git", "clean", "-dxf" ],
-            [ "rm", "-rf", "install" ],
-            [ "perl", "ConfigureJVM.pl" ],
+            [ "rm", "-rf", "install-jvm", "install" ],
+            [ "perl", "Configure.pl", "--backends=jvm" ],
             [ "make" ],
             [ "make", "install" ]
         ]
@@ -86,7 +89,7 @@
             [ "rm", "-rf", "install", "nqp", "parrot" ],
             [ "git", "clone", "-l", "../../parrot/parrot.git" ],
             [ "git", "clone", "-l", "../../nqp-parrot/nqp-parrot.git", "nqp" ],
-            [ "perl", "Configure.pl", "--gen-parrot" ],
+            [ "perl", "Configure.pl", "--backends=parrot", "--gen-parrot" ],
             [ "make" ],
             [ "make", "install" ]
         ]
@@ -100,7 +103,7 @@
             [ "git", "clean", "-dxf" ],
             [ "rm", "-rf", "install-jvm", "nqp" ],
             [ "git", "clone", "-l", "../../nqp-jvm/nqp-jvm.git", "nqp" ],
-            [ "perl", "ConfigureJVM.pl", "--gen-nqp" ],
+            [ "perl", "Configure.pl", "--backends=jvm", "--gen-nqp" ],
             [ "make" ],
             [ "make", "install" ]
         ]
