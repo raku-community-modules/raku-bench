@@ -90,7 +90,7 @@ multi MAIN ('fetch', *@components) {
         my $tag-list = open 'git tag', :p;
         my @all-tags = $tag-list.lines;
         $tag-list.close;
-        %*ENV.delete('GIT_DIR');
+        %*ENV<GIT_DIR>:delete;
 
         # Pull into non-tag checkouts
         say '~~~> PULLING';
