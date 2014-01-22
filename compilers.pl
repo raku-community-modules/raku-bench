@@ -55,6 +55,16 @@
             show_ver  => [qw( install/bin/perl6 --version )],
            },
            {
+            name      => 'rakudo-moar',
+            enabled   => 1,
+            language  => 'Perl 6',
+            compiler  => 'rakudo',
+            vm        => 'moarvm',
+            f_run     => [qw( install/bin/perl6 --optimize=3    )],
+            e_run     => [qw( install/bin/perl6 --optimize=3 -e )],
+            show_ver  => [qw( install/bin/perl6 --version )],
+           },
+           {
             name      => 'rakudo-jvm',
             enabled   => 1,
             language  => 'Perl 6',
