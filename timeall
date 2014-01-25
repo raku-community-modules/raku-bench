@@ -388,7 +388,7 @@ sub time_all_compilers {
                 my $ignore_time  = max($startup_time, $min_run_time);
 
                 # Run scaled timing loop
-                while ($run_times && $lowest < $enough_time) {
+                while ($run_times && ($lowest < $enough_time || +@all_times < 3)) {
                     $run_times = time_command(\@compile, \@run, $runs, $scale, $verbose) or last;
                     push @all_times, @$run_times;
                     $lowest  = min(map { $_->{time} } @$run_times);
