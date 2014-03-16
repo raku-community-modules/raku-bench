@@ -3,22 +3,18 @@
 # ABSTRACT: Master console/"porcelain" for Perl language family benchmarking tools
 
 use v6;
+
+use lib <lib>;
+
+use Bench::Handling;
+use Bench::Globals;
+
+
 use JSON::Tiny;
 use Shell::Command;
 
-
-# Reduce directory insanity a bit by changing to bench root
-# and eliminating hardcoding for generated subdir names
-my $PROGRAM_DIR = ~($*PROGRAM_NAME ~~ /^(.*\/)/) || './';
-chdir $PROGRAM_DIR;
-$PROGRAM_DIR = cwd;
-my $COMPONENTS_DIR = "$PROGRAM_DIR/components";
-my $TIMINGS_DIR    = "$PROGRAM_DIR/timings";
-
-# This ends up getting used all over the place;
-# might as well just load it at startup
-my $COMPONENTS = from-json(slurp "$PROGRAM_DIR/components.json");
-
+go_to_bench_dir();
+init_bench_handling();
 
 # MAIN COMMANDS
 
@@ -303,139 +299,4 @@ multi MAIN ('timeall', *@options) {
 #= Analyze results from benchmark timings (low-level command)
 multi MAIN ('analyze', *@options_and_files) {
     run('./analyze', |@options_and_files);
-}
-
-
-# UTILITY ROUTINES
-
-#= Check whether components dir exists and bail out if not (recommending 'setup' command)
-sub needs-setup ($action) {
-    unless $COMPONENTS_DIR.path.d {
-        print qq:to/COMPONENTS/;
-            There is no '{ $COMPONENTS_DIR.path.basename }' tree, and thus there are no repos to $action.
-            Please run: `$*PROGRAM_NAME setup`.
-            COMPONENTS
-        exit 1;
-    }
-}
-
-#= Check whether timings dir exists and bail out if not (recommending steps to produce timings)
-sub needs-timings ($action) {
-    unless $TIMINGS_DIR.path.d {
-        print qq:to/TIMINGS/;
-            There is no '{ $TIMINGS_DIR.path.basename }' tree, and thus there are no timings to $action.
-            Please run:
-            `$*PROGRAM_NAME setup`   to prepare and clone components,
-            `$*PROGRAM_NAME extract` to extract Perls to be benchmarked,
-            `$*PROGRAM_NAME build`   to build the Perls and their components, and
-            `$*PROGRAM_NAME time`    to benchmark the built Perls and generate timings.
-            TIMINGS
-        exit 1;
-    }
-}
-
-#= Convert pairs to command line option strings
-sub as-options (*%args) {
-    my @options;
-    for %args.kv -> $k, $v {
-        given $v {
-            when !.defined {}
-            when Bool      { @options.push: $v ?? "--$k" !! "--no$k" }
-            default        { @options.push: "--$k=$v"                }
-        }
-    }
-
-    return @options;
-}
-
-#= Simulate the behavior of `git clean -dxf`
-sub rmtree ($dir, :$noisy = True) {
-    return unless $dir.path.d;
-    say "Removing $dir" if $noisy;
-    rm_rf $dir;
-}
-
-#= Run code for every requested component
-sub for-components (@components, &code, :$quiet) {
-    for explode-components(@components) -> $comp {
-        my $name = $comp<info><name>;
-        say "==> $name" unless $quiet;
-
-        code($comp, $name);
-    }
-}
-
-#= Run code for every checkout in every requested component
-sub for-checkouts (@components, &code, :$quiet) {
-    for-components @components, -> $comp, $name {
-        for $comp<checkouts>.list -> $checkout {
-            say "----> $checkout" unless $quiet;
-
-            code($comp, $name, $checkout);
-        }
-    }, :$quiet;
-}
-
-#= Expand a partially-specified list of components and checkouts
-sub explode-components (@component-specs, :$chdir = True, :$default-to-dirs = True) {
-    chdir $COMPONENTS_DIR if $chdir;
-    @component-specs ||= dir($COMPONENTS_DIR).sort if $default-to-dirs;
-
-    my @exploded;
-    for @component-specs -> $spec is copy {
-        # Remove optional leading "$COMPONENTS_DIR/", which helps with tab completion
-        $spec .= subst(/^ $COMPONENTS_DIR '/' /, '');  # ' -- Dang syntax highlighting
-        die "Don't know what to do with empty component specification" unless $spec.chars;
-
-        my ($component, $checkouts) = $spec.split: '/';
-        my $comp-info = $COMPONENTS{$component};
-        die "Don't know how to process component '$component'" unless $comp-info;
-
-        my @checkouts;
-        if $checkouts.defined && $checkouts.chars {
-            @checkouts = $checkouts.split: ',';
-        }
-        else {
-            my $bare   = "$component.git";
-            @checkouts = dir("$COMPONENTS_DIR/$component",
-                            test => none('.', '..', $bare)).map(*.basename.Str).sort;
-        }
-
-        if @exploded.first(*.<info><name> eq $component) -> $comp {
-            $comp<checkouts>.push: |@checkouts;
-        }
-        else {
-            @exploded.push: { info => $comp-info, checkouts => @checkouts };
-        }
-    }
-
-    return @exploded;
-}
-
-#= Expand a partially-specified list of timings files
-sub explode-timings (@timing-specs, :$chdir = True, :$default-to-dirs = True) {
-    chdir $TIMINGS_DIR if $chdir;
-    @timing-specs ||= dir($TIMINGS_DIR).sort if $default-to-dirs;
-
-    my %exploded;
-    for @timing-specs -> $spec is copy {
-        # Remove optional leading "$TIMINGS_DIR/", which helps with tab completion
-        $spec .= subst(/^ $TIMINGS_DIR '/' /, '');  # ' -- Dang syntax highlighting
-        die "Don't know what to do with empty timing specification" unless $spec.chars;
-
-        my ($component, $files) = $spec.split: '/';
-
-        my @files;
-        if $files.defined && $files.chars {
-            @files = $files.split(',').map: { /'.json' $/ ?? $_ !! $_ ~ '.json' };
-        }
-        else {
-            @files = dir("$TIMINGS_DIR/$component",
-                         test => /'.json' $/).map(*.basename.Str).sort;
-        }
-
-        %exploded{$component}.push: |@files;
-    }
-
-    return %exploded;
 }
