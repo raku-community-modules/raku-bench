@@ -186,6 +186,7 @@ sub load_timing_file {
 sub compare_scaled_times {
     my ($times, $ignore_compile) = @_;
     my $min_time = 1e-4;
+    my $max_rate = 0;
     my %max_rates;
 
     my %times_by_scale;
@@ -198,6 +199,7 @@ sub compare_scaled_times {
             my $bounded = $times_by_scale{$scale}{$perl} = max($time - $compile_time, $min_time);
             my $rate    = $rates_by_scale{$scale}{$perl} = $scale / $bounded;
             $rates_by_perl{$perl}{$scale} = $rate;
+            $max_rate = $rate if $max_rate < $rate;
             $max_rates{$scale} = $rate
                 if !$max_rates{$scale} || $max_rates{$scale} < $rate;
         }
@@ -224,7 +226,8 @@ sub compare_scaled_times {
             rates_by_perl  => \%rates_by_perl,
             relative_rates => \%relative_rates,
             peak_rate      => \%peak_rate,
-            max_rates       => \%max_rates,
+            max_rate       => $max_rate,
+            max_rates      => \%max_rates,
            };
 }
 
@@ -531,7 +534,8 @@ sub summarize_results_html_plot {
         yvalues: 2,
         tooltipAxes: "y",
         tooltipLocation: "n",
-        formatString: "<strong>%.1f</strong> per second<br><strong>%.0f</strong>x slower than fastest",
+        useAxesFormatters: false,
+        formatString: "<!--%.0f--><strong>%.1f</strong> per second<br><strong>%.0f</strong>x slower than fastest<br><strong>%.0f</strong>x slower than global fastest",
         tooltipContentEditor: function (str, i, j) {
           return '<span class="highlight-series-label">' + series_labels[i] + '</span><br>' + str;
         }
@@ -632,6 +636,7 @@ CHART_TOP
 
         my $chart_type;
         my $compare  = $test->{compare};
+        my $max_rate = $compare->{max_rate};
         my $max_rates = $compare->{max_rates};
         my $by_scale = $compare->{rates_by_scale};
         if (1 == keys %$by_scale) {
@@ -658,7 +663,8 @@ CHART_TOP
                 if ($scale_rates) {
                     for my $scale (sort { $a <=> $b } keys %$scale_rates) {
                         my $max_rel = $max_rates->{$scale} / $scale_rates->{$scale};
-                        push @data_points, "[$scale,$scale_rates->{$scale},$max_rel]";
+                        my $max_rel_global = $max_rate / $scale_rates->{$scale};
+                        push @data_points, "[$scale,$scale_rates->{$scale},$max_rel,$max_rel_global]";
                     }
                 }
                 else {
