@@ -186,7 +186,7 @@ sub load_timing_file {
 sub compare_scaled_times {
     my ($times, $ignore_compile) = @_;
     my $min_time = 1e-4;
-    my $max_rate = 0;
+    my %max_rates;
 
     my %times_by_scale;
     my %rates_by_scale;
@@ -198,14 +198,15 @@ sub compare_scaled_times {
             my $bounded = $times_by_scale{$scale}{$perl} = max($time - $compile_time, $min_time);
             my $rate    = $rates_by_scale{$scale}{$perl} = $scale / $bounded;
             $rates_by_perl{$perl}{$scale} = $rate;
-            $max_rate   = $rate if $max_rate < $rate;
+            $max_rates{$scale} = $rate
+                if !$max_rates{$scale} || $max_rates{$scale} < $rate;
         }
     }
 
     my %relative_rates;
     while (my ($scale, $perl_rates) = each %rates_by_scale) {
         while (my ($perl, $rate) = each %$perl_rates) {
-            $relative_rates{$scale}{$perl} = $rate / $max_rate;
+            $relative_rates{$scale}{$perl} = $rate / $max_rates{$scale};
         }
     }
 
@@ -214,7 +215,7 @@ sub compare_scaled_times {
         my @sorted  = sort { $scale_rates->{$b} <=> $scale_rates->{$a} } keys %$scale_rates;
         my $fastest = $sorted[0];
         my $rate    = $scale_rates->{$fastest};
-        $peak_rate{$perl} = { scale => $fastest, rate => $rate, relative => $rate / $max_rate };
+        $peak_rate{$perl} = { scale => $fastest, rate => $rate, relative => $rate / $max_rates{$fastest} };
     }
 
     return {
@@ -223,7 +224,7 @@ sub compare_scaled_times {
             rates_by_perl  => \%rates_by_perl,
             relative_rates => \%relative_rates,
             peak_rate      => \%peak_rate,
-            max_rate       => $max_rate,
+            max_rates       => \%max_rates,
            };
 }
 
@@ -631,7 +632,7 @@ CHART_TOP
 
         my $chart_type;
         my $compare  = $test->{compare};
-        my $max_rate = $compare->{max_rate};
+        my $max_rates = $compare->{max_rates};
         my $by_scale = $compare->{rates_by_scale};
         if (1 == keys %$by_scale) {
             $chart_type = 'bar';
@@ -656,7 +657,7 @@ CHART_TOP
                 my @data_points;
                 if ($scale_rates) {
                     for my $scale (sort { $a <=> $b } keys %$scale_rates) {
-                        my $max_rel = $max_rate / $scale_rates->{$scale};
+                        my $max_rel = $max_rates->{$scale} / $scale_rates->{$scale};
                         push @data_points, "[$scale,$scale_rates->{$scale},$max_rel]";
                     }
                 }
