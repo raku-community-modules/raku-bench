@@ -749,6 +749,22 @@ sub summarize_results_html_plot {
     margin: 3em 1em;
     overflow: hidden;
 }
+
+.source {
+    margin-top: 1em;
+    font-size: smaller;
+    position: relative;
+}
+
+.source div {
+    float: left;
+    border: 1px
+    solid
+    #DFDFDF;
+    color: #3F3F3F;
+    margin: 0.25em;
+    padding: 0.25em;
+}
 </style>
 </head>
 
@@ -791,9 +807,27 @@ PLOT_HEADER
         # In compare mode, the 'empty' test data is just residual noise
         next if $opt->{compare} && $test->{name} eq 'empty';
 
+        my $source = '';
+        for (qw(perl6 nqp perl5)) {
+            next unless my $code = $test->{conf}{my $name = $_};
+            next if ref $code;
+			$code =~ s/&/&amp;/g;
+			$code =~ s/</&lt;/g;
+			$code =~ s/>/&gt;/g;
+            if ($name =~ s/(\d)$/ $1/) {
+                $name = ucfirst $name;
+            } else {
+                $name = uc $name;
+            }
+            $source .= qq^<div>$name: <code>$code</code></div>^;
+        }
+        if ($source) {
+            $source = qq^<div class="source">$source</div>^;
+        }
         $html .= <<"CHART_TOP";
 <div class="chartwrapper">
 <div id="chart_$test->{name}" style="position:relative"></div>
+$source
 <script type="text/javascript">
     \$(function () {
         var labels = [$labels];
