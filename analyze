@@ -504,8 +504,10 @@ sub summarize_results_html_plot {
     my ($data, $opt, $out_fh) = @_;
 
     my $html = <<'PLOT_HEADER';
+<!DOCTYPE html>
 <html>
 <head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
 <title>Benchmark Plots</title>
 <link rel="stylesheet" type="text/css" href="jqplot/jquery.jqplot.min.css" />
 <!--[if lt IE 9]><script language="javascript" type="text/javascript" src="jqplot/excanvas.min.js"></script><![endif]-->
@@ -520,77 +522,167 @@ sub summarize_results_html_plot {
 <script type="text/javascript" src="jqplot/plugins/jqplot.highlighter.min.js"></script>
 <script type="text/javascript" src="jqplot/plugins/jqplot.logAxisRenderer.min.js"></script>
 <script type="text/javascript">
-  function do_plot (chart_div, title, series_data, series_labels, opt) {
-    var series_conf = [];
-    for (var i in series_labels) {
-      series_conf.push({ label: series_labels[i] });
+    function handleToggle (ev) {
+        var d=ev.data, s=d.series, replot=d.replot, plot=d.plot, speed=d.speed, sidx=s.index, showing=false;
+
+        if (s.canvas._elem.is(':hidden') || !s.show) { showing = true }
+
+        var doLegendToggle = function() {
+            if (replot) {
+                var opts = {};
+                if ($.isPlainObject(replot)) { $.extend(true, opts, replot) }
+                plot.replot(opts);
+                if (showing && speed) {
+                    var s = plot.series[sidx];
+
+                    if (s.shadowCanvas._elem) {
+                        s.shadowCanvas._elem.hide().fadeIn(speed);
+                    }
+                    s.canvas._elem.hide().fadeIn(speed);
+                    s.canvas._elem.nextAll('.jqplot-point-label.jqplot-series-'+s.index).hide().fadeIn(speed);
+                }
+            } else {
+                var s = plot.series[sidx];
+                if (s.canvas._elem.is(':hidden') || !s.show) {
+                    if (typeof plot.options.legend.showSwatches === 'undefined' || plot.options.legend.showSwatches === true) {
+                        plot.legend._elem.find('td').eq(sidx * 2).addClass('jqplot-series-hidden');
+                    }
+                    if (typeof plot.options.legend.showLabels === 'undefined' || plot.options.legend.showLabels === true) {
+                        plot.legend._elem.find('td').eq((sidx * 2) + 1).addClass('jqplot-series-hidden');
+                    }
+                } else {
+                    if (typeof plot.options.legend.showSwatches === 'undefined' || plot.options.legend.showSwatches === true) {
+                        plot.legend._elem.find('td').eq(sidx * 2).removeClass('jqplot-series-hidden');
+                    }
+                    if (typeof plot.options.legend.showLabels === 'undefined' || plot.options.legend.showLabels === true) {
+                        plot.legend._elem.find('td').eq((sidx * 2) + 1).removeClass('jqplot-series-hidden');
+                    }
+                }
+
+            }
+        };
+
+        s.toggleDisplay(ev, doLegendToggle);
+    };
+    charts = [];
+    
+    function toggle_perl (idx, v) {
+        for (var i = 0; i < charts.length; i++) {
+            var c = charts[i];
+            var s = c.series[idx];
+            
+            if (!!v === s.show) continue;
+            
+            var l = c.legend;
+            handleToggle({ data: {
+                plot: c,
+                series: s,
+                speed: l.seriesToggle,
+                replot: l.seriesToggleReplot
+            } });
+        }
+
+        return v;
+    }
+    
+    function do_plot (chart_div, title, series_data, series_labels, opt) {
+        var series_conf = [];
+        for (var i in series_labels) {
+            series_conf.push({ label: series_labels[i] });
+        }
+
+        var rows = 10;
+        if (series_data.length < rows) rows = series_data.length;
+        charts.push( $.jqplot(chart_div, series_data, {
+            title: title,
+            series: series_conf,
+            highlighter: {
+                show: true,
+                yvalues: 2,
+                tooltipAxes: "y",
+                tooltipLocation: "n",
+                useAxesFormatters: false,
+                formatString: "<!--%.0f--><strong>%.1f</strong> per second<br><strong>%.0f</strong>x slower than fastest<br><strong>%.0f</strong>x slower than global fastest",
+                tooltipContentEditor: function (str, i, j) {
+                    return '<span class="highlight-series-label">' + series_labels[i] + '</span><br>' + str;
+                }
+            },
+            legend: {
+                renderer: $.jqplot.EnhancedLegendRenderer,
+                rendererOptions: {numberRows: rows},
+                show: true,
+                placement: "outsideGrid"
+            },
+            axes: {
+                xaxis: {
+                    label:         opt.x_label,
+                    labelRenderer: $.jqplot.CanvasAxisLabelRenderer,
+                    renderer:      opt.linear_x ? $.jqplot.LinearAxisRenderer : $.jqplot.LogAxisRenderer,
+                    base:          2,
+                    tickRenderer:  $.jqplot.CanvasAxisTickRenderer,
+                    tickOptions:   { angle: -30 }
+                },
+                yaxis: {
+                    label:         opt.y_label,
+                    labelRenderer: $.jqplot.CanvasAxisLabelRenderer,
+                    renderer:      $.jqplot.LogAxisRenderer,
+                    base:          2
+                }
+            }
+        }) );
     }
 
-    $.jqplot(chart_div, series_data, {
-      title: title,
-      series: series_conf,
-      highlighter: {
-        show: true,
-        yvalues: 2,
-        tooltipAxes: "y",
-        tooltipLocation: "n",
-        useAxesFormatters: false,
-        formatString: "<!--%.0f--><strong>%.1f</strong> per second<br><strong>%.0f</strong>x slower than fastest<br><strong>%.0f</strong>x slower than global fastest",
-        tooltipContentEditor: function (str, i, j) {
-          return '<span class="highlight-series-label">' + series_labels[i] + '</span><br>' + str;
+    function do_bar (chart_div, title, bar_data, tick_labels, opt) {
+        var data = [];
+        for (var i in bar_data) {
+                data.push([ bar_data[i] ]);
         }
-      },
-      legend: {
-        renderer: $.jqplot.EnhancedLegendRenderer,
-        show: true,
-        placement: "outsideGrid"
-      },
-      axes: {
-        xaxis: {
-          label:         opt.x_label,
-          labelRenderer: $.jqplot.CanvasAxisLabelRenderer,
-          renderer:      opt.linear_x ? $.jqplot.LinearAxisRenderer : $.jqplot.LogAxisRenderer,
-          base:          2,
-          tickRenderer:  $.jqplot.CanvasAxisTickRenderer,
-          tickOptions:   { angle: -30 }
-        },
-        yaxis: {
-          label:         opt.y_label,
-          labelRenderer: $.jqplot.CanvasAxisLabelRenderer,
-          renderer:      $.jqplot.LogAxisRenderer,
-          base:          2
+        var series_conf = [];
+        for (var i in tick_labels) {
+            series_conf.push({ label: tick_labels[i] });
         }
-      }
-    });
-  }
+        var rows = 10;
+        if (rows > data.length) rows = data.length;
 
-  function do_bar (chart_div, title, bar_data, tick_labels) {
-    $.jqplot(chart_div, [bar_data], {
-      title: title,
-      seriesDefaults: {
-        renderer:$.jqplot.BarRenderer
-      },
-      highlighter: {
-        show: true,
-        tooltipAxes: "y",
-        tooltipLocation: "n",
-        formatString: "<strong>%.1f</strong> per second"
-      },
-      legend: {
-        show: false
-      },
-      axes: {
-        xaxis: {
-          renderer: $.jqplot.CategoryAxisRenderer,
-          ticks:    tick_labels
-        },
-        yaxis: {
-          renderer: $.jqplot.LogAxisRenderer,
-          base:     2
-        }
-      }
-    });
-  }
+        charts.push( $.jqplot(chart_div, data, {
+            title: title,
+            seriesDefaults: {
+                renderer: $.jqplot.BarRenderer
+            },
+            series: series_conf,
+            highlighter: {
+                show: true,
+                showMarker: false,
+                tooltipAxes: "y",
+                tooltipLocation: "n",
+                formatString: "<strong>%.1f</strong> per second",
+                tooltipContentEditor: function (str, i, j) {
+                    return '<span class="highlight-series-label">' + tick_labels[i] + '</span><br>' + str;
+                }
+            },
+            legend: {
+                renderer: $.jqplot.EnhancedLegendRenderer,
+                rendererOptions: {numberRows: rows},
+                show: true,
+                placement: "outsideGrid"
+            },
+            axes: {
+                xaxis: {
+                    tickOptions: {showGridline: false},
+                    numberTicks: 3,
+                    min: 0.5,
+                    max: 1.5,
+                    showTicks: false
+                },
+                yaxis: {
+                    label: opt.y_label,
+                    labelRenderer: $.jqplot.CanvasAxisLabelRenderer,
+                    renderer: $.jqplot.LogAxisRenderer,
+                    base:     2
+                }
+            }
+        }) );
+    }
 </script>
 <style type="text/css">
 .bench_ver                    { font-family: monospace;  }
@@ -598,6 +690,65 @@ sub summarize_results_html_plot {
 .jqplot-highlighter-tooltip,
 .jqplot-canvasOverlay-tooltip { background: #eee !important; }
 .highlight-series-label       { color: blue; font-weight: bold; }
+.jqplot-highlighter-tooltip {
+    top: auto !important;
+    left: auto !important;
+    bottom: 0 !important;
+    right: 0 !important;
+}
+#toggleform {
+    text-align: center;
+    position: fixed;
+    top: 0;
+    right: 0.5em;
+    border: .2em #CFCFCF;
+    border-style: none solid;
+    width: 18em;
+    z-index: 1000;
+    background: rgba(255,255,255,0.85);
+}
+
+#toggleswitches {
+    display: none;
+    margin: 0;
+    padding: 0;
+}
+
+#toggleswitches div {
+    display: inline-block;
+    text-align: left;
+}
+
+#toggleswitches label {
+    display: block;
+    font-size: smaller;
+    margin: 0;
+    padding: 0.1em;
+}
+
+#toggleswitches input {
+    vertical-align: middle;
+    padding-right: .1em;
+}
+
+#togglebutton {
+    color: #FFFFFF;
+    background: #CFCFCF;
+    margin: 0;
+    padding: 0.2em 0;
+    width: 100%;
+    font-weight: bold;
+    text-align: center;
+    cursor: pointer;
+}
+
+.chartwrapper {
+    max-width: 900px;
+    position: relative;
+    padding: 0;
+    margin: 3em 1em;
+    overflow: hidden;
+}
 </style>
 </head>
 
@@ -605,7 +756,6 @@ sub summarize_results_html_plot {
 PLOT_HEADER
 
     my $run    = $data->{run};
-
     my @ignore;
     push @ignore, 'startup time' if $opt->{'ignore-startup'};
     push @ignore, 'compile time' if $opt->{'ignore-compile'};
@@ -621,17 +771,33 @@ PLOT_HEADER
     my $compilers  = $data->{config}{compilers};
     my @perls      = enabled_perls($groups, $compilers);
     my $labels     = join ', ' => map {'"' . ($_->{key} || $_->{name}) . '"'} @perls;
+    
+    $html .= qq^
+        <form autocomplete="off" id="toggleform">
+            <div id="toggleswitches">
+                <div>^;
+    for (0..$#perls) {
+        my $perl = $perls[$_];
+        my $label = $perl->{key} || $perl->{name};
+        $html .= qq^<label><input type="checkbox" value="$_" checked="checked" onclick="toggle_perl(this.value, this.checked); return true;">$label</label>^;
+    }
+    $html .= qq^
+            </div>
+        </div>
+        <div id="togglebutton" onclick="\$('#toggleswitches').slideToggle()">Toggles</div>
+    </form>^;
 
     for my $test (@$times) {
         # In compare mode, the 'empty' test data is just residual noise
         next if $opt->{compare} && $test->{name} eq 'empty';
 
         $html .= <<"CHART_TOP";
-<div id="chart_$test->{name}" style="max-width: 900px; margin-top: 3em"></div>
+<div class="chartwrapper">
+<div id="chart_$test->{name}" style="position:relative"></div>
 <script type="text/javascript">
-  \$(function () {
-    var labels = [$labels];
-    var data   = [
+    \$(function () {
+        var labels = [$labels];
+        var data   = [
 CHART_TOP
 
         my $chart_type;
@@ -681,18 +847,17 @@ CHART_TOP
         my $x_label   =  $conf->{x_label} // 'Iterations per Run';
         my $y_label   =  $conf->{y_label} // 'Iterations per Second';
         $html .= <<"CHART_BOTTOM";
+        ];
 
-    ];
-
-    var opt = {
-      linear_x: $is_linear,
-      x_label:  "$x_label",
-      y_label:  "$y_label"
-    };
-    do_$chart_type("chart_$test->{name}", "$test->{name}", data, labels, opt);
-  });
+        var opt = {
+            linear_x: $is_linear,
+            x_label:  "$x_label",
+            y_label:  "$y_label"
+        };
+        do_$chart_type("chart_$test->{name}", "$test->{name}", data, labels, opt);
+    });
 </script>
-
+</div>
 CHART_BOTTOM
     }
 
@@ -713,7 +878,10 @@ sub enabled_perls {
             if $perl->{enabled};
     }
 
-    return map { @{$by_group{$_} || []} } @$groups;
+    return
+      sort { ($a->{key} || $a->{name}) cmp ($b->{key} || $b->{name}) }
+      map { @{$by_group{$_} || []} }
+      @$groups;
 }
 
 sub friendly_time {
