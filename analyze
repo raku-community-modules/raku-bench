@@ -751,19 +751,26 @@ sub summarize_results_html_plot {
 }
 
 .source {
-    margin-top: 1em;
     font-size: smaller;
-    position: relative;
+    text-align: right;
+    position: absolute;
+    top: 0.25em;
+    right: 0;
+    cursor: pointer;
+    z-index: 100;
+    color: #3F3F3F;
 }
 
-.source div {
-    float: left;
-    border: 1px
-    solid
-    #DFDFDF;
-    color: #3F3F3F;
-    margin: 0.25em;
+.sources {
+    display: none;
+    text-align: left;
+    background: rgba(255,255,255,0.9);
+    border: 1px solid #DFDFDF;
     padding: 0.25em;
+}
+
+.sources div {
+    margin: 0.25em;
 }
 </style>
 </head>
@@ -811,9 +818,9 @@ PLOT_HEADER
         for (qw(perl6 nqp perl5)) {
             next unless my $code = $test->{conf}{my $name = $_};
             next if ref $code;
-			$code =~ s/&/&amp;/g;
-			$code =~ s/</&lt;/g;
-			$code =~ s/>/&gt;/g;
+            $code =~ s/&/&amp;/g;
+            $code =~ s/</&lt;/g;
+            $code =~ s/>/&gt;/g;
             if ($name =~ s/(\d)$/ $1/) {
                 $name = ucfirst $name;
             } else {
@@ -822,12 +829,12 @@ PLOT_HEADER
             $source .= qq^<div>$name: <code>$code</code></div>^;
         }
         if ($source) {
-            $source = qq^<div class="source">$source</div>^;
+            $source = qq^<div class="source" onclick="\$(this).find('.sources').slideToggle()">[ Code ]<div class="sources">$source</div></div>^;
         }
         $html .= <<"CHART_TOP";
 <div class="chartwrapper">
-<div id="chart_$test->{name}" style="position:relative"></div>
 $source
+<div id="chart_$test->{name}" style="position:relative"></div>
 <script type="text/javascript">
     \$(function () {
         var labels = [$labels];
