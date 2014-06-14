@@ -1,0 +1,17 @@
+use 5.010;
+use lib 'lib';
+use JSON::PP;
+
+my ($json_file, $count) = @ARGV;
+
+open my $json_fh, '<', $json_file
+    or die "Can't open JSON file '$json_file': $!";
+local $/;
+my $json = <$json_fh>;
+close $json_fh;
+
+my $decoder = JSON::PP->new->utf8;
+
+for (1 .. $count) {
+    my $data = $decoder->decode($json);
+}
