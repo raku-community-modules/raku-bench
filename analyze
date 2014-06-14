@@ -1009,6 +1009,13 @@ lowercased extension (F<ext> in F<path/to/file.ext>) of the C<--outfile>.
 Ignore (subtract out) the startup time of the compiler from each benchmark
 result, so that runtime performance can be compared more directly.
 
+=item --ignore-compile
+
+Ignore (subtract out) the time the compiler spends compiling the test
+itself from each benchmark result, so that runtime performance can be
+compared more directly.  Only works for scalable tests, because it uses
+runtime at C<SCALE = 0> as a portable proxy for true compile time.
+
 =item --compare
 
 When processing multiple timing files, compare times across all timing files
