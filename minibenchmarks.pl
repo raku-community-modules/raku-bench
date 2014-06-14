@@ -21,6 +21,7 @@
   name  => 'rc-man-or-boy-test',
   skip  => [qw( nqp-moarvm )],
   scale => 10,
+  work  => sub { 1 << ($_[0] - 1) },
   scaling => 'linear',
   x_label => 'k Parameter',
   perl5 => [qw( BENCH/perl5/rc-man-or-boy-test SCALE )],

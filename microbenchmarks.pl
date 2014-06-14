@@ -231,6 +231,7 @@
  {
   name  => 'visit_2d_indices_while',
   scale => 1 << 3,
+  work  => sub { $_[0] * $_[0] },
   perl5 => 'my $i = 0; while ($i < SCALE) { my $j = 0; while ($j < SCALE) { $i + $j; $j++ }; $i++ }',
   perl6 => 'my $i = 0; while ($i < SCALE) { my $j = 0; while ($j < SCALE) { $i + $j; $j++ }; $i++ }',
   nqp   => 'my $i := 0; while ($i < SCALE) { my $j := 0; while ($j < SCALE) { $i + $j; $j := $j + 1 }; $i := $i + 1 }',
@@ -238,6 +239,7 @@
  {
   name  => 'visit_2d_indices_while_native',
   scale => 1 << 3,
+  work  => sub { $_[0] * $_[0] },
   perl5 => 'use integer; my $i = 0; while ($i < SCALE) { my $j = 0; while ($j < SCALE) { $i + $j; $j++ }; $i++ }',
   perl6 => 'my int $i = 0; while ($i < SCALE) { my int $j = 0; while ($j < SCALE) { $i + $j; $j = $j + 1 }; $i = $i + 1 }',
   nqp   => 'my int $i := 0; while ($i < SCALE) { my int $j := 0; while ($j < SCALE) { $i + $j; $j := $j + 1 }; $i := $i + 1 }',
@@ -245,6 +247,7 @@
  {
   name  => 'visit_2d_indices_loop',
   scale => 1 << 3,
+  work  => sub { $_[0] * $_[0] },
   perl5 => 'for  (my $i = 0; $i < SCALE; $i++) { for  (my $j = 0; $j < SCALE; $j++) { $i + $j } }',
   perl6 => 'loop (my $i = 0; $i < SCALE; $i++) { loop (my $j = 0; $j < SCALE; $j++) { $i + $j } }',
   nqp   => undef,
@@ -252,6 +255,7 @@
  {
   name  => 'visit_2d_indices_loop_native',
   scale => 1 << 3,
+  work  => sub { $_[0] * $_[0] },
   perl5 => 'use integer; for (my $i = 0; $i < SCALE; $i++) { for (my $j = 0; $j < SCALE; $j++) { $i + $j } }',
   perl6 => 'loop (my int $i = 0; $i < SCALE; $i = $i + 1) { loop (my int $j = 0; $j < SCALE; $j = $j + 1) { $i + $j } }',
   nqp   => undef,
@@ -259,6 +263,7 @@
  {
   name  => 'visit_2d_indices_for',
   scale => 1 << 3,
+  work  => sub { $_[0] * $_[0] },
   perl5 => 'for my $i (0 .. (SCALE - 1)) { for my $j (0 .. (SCALE - 1)) { $i + $j }; 1 }; 1',
   perl6 => 'for ^SCALE -> $i { for ^SCALE -> $j { $i + $j }; 1 }; 1',
   nqp   => undef,
@@ -266,6 +271,7 @@
  {
   name  => 'visit_2d_indices_cross',
   scale => 1 << 3,
+  work  => sub { $_[0] * $_[0] },
   perl5 => undef,
   perl6 => 'for ^SCALE X ^SCALE -> $i, $j { $i + $j }; 1',
   nqp   => undef,
