@@ -110,6 +110,10 @@ sub add_test_tags {
     my $test = shift;
     my %tags = map {( $_ => 1 )} @{$test->{tags} || []};
 
+    my $size = $test->{type} eq 'e' ? 'micro' : 'mini';
+    $tags{"type:$type"} = 1;
+    $tags{"size:$size"} = 1;
+
     for my $lang (@GROUPS) {
         my $code = $test->{$lang};
         if (defined $code) {
