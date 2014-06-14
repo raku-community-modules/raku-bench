@@ -309,7 +309,7 @@ sub run_all_tests {
     say "Measuring startup times ...";
     my $times   = time_all_compilers($empty_test, $startup_runs, 0, $enough_time, 0, $opt->{verbose});
     my $startup = best_times($times);
-    $startup->{$_} = $startup->{$_}{1} for keys %$startup;
+    $startup->{$_} = $startup->{$_}{1}{time} for keys %$startup;
 
     my @results;
     eval { run_tests(\@TESTS, \@results, $startup, $runs, $overhead_runs, $enough_time, $scale_points, $opt->{verbose}) };
@@ -473,6 +473,24 @@ sub time_command {
     return \@times;
 }
 
+sub min_by(&@) {
+    my $code = shift;
+
+    return unless @_;
+    my $min_item = shift;
+    my $min_val  = do { local $_ = $min_item; &$code };
+
+    for (@_) {
+        my  $val = &$code;
+        if ($val < $min_val) {
+            $min_item = $_;
+            $min_val  = $val;
+        }
+    }
+
+    return $min_item;
+}
+
 sub best_times {
     my $raw_times = shift;
     my %best;
@@ -485,7 +503,7 @@ sub best_times {
 
         my %best_by_scale;
         while (my ($scale, $runs) = each %runs_by_scale) {
-            $best_by_scale{$scale} = min(map { $_->{time} } @$runs);
+            $best_by_scale{$scale} = min_by { $_->{time} } @$runs;
         }
 
         $best{$perl} = \%best_by_scale;

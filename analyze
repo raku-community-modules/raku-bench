@@ -193,15 +193,18 @@ sub compare_scaled_times {
     my %times_by_scale;
     my %rates_by_scale;
     my %rates_by_perl;
-    while (my ($perl, $scale_times) = each %$times) {
+    while (my ($perl, $scale_runs) = each %$times) {
         my $startup_time = $ignore_startup ? $startup->{$perl} || 0 : 0;
-        my $compile_time = $ignore_compile ? $scale_times->{0} || 0 : 0;
+        my $compile_time = $ignore_compile ? $scale_runs->{0}{time} || 0 : 0;
         my $ignore_time  = max($startup_time, $compile_time);
 
-        while (my ($scale, $time) = each %$scale_times) {
-            next unless $scale && defined $time;
+        while (my ($scale, $run) = each %$scale_runs) {
+            next unless $scale && defined $run && defined $run->{time};
+            my $time = $run->{time};
+            my $work = $run->{work};
+
             my $bounded = $times_by_scale{$scale}{$perl} = max($time - $ignore_time, $min_time);
-            my $rate    = $rates_by_scale{$scale}{$perl} = $scale / $bounded;
+            my $rate    = $rates_by_scale{$scale}{$perl} = $work / $bounded;
             $rates_by_perl{$perl}{$scale} = $rate;
             $max_rate = $rate if $max_rate < $rate;
             $max_rates{$scale} = $rate
