@@ -20,10 +20,11 @@ init_bench_handling();
 
 #= Show benchmark configuration
 multi MAIN ('config') {
+    my $perl6 = $*PERL.compiler;
     print qq:to/CONFIG/;
         Benchmark root:    $PROGRAM_DIR
         Perl 6 program:    $*EXECUTABLE_NAME
-        Perl 6 version:    $*PERL<compiler>< name ver build-date >
+        Perl 6 version:    $perl6.name() $perl6.version() (built $perl6.build-date())
         Known components:  $COMPONENTS.keys.sort.join(', ')
         CONFIG
 }
