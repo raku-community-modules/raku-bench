@@ -76,8 +76,9 @@ sub MAIN {
                  );
 
     # Run tests
-    my $results = run_all_tests($main_opt);
+    my ($results, $startup) = run_all_tests($main_opt);
     $run{end_time} = time;
+    $run{startup}  = $startup;
 
     # Output results
     $main_opt->{formatter}->(\%config, \%run, $results, $out_fh);
@@ -308,7 +309,7 @@ sub run_all_tests {
     my @results;
     eval { run_tests(\@TESTS, \@results, $startup, $runs, $overhead_runs, $enough_time, $scale_points, $opt->{verbose}) };
     warn "\n$@\n" if $@;
-    return \@results;
+    return (\@results, $startup);
 }
 
 sub run_tests {
@@ -324,13 +325,11 @@ sub run_tests {
 
         my $raw_times = time_all_compilers($test, $runs, $overhead_runs, $enough_time, $min_scaling_points, $verbose, $startup);
         my $best      = best_times($raw_times);
-        my $cooked    = subtract_times($best, $startup);
         push @$results, {
                          name    => $name,
                          conf    => $test,
                          raw     => $raw_times,
                          best    => $best,
-                         cooked  => $cooked,
                         };
     }
 }
@@ -488,24 +487,6 @@ sub best_times {
     }
 
     return \%best;
-}
-
-sub subtract_times {
-    my ($orig, $offset) = @_;
-
-    return $orig unless $offset;
-
-    my %cooked;
-
-    while (my ($perl, $by_scale) = each %$orig) {
-        while (my ($scale, $time) = each %$by_scale) {
-            my $adjusted = ($time || 0) - ($offset->{$perl} || 0);
-               $adjusted = 0 if $adjusted < 0;
-            $cooked{$perl}{$scale} = $adjusted;
-        }
-    }
-
-    return \%cooked;
 }
 
 sub summarize_results_json {

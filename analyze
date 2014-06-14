@@ -70,13 +70,15 @@ sub process_options_and_arguments {
 sub analyze_timings_files {
     my ($opt, $out_fh, @files) = @_;
 
-    my $time_type      = $opt->{'ignore-startup'} ? 'cooked' : 'best';
+    my $ignore_startup = $opt->{'ignore-startup'};
     my $ignore_compile = $opt->{'ignore-compile'};
     my $analyze_timing_data = sub {
-        my $data = shift;
+        my $data    = shift;
+        my $startup = $data->{run}{startup} || {};
 
         for my $test (@{$data->{times}}) {
-            $test->{compare} = compare_scaled_times($test->{$time_type},
+            $test->{compare} = compare_scaled_times($test->{best}, $startup,
+                                                    $ignore_startup,
                                                     $ignore_compile);
         }
 
@@ -131,12 +133,11 @@ sub merge_timing_files {
                  conf   => $test->{conf},
                  raw    => {},
                  best   => {},
-                 cooked => {},
                 };
 
             for my $compiler (keys %{$test->{best}}) {
                 my $key = "$compiler/$basename";
-                $merged->{$_}{$key} = $test->{$_}{$compiler} for qw( raw best cooked );
+                $merged->{$_}{$key} = $test->{$_}{$compiler} for qw( raw best );
             }
         }
     }
@@ -184,7 +185,7 @@ sub load_timing_file {
 }
 
 sub compare_scaled_times {
-    my ($times, $ignore_compile) = @_;
+    my ($times, $startup, $ignore_startup, $ignore_compile) = @_;
     my $min_time = 1e-4;
     my $max_rate = 0;
     my %max_rates;
@@ -193,10 +194,13 @@ sub compare_scaled_times {
     my %rates_by_scale;
     my %rates_by_perl;
     while (my ($perl, $scale_times) = each %$times) {
+        my $startup_time = $ignore_startup ? $startup->{$perl} || 0 : 0;
         my $compile_time = $ignore_compile ? $scale_times->{0} || 0 : 0;
+        my $ignore_time  = max($startup_time, $compile_time);
+
         while (my ($scale, $time) = each %$scale_times) {
             next unless $scale && defined $time;
-            my $bounded = $times_by_scale{$scale}{$perl} = max($time - $compile_time, $min_time);
+            my $bounded = $times_by_scale{$scale}{$perl} = max($time - $ignore_time, $min_time);
             my $rate    = $rates_by_scale{$scale}{$perl} = $scale / $bounded;
             $rates_by_perl{$perl}{$scale} = $rate;
             $max_rate = $rate if $max_rate < $rate;
@@ -299,7 +303,6 @@ sub summarize_results_text {
     $output   .= sprintf "$format\n", 'TEST', @vm_names;
     $output   .= ' ' x $longest_test . $spacer . '-' x length($titles) . "\n";
 
-    my $time_type = $opt->{'ignore-startup'} ? 'cooked' : 'best';
     for my $test (@$times) {
         $output .= "\n" unless $style;
         $output .= sprintf "%-${longest_test}s", $test->{name};
@@ -307,8 +310,6 @@ sub summarize_results_text {
             my $key  = $perl->{key} || $perl->{name};
             my $peak = $test->{compare}{peak_rate}{$key};
             if (defined $peak) {
-                # my $time = $test->{$time_type}{$key}{$peak->{scale}};
-                # $output .= sprintf "$spacer%${longest_perl}.3fs", $time;
                 $output .= sprintf "$spacer%${longest_perl}.0f/s", $peak->{rate};
             }
             else {
@@ -451,15 +452,12 @@ CSS
     $html .= "<tr><th></th>\n"     . join('' => map qq{    <th class="bench_compiler">$_</th>\n} => @comp_names) . "</tr>\n";
     $html .= "<tr><th>TEST</th>\n" . join('' => map qq{    <th class="bench_vm">$_</th>\n} => @vm_names) . "</tr>\n";
 
-    my $time_type = $opt->{'ignore-startup'} ? 'cooked' : 'best';
     for my $test (@$times) {
         $html .= qq{<tr class="bench_time_row"><td>$test->{name}</td>\n};
         for my $perl (@perls) {
             my $key  = $perl->{key} || $perl->{name};
             my $peak = $test->{compare}{peak_rate}{$key};
             if (defined $peak) {
-                # my $time = $test->{$time_type}{$key}{$peak->{scale}};
-                # $html .= sprintf qq{    <td class="bench_time">%.3fs</td>\n}, $time;
                 $html .= sprintf qq{    <td class="bench_rate">%.0f/s</td>\n}, $peak->{rate};
             }
             else {
@@ -789,7 +787,6 @@ PLOT_HEADER
 
     my $times      = $data->{times};
     my @test_names = map { $_->{name} } @$times;
-    my $time_type  = $opt->{'ignore-startup'} ? 'cooked' : 'best';
     my $groups     = $data->{config}{groups};
     my $compilers  = $data->{config}{compilers};
     my @perls      = enabled_perls($groups, $compilers);
