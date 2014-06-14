@@ -99,7 +99,6 @@ sub canonify_tests {
             $test->{type}    = $type;
             $test->{enabled} = 1 unless exists $test->{enabled};
             $test->{scaling} = 'double' unless exists $test->{scaling};
-            $test->{work}  ||= sub { $_[0] };
             add_test_tags($test);
             push @TESTS, $test;
         }
@@ -379,7 +378,7 @@ sub time_all_compilers {
         my  $scalable = $test->{scalable} // ((grep /\bSCALE\b/ => @run) ? 1 : 0);
         if ($scalable) {
             my $scale  = $test->{scale} || 1;
-            my $work   = $test->{work};
+            my $work   = $test->{work}  || sub { $_[0] };
             my $lowest = 0;
 
             # Determine 0-scale time (mostly compile time)
