@@ -20,9 +20,10 @@ use JSON;
 use Cwd;
 
 my %DEFAULT = (
-               TEST_RUNS        => 2,   # times to run each test, taking best time
-               MIN_STARTUP_RUNS => 10,  # minimum times to run startup time test
-               ENOUGH_TIME      => 5.0, # minimum run time (seconds) to give clean timing data for scalable tests
+               TEST_RUNS          => 2,   # times to run each test, taking best time
+               MIN_STARTUP_RUNS   => 10,  # minimum times to run startup time test
+               ENOUGH_TIME        => 5.0, # minimum run time (seconds) to give clean timing data for scalable tests
+               MIN_SCALING_POINTS => 3,   # minimum different points to test on each scaling curve
               );
 my @GROUPS    = qw( perl5 nqp perl6 );
 my %VM        = (
@@ -167,8 +168,9 @@ sub known_tags {
 
 sub process_options_and_arguments {
     my %opt;
-    GetOptions(\%opt, 'help|h|?!', 'man!', 'list-variants!', 'list-tests!', 'verbose!',
-                      'runs=i', 'enough-time=f', 'format=s', 'outfile=s', 'tests=s',
+    GetOptions(\%opt, 'help|h|?!', 'man!', 'verbose!', 'format=s', 'outfile=s',
+                      'runs=i', 'enough-time=f', 'min-scaling-points=i',
+                      'list-variants!', 'list-tests!', 'tests=s',
                       'list-tags!', 'list-tests-tagged=s', 'tests-tagged=s')
         or pod2usage(-verbose => 0);
     pod2usage(-verbose => 1) if $opt{help};
@@ -295,21 +297,22 @@ sub run_all_tests {
     my $startup_runs  = max($runs, $DEFAULT{MIN_STARTUP_RUNS});
     my $overhead_runs = $startup_runs;
     my $enough_time   = $opt->{'enough-time'} || $DEFAULT{ENOUGH_TIME};
+    my $scale_points  = $opt->{'min-scaling-points'} || $DEFAULT{MIN_SCALING_POINTS};
     my $empty_test    = $TESTS{e}[0];
 
     say "Measuring startup times ...";
-    my $times   = time_all_compilers($empty_test, $startup_runs, 0, $enough_time, $opt->{verbose});
+    my $times   = time_all_compilers($empty_test, $startup_runs, 0, $enough_time, 0, $opt->{verbose});
     my $startup = best_times($times);
     $startup->{$_} = $startup->{$_}{1} for keys %$startup;
 
     my @results;
-    eval { run_tests(\@TESTS, \@results, $startup, $runs, $overhead_runs, $enough_time, $opt->{verbose}) };
+    eval { run_tests(\@TESTS, \@results, $startup, $runs, $overhead_runs, $enough_time, $scale_points, $opt->{verbose}) };
     warn "\n$@\n" if $@;
     return \@results;
 }
 
 sub run_tests {
-    my ($tests, $results, $startup, $runs, $overhead_runs, $enough_time, $verbose) = @_;
+    my ($tests, $results, $startup, $runs, $overhead_runs, $enough_time, $min_scaling_points, $verbose) = @_;
 
     my @enabled   = grep { $_->{enabled} } @$tests;
     my $testcount = @enabled;
@@ -319,7 +322,7 @@ sub run_tests {
         my $name = $test->{name};
         say "$testnum/$testcount: Testing $name ...";
 
-        my $raw_times = time_all_compilers($test, $runs, $overhead_runs, $enough_time, $verbose, $startup);
+        my $raw_times = time_all_compilers($test, $runs, $overhead_runs, $enough_time, $min_scaling_points, $verbose, $startup);
         my $best      = best_times($raw_times);
         my $cooked    = subtract_times($best, $startup);
         push @$results, {
@@ -333,7 +336,7 @@ sub run_tests {
 }
 
 sub time_all_compilers {
-    my ($test, $runs, $overhead_runs, $enough_time, $verbose, $startup) = @_;
+    my ($test, $runs, $overhead_runs, $enough_time, $min_scaling_points, $verbose, $startup) = @_;
 
     my $test_type = $test->{type};
     my $cwd       = cwd;
@@ -388,9 +391,12 @@ sub time_all_compilers {
                 my $ignore_time  = max($startup_time, $min_run_time);
 
                 # Run scaled timing loop
-                while ($run_times && $lowest < $enough_time) {
+                my $scale_points = 0;
+                while ($run_times && ($lowest < $enough_time || $scale_points < $min_scaling_points)) {
                     $run_times = time_command(\@compile, \@run, $runs, $scale, $verbose) or last;
                     push @all_times, @$run_times;
+                    $scale_points++;
+
                     $lowest  = min(map { $_->{time} } @$run_times);
                     $lowest -= $ignore_time;
                     $scale   = $test->{scaling} eq 'linear' ? $scale + 1
@@ -633,6 +639,14 @@ benchmarking.
 Set the amount of time a scalable test must run (not including startup and
 compile time) before the timing data is considered "good enough", causing
 F<timeall> to stop scaling up that test and go on to the next one.
+
+=item --min-scaling-points=3
+
+Set the minimum number of different scale points a scalable test must run for
+each compiler.  This minimum must be met regardless of the C<--enough-time>
+setting, and makes sure that even when a compiler is performing very poorly
+on a given test, enough different scales will be timed to get an idea what
+the compiler's scaling curve looks like for that test.
 
 =item --format=json
 
