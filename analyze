@@ -81,6 +81,7 @@ sub analyze_timings_files {
                                                     $ignore_startup,
                                                     $ignore_compile);
         }
+        $data->{score} = compute_scores($data);
 
         $opt->{formatter}->($data, $opt, $out_fh);
     };
@@ -241,6 +242,48 @@ sub compare_scaled_times {
             max_rate       => $max_rate,
             max_rates      => \%max_rates,
            };
+}
+
+# Compute overall 'score' by geometric mean of relative rates to
+# a standard compiler serving as the reference 1.0 value.
+sub compute_scores {
+    my $data  = shift;
+    my $tests = $data->{times};
+
+    my @compilers = map { $_->{key} } @{$data->{config}{compilers}};
+    my $standard  = $compilers[0];
+    say $standard;
+
+    my %score;
+    $score{$_} = 1.0 for @compilers;
+
+    for my $test (@$tests) {
+        my $peak_rate = $test->{compare}{peak_rate};
+        my $reference = $peak_rate->{$standard}{rate};
+        say $reference;
+        # Can't compute scores at all if we lack a reference point
+        return unless $reference;
+
+        for my $compiler (@compilers) {
+            my $rate = $peak_rate->{$compiler}{rate};
+            $score{$compiler} = undef, next
+                unless defined $rate && defined $score{$compiler};
+
+            my $relative = $rate / $reference;
+            $score{$compiler} *= $relative;
+        }
+    }
+
+    my $power = 1 / @$tests;
+    for my $compiler (@compilers) {
+        next unless defined $score{$compiler};
+        $score{$compiler} **= $power;
+
+        # To get "% of reference compiler speed"
+        $score{$compiler}  *= 100;
+    }
+
+    return \%score;
 }
 
 sub summarize_results_json {
