@@ -8,7 +8,7 @@ our sub go_to_bench_dir() is export {
     # Reduce directory insanity a bit by changing to bench root
     # and eliminating hardcoding for generated subdir names
     chdir $PROGRAM_DIR;
-    $PROGRAM_DIR = cwd;
+    $PROGRAM_DIR    = cwd;
     $COMPONENTS_DIR = "$PROGRAM_DIR/components";
     $TIMINGS_DIR    = "$PROGRAM_DIR/timings";
 }
