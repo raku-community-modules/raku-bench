@@ -121,9 +121,7 @@ multi MAIN ('extract', *@components) {
 
         # Find all tags known in this component
         %*ENV<GIT_DIR> = $bare;
-        my $tag-list = open 'git tag', :p;
-        my @all-tags = $tag-list.lines;
-        $tag-list.close;
+        my @all-tags   = qx{git tag}.lines;
 
         my @revs;
         if $comp<checkouts> {
