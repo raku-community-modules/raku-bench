@@ -192,7 +192,7 @@ multi MAIN ('list-components') {
 multi MAIN ('list-checkouts', *@components) {
     needs-setup('list');
 
-    my @lengths = for-checkouts @components, -> $, $name, $checkout { "$name/$checkout".chars }, :quiet;
+    my @lengths = gather for-checkouts @components, -> $, $name, $checkout { take "$name/$checkout".chars }, :quiet;
     my $max-length = max('CHECKOUT'.chars, @lengths);
     my $format = "%-{$max-length}s    %s\n";
     printf $format, < CHECKOUT REVISION >;
