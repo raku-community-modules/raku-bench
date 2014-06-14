@@ -22,7 +22,7 @@ use Cwd;
 my %DEFAULT = (
                TEST_RUNS          => 2,   # times to run each test, taking best time
                MIN_STARTUP_RUNS   => 10,  # minimum times to run startup time test
-               ENOUGH_TIME        => 5.0, # minimum run time (seconds) to give clean timing data for scalable tests
+               ENOUGH_TIME        => 1.0, # minimum run time (seconds) to give clean timing data for scalable tests
                MIN_SCALING_POINTS => 3,   # minimum different points to test on each scaling curve
               );
 my @GROUPS    = qw( perl5 nqp perl6 );
@@ -634,7 +634,7 @@ reaches diminishing returns.  Many times it's more effective to just turn off
 as many background processes (such as email clients) as possible while
 benchmarking.
 
-=item --enough-time=3.0
+=item --enough-time=1.0
 
 Set the amount of time a scalable test must run (not including startup and
 compile time) before the timing data is considered "good enough", causing
