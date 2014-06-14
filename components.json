@@ -41,7 +41,7 @@
     },
     "nqp-js": {
         "name":         "nqp-js",
-        "repo_url":     "git@github.com:pmurias/rakudo-js.git"
+        "repo_url":     "git://github.com/pmurias/rakudo-js.git"
     },
     "nqp-jvm":    {
         "name":         "nqp-jvm",
