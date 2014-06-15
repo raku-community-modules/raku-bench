@@ -209,6 +209,50 @@ multi MAIN ('list-checkouts', *@components) {
     }, :quiet;
 }
 
+#= List available branches in cloned components
+multi MAIN ('list-branches', *@components) {
+    needs-setup('list');
+
+    for-components @components, -> $comp, $name {
+        my $comp_dir = "$COMPONENTS_DIR/$name";
+        my $bare     = "$name.git";
+
+        unless "$comp_dir/$bare".path.d {
+            say "No bare repository exists for component $name; can't list branches.";
+            next;
+        }
+
+        # Find all branches known in this component
+        %*ENV<GIT_DIR>   = "$comp_dir/$bare";
+        my @all-branches = qx{git branch}.lines.map: { .comb(/\S+/)[*-1] };
+        %*ENV<GIT_DIR>:delete;
+
+        say "    $_" for @all-branches;
+    }
+}
+
+#= List available tags in cloned components
+multi MAIN ('list-tags', *@components) {
+    needs-setup('list');
+
+    for-components @components, -> $comp, $name {
+        my $comp_dir = "$COMPONENTS_DIR/$name";
+        my $bare     = "$name.git";
+
+        unless "$comp_dir/$bare".path.d {
+            say "No bare repository exists for component $name; can't list tags.";
+            next;
+        }
+
+        # Find all tags known in this component
+        %*ENV<GIT_DIR> = "$comp_dir/$bare";
+        my @all-tags   = qx{git tag}.lines;
+        %*ENV<GIT_DIR>:delete;
+
+        say "    $_" for @all-tags;
+    }
+}
+
 #= Build checked out component trees
 multi MAIN ('build', *@components) {
     needs-setup('build components');
