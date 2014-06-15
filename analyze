@@ -980,6 +980,15 @@ sub friendly_time {
     return $friendly;
 }
 
+sub english_list {
+    return  ''               if @_ == 0;
+    return  $_[0]            if @_ == 1;
+    return "$_[0] and $_[1]" if @_ == 2;
+
+    my $last = pop;
+    return join ', ', @_, "and $last";
+}
+
 
 __END__
 
