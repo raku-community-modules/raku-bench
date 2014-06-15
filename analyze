@@ -342,9 +342,12 @@ sub summarize_results_text {
     my $ignore = @ignore ? ' (ignoring ' . join(' and ' => @ignore) . ')' : '';
 
     my $run_at = $opt->{compare} ? '' : " run at $start";
-    my $slow   = $opt->{compare} ? ' and TIMES SLOWER THAN FASTEST (x)' : '';
-    my $output = "$CLEAR\n==> perl6-bench version $run->{versions}{bench}$run_at$ignore\n"
-               . "--- showing PEAK RATE (/s)$slow\n\n";
+    my $output = "$CLEAR\n==> perl6-bench version $run->{versions}{bench}$run_at$ignore\n";
+
+    my   @showing = ('PEAK RATE (/s)');
+    push @showing, 'TIMES SLOWER THAN FASTEST (x)' if $opt->{compare};
+    push @showing, 'SUMMARY SCORES' if $data->{score};
+    $output   .= '--- showing ' . english_list(@showing) . "\n\n";
 
     my $titles = join $spacer => @lang_titles;
     $output   .= ' ' x $longest_test . "$spacer$titles\n";
@@ -390,6 +393,26 @@ sub summarize_results_text {
                             || (exists $conf->{skip} && !defined $conf->{skip});
                 $output .= sprintf "$spacer$RED%${longest_perl}s  $CLEAR",
                        $is_skip ? 'SKIP' : 'FAIL';
+            }
+        }
+        $output .= "\n";
+    }
+
+    my  $scores = $data->{score};
+    if ($scores) {
+        $output .= ' ' x $longest_test . $spacer . '=' x length($titles) . "\n";
+        $output .= sprintf "%-${longest_test}s", 'SUMMARY SCORE';
+        for my $perl (@perls) {
+            my $key   = $perl->{key} || $perl->{name};
+            my $score = $scores->{$key};
+            if (defined $score) {
+                my $color = $score > 50 ? $GREEN  :
+                            $score > 10 ? $YELLOW :
+                                          $RED    ;
+                $output .= sprintf "$spacer$color%${longest_perl}.1f  $CLEAR", $score;
+            }
+            else {
+                $output .= sprintf "$spacer%${longest_perl}s  ", '-- ';
             }
         }
         $output .= "\n";
@@ -494,9 +517,14 @@ CSS
     my $ignore = @ignore ? ' (ignoring ' . join(' and ' => @ignore) . ')' : '';
 
     my $run_at = $opt->{compare} ? '' : qq{ run at <span class="bench_start_time">} . friendly_time($run->{start_time}) . qq{</span>};
-    my $slow   = $opt->{compare} ? ' and TIMES SLOWER THAN FASTEST (<strong>x</strong>)' : '';
+
+    my   @showing = ('PEAK RATE (<strong>/s</strong>)');
+    push @showing, 'TIMES SLOWER THAN FASTEST (<strong>x</strong>)' if $opt->{compare};
+    push @showing, 'SUMMARY SCORES' if $data->{score};
+    my   $showing = 'showing ' . english_list(@showing);
+
     $html .= qq{<table class="bench_summary" cellspacing="0" cellpadding="0">\n};
-    $html .= qq{<caption>perl6-bench version <span class="bench_ver">$run->{versions}{bench}</span>$run_at$ignore<br>showing PEAK RATE (<strong>/s</strong>)$slow</caption>\n};
+    $html .= qq{<caption>perl6-bench version <span class="bench_ver">$run->{versions}{bench}</span>$run_at$ignore<br>$showing</caption>\n};
     $html .= "<tr><th></th>\n"     . join('' => map qq{    <th class="bench_language" colspan="$lang_count{$_}">$_</th>\n} => @langs) . "</tr>\n";
     $html .= "<tr><th></th>\n"     . join('' => map qq{    <th class="bench_run">$_</th>\n} => @run_names) . "</tr>\n" if grep {length} @run_names;
     $html .= "<tr><th></th>\n"     . join('' => map qq{    <th class="bench_compiler">$_</th>\n} => @comp_names) . "</tr>\n";
@@ -543,6 +571,27 @@ CSS
         }
         $html .= qq{</tr>\n<tr class="bench_spacer_row"></tr>\n};
     }
+
+
+    my  $scores = $data->{score};
+    if ($scores) {
+        $html .= qq{</tr>\n<tr class="bench_spacer_row"></tr>\n};
+        $html .= qq{<tr class="bench_compare_row"><th>SUMMARY SCORE</th>\n};
+        for my $perl (@perls) {
+            my $key   = $perl->{key} || $perl->{name};
+            my $score = $scores->{$key};
+            if (defined $score) {
+                my $class = $score > 50 ? 'bench_good' :
+                            $score > 10 ? 'bench_bad'  :
+                                          'bench_ugly' ;
+                $html .= sprintf qq{    <td class="$class">%.1f</td>\n}, $score;
+            }
+            else {
+                $html .= qq{    <td class="bench_skip">--</td>\n};
+            }
+        }
+    }
+
     $html .= "</table>\n";
 
     print $out_fh $html;
