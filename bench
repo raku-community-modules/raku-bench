@@ -84,9 +84,7 @@ multi MAIN ('fetch', *@components) {
 
         # Find all tags known in this component
         %*ENV<GIT_DIR> = "$comp_dir/$bare";
-        my $tag-list = open 'git tag', :p;
-        my @all-tags = $tag-list.lines;
-        $tag-list.close;
+        my @all-tags   = qx{git tag}.lines;
         %*ENV<GIT_DIR>:delete;
 
         # Pull into non-tag checkouts
