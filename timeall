@@ -69,10 +69,12 @@ sub MAIN {
                   tests     => \@TESTS,
                  );
 
+    my ($versions, $commit_dates) = detect_versions();
     my %run    = (
-                  start_time => time,
-                  options    => $main_opt,
-                  versions   => detect_versions(),
+                  start_time   => time,
+                  options      => $main_opt,
+                  versions     => $versions,
+                  commit_dates => $commit_dates,
                  );
 
     # Run tests
@@ -256,10 +258,11 @@ sub enable_only_compilers {
 sub detect_versions {
     say "Detecting versions ...";
 
-    my %version;
+    my (%version, %commit_date);
     my $cwd = cwd;
 
-    my @detect_git_rev = qw( git describe --always --dirty );
+    my @detect_git_rev     = qw( git describe --always --dirty );
+    my @detect_commit_date = qw( git show -s --format=%ct HEAD );
 
     for my $compiler (@COMPILERS) {
         next unless $compiler->{enabled};
@@ -270,16 +273,25 @@ sub detect_versions {
         s/\bBENCH\b/$FindBin::Bin/g     for $dir, @cmd;
 
         chdir $dir;
-        $version{$compiler->{name}} = -d '.git' ? `@detect_git_rev` : `@cmd`;
+        my $name = $compiler->{name};
+        if (-d '.git') {
+            $version{$name}     = `@detect_git_rev`;
+            $commit_date{$name} = `@detect_commit_date`;
+        }
+        else {
+            $version{$name} = `@cmd`;
+        }
     }
 
     chdir $FindBin::Bin;
-    $version{bench} = `@detect_git_rev`;
+    $version{bench}     = `@detect_git_rev`;
+    $commit_date{bench} = `@detect_commit_date`;
 
     chomp for values %version;
+    chomp for values %commit_date;
 
     chdir $cwd;
-    return \%version;
+    return (\%version, \%commit_date);
 }
 
 # Checks if the currently checked out git rev contains all commits from
