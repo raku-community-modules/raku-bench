@@ -252,7 +252,6 @@ sub compute_scores {
 
     my @compilers = map { $_->{key} } @{$data->{config}{compilers}};
     my $standard  = $compilers[0];
-    say $standard;
 
     my %score;
     $score{$_} = 1.0 for @compilers;
@@ -260,7 +259,7 @@ sub compute_scores {
     for my $test (@$tests) {
         my $peak_rate = $test->{compare}{peak_rate};
         my $reference = $peak_rate->{$standard}{rate};
-        say $reference;
+
         # Can't compute scores at all if we lack a reference point
         return unless $reference;
 
