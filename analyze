@@ -359,7 +359,7 @@ sub summarize_results_text {
         for my $perl (@perls) {
             my $key  = $perl->{key} || $perl->{name};
             my $peak = $test->{compare}{peak_rate}{$key};
-            if (defined $peak) {
+            if (defined $peak && defined $peak->{rate}) {
                 $output .= sprintf "$spacer%${longest_perl}.0f/s", $peak->{rate};
             }
             else {
@@ -507,7 +507,7 @@ CSS
         for my $perl (@perls) {
             my $key  = $perl->{key} || $perl->{name};
             my $peak = $test->{compare}{peak_rate}{$key};
-            if (defined $peak) {
+            if (defined $peak && defined $peak->{rate}) {
                 $html .= sprintf qq{    <td class="bench_rate">%.0f/s</td>\n}, $peak->{rate};
             }
             else {
