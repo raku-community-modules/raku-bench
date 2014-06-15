@@ -209,7 +209,7 @@ sub process_options_and_arguments {
 }
 
 sub list_variants {
-    my     $format = "%-10s   %-8s   %-7s   %-6s\n";
+    my     $format = "%-13s   %-8s   %-7s   %-6s\n";
     printf $format, qw( VARIANT COMPILER VM LANGUAGE );
 
     my @compilers = sort { $a->{name} cmp $b->{name} } @COMPILERS;
