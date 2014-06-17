@@ -19,8 +19,8 @@
  },
  {
   name  => 'rc-man-or-boy-test',
-  skip  => [qw( nqp-moarvm )],
-  scale => 10,
+  skip  => [qw( )],
+  scale => 15,
   work  => sub { 1 << ($_[0] - 1) },
   scaling => 'linear',
   x_label => 'k Parameter',
