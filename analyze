@@ -42,7 +42,8 @@ sub process_options_and_arguments {
     my %opt;
     GetOptions(\%opt, 'help|h|?!', 'man!', 'format=s', 'style=s', 'outfile=s',
                       'ignore-startup|ignore_startup|ignorestartup!',
-                      'ignore-compile|ignore_compile|ignorecompile!', 'compare!')
+                      'ignore-compile|ignore_compile|ignorecompile!',
+                      'compare!', 'history!')
         or pod2usage(-verbose => 0);
     pod2usage(-verbose => 1) if $opt{help};
     pod2usage(-verbose => 2) if $opt{man};
@@ -302,6 +303,9 @@ sub summarize_results_json {
 sub summarize_results_text {
     my ($data, $opt, $out_fh) = @_;
 
+    return summarize_results_text_history($data, $opt, $out_fh)
+        if $opt->{history};
+
     my $style = $opt->{style};
        $style = -t $out_fh
         if $style eq 'auto';
@@ -417,6 +421,87 @@ sub summarize_results_text {
         }
         $output .= "\n";
     }
+
+    print $out_fh $output;
+}
+
+sub summarize_results_text_history {
+    my ($data, $opt, $out_fh) = @_;
+
+    my $scores = $data->{score}
+        or die "Can't show history without comparison scores!";
+
+    my $style = $opt->{style};
+       $style = -t $out_fh
+        if $style eq 'auto';
+
+    my $RED    = $style ? "\e[1;31m" : '';
+    my $GREEN  = $style ? "\e[32m"   : '';
+    my $YELLOW = $style ? "\e[1;33m" : '';
+    my $CLEAR  = $style ? "\e[0m"    : '';
+
+    my $groups       = $data->{config}{groups};
+    my $compilers    = $data->{config}{compilers};
+    my @perls        = enabled_perls($groups, $compilers);
+    my @comp_names   = uniq map { $_->{name} } @perls;
+    my $longest_perl = max 8, map { length } @comp_names;
+
+    my %column;
+    my $col = 0;
+    $column{$_} = ++$col for @comp_names;
+
+    my $spacer_length = 3;
+    my $spacer  = ' ' x $spacer_length;
+    my $format  = join $spacer => "%-10s", (("%${longest_perl}s  ") x $col);
+       $format .= "\n";
+
+    my @date_sorted  = sort {     ($a->{commit_time} || 0)
+                              <=> ($b->{commit_time} || 0) } @perls;
+    my $run    = $data->{run};
+    my $start  = friendly_time($run->{start_time});
+
+    my @ignore;
+    push @ignore, 'startup time' if $opt->{'ignore-startup'};
+    push @ignore, 'compile time' if $opt->{'ignore-compile'};
+    my $ignore = @ignore ? ' (ignoring ' . join(' and ' => @ignore) . ')' : '';
+
+    my $run_at = $opt->{compare} ? '' : " run at $start";
+    my $output = "$CLEAR\n==> perl6-bench version $run->{versions}{bench}$run_at$ignore\n";
+    $output   .= "--- showing HISTORICAL SCORES\n\n";
+    $output   .= sprintf $format, 'DATE', @comp_names;
+
+    # Put scores into columns by compiler name, allowing multiple scores
+    # for different compilers on the same date to appear in the same row.
+    my @row;
+    my $old_date = '';
+    my $new_row  = sub {
+        my $date   = shift;
+        $old_date  = $date;
+        $output   .= sprintf($format, @row) if @row;
+        @row       = ($date, ('') x $col);
+    };
+
+    for my $perl (@date_sorted) {
+        my $commit = $perl->{commit_time} || 0;
+        my $date = DateTime->from_epoch(epoch => $commit)->ymd;
+        $new_row->($date) if $old_date ne $date;
+
+        my $key    = $perl->{key} || $perl->{name};
+        my $score  = $scores->{$key};
+        my $column = $column{$perl->{name}};
+
+        if (defined $score) {
+            # Don't let new scores on the same date overwrite old ones
+            $new_row->($date) if $row[$column] ne '';
+
+            my $color = $score > 50 ? $GREEN  :
+                        $score > 10 ? $YELLOW :
+                                      $RED    ;
+
+            $row[$column] = sprintf "$color%${longest_perl}.1f$CLEAR", $score;
+        }
+    }
+    $output .= sprintf $format, @row if @row;
 
     print $out_fh $output;
 }
@@ -1048,9 +1133,12 @@ analyze -- Analyze benchmark data produced by timeall
 
 =head1 SYNOPSIS
 
-    analyze [--help|-h|-?] [--man] [--format=text|json|html|html_snippet]
-            [--style=0|1|auto] [--outfile=path/to/file.ext] [--ignore-startup]
-            [--compare] path/to/timing_file.json [path/to/second_timing_file.json ...]
+    analyze [--help|-h|-?] [--man]
+            [--format=text|json|html|html_snippet|html_plot]
+            [--style=0|1|auto] [--outfile=path/to/file.ext]
+            [--ignore-startup] [--ignore-compile]
+            [--compare] [--history]
+            path/to/timing_file.json [path/to/second_timing_file.json ...]
 
 
 =head1 DESCRIPTION
@@ -1120,6 +1208,14 @@ runtime at C<SCALE = 0> as a portable proxy for true compile time.
 
 When processing multiple timing files, compare times across all timing files
 at once, rather than analyzing each timing file individually.
+
+=item --history
+
+Format the data in a way that emphasizes the collective history of a
+compiler's peak performance across multiple compiler versions, rather
+than the individual scaling curves of each compiler version.  This has
+no effect when the output format is JSON, which always carries all of
+the available data.
 
 =back
 
