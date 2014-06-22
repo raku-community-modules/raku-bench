@@ -36,4 +36,15 @@
   perl6 => [qw( BENCH/perl6/rc-self-describing-numbers SCALE )],
   nqp   => [qw( BENCH/nqp/rc-self-describing-numbers   SCALE )],
  },
+ {
+  name  => 'rc-dragon-curve',
+  skip  => [qw( )],
+  scale => 10,
+  work  => sub { 1 << $_[0] },
+  scaling => 'linear',
+  x_label => 'Order',
+  perl5 => [qw( BENCH/perl5/rc-dragon-curve SCALE )],
+  perl6 => [qw( BENCH/perl6/rc-dragon-curve SCALE )],
+  nqp   => [qw( BENCH/nqp/rc-dragon-curve   SCALE )],
+ },
 ]

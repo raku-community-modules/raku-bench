@@ -1,0 +1,33 @@
+sub MAIN(*@ARGS) {
+    say("<?xml version='1.0' encoding='utf-8' standalone='no'?>
+<!DOCTYPE svg PUBLIC '-//W3C//DTD SVG 1.1//EN'
+'http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd'>
+<svg width='100%' height='100%' version='1.1'
+xmlns='http://www.w3.org/2000/svg'>");
+
+    my $order := @ARGS[1]; # akin to number of recursion steps
+    my $d_size := 1000; # size in pixels
+    my $pi := 4 * nqp::atan_n(1);
+    my $turn_angle := $pi/2; # turn angle of each segment, 90 degrees for the canonical dragon
+
+    my $angle := $pi - ($order * ($pi/4)); # starting angle
+    my $len := ($d_size/1.5) / nqp::sqrt_n(2)**$order; # size of each segment
+    my $x := $d_size*5/6; # starting point
+    my $y := $d_size*1/3; # starting point
+
+    my int $i := 0;
+    while $i < 2 ** $order {
+        # find which side to turn based on the iteration
+	my $dir := nqp::bitand_i(nqp::bitshiftl_i(nqp::bitand_i($i, -$i), 1), $i);
+        $angle := $angle + ($dir ?? -$turn_angle !! $turn_angle);
+
+        my $dx := $x + $len * nqp::sin_n($angle);
+        my $dy := $y - $len * nqp::cos_n($angle);
+        say("<line x1='$x' y1='$y' x2='$dx' y2='$dy' style='stroke:rgb(0,0,0);stroke-width:1'/>");
+        $x := $dx;
+        $y := $dy;
+        $i++;
+    }
+
+    say("</svg>");
+}
