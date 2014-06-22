@@ -31,7 +31,7 @@
  {
   name  => 'rc-self-describing-numbers',
   skip  => [qw( )],
-  scale => 1 << 17,
+  scale => 1 << 14,
   perl5 => [qw( BENCH/perl5/rc-self-describing-numbers SCALE )],
   perl6 => [qw( BENCH/perl6/rc-self-describing-numbers SCALE )],
   nqp   => [qw( BENCH/nqp/rc-self-describing-numbers   SCALE )],
