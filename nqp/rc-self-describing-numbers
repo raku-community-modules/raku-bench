@@ -1,0 +1,33 @@
+sub is_selfdesc($n) {
+    my str $s := ~$n;
+    my @a := nqp::split('', $s);
+
+    my @b;
+    my int $i := 0;
+    @b[$i++]  := 0 for @a;
+    @b[$_]++       for @a;
+
+    $i := 0;
+    for @b {
+        @b[$i] := @b[$i] || 0;
+        $i++;
+    }
+
+    return 0 unless @a == @b;
+
+    $i := 0;
+    while $i < @a {
+        return 0 unless @a[$i] == @b[$i];
+        $i++;
+    }
+    1;
+}
+
+# check all numbers from 0 to SCALE
+sub MAIN(*@ARGS) {
+    my $i := 0;
+    while $i < @ARGS[1] {
+        say($i) if is_selfdesc($i);
+        $i++;
+    }
+}

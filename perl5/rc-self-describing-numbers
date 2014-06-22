@@ -1,0 +1,13 @@
+use 5.010;
+
+sub is_selfdesc {
+    local $_ = shift;
+    my @b = (0) x length;
+    $b[$_]++ for my @a = split //;
+    return "@a" eq "@b";
+}
+
+# check all numbers from 0 to SCALE
+for (0 .. $ARGV[0]) {
+    say if is_selfdesc($_);
+}
