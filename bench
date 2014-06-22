@@ -247,9 +247,14 @@ multi MAIN ('list-tags', *@components) {
         # Find all tags known in this component
         %*ENV<GIT_DIR> = "$comp_dir/$bare";
         my @all-tags   = qx{git tag}.lines;
-        %*ENV<GIT_DIR>:delete;
 
-        say "    $_" for @all-tags;
+        for @all-tags -> $tag {
+            my $detect = "git show -s --format=%ct $tag^\{commit}";
+            my $commit-time = qqx{$detect};
+            my $date = DateTime.new(+$commit-time).Date;
+            say "    $date   $tag";
+        }
+        %*ENV<GIT_DIR>:delete;
     }
 }
 
