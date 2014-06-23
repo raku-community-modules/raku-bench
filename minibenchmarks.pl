@@ -2,6 +2,7 @@
  {
   name  => 'parse-json',
   skip  => [qw( )],
+  tags  => [qw( io input parsing )],
   scale => 1 << 3,
   perl5 => [qw( BENCH/perl5/parse-json DATA/panda-projects.json SCALE )],
   perl6 => [qw( BENCH/perl6/parse-json DATA/panda-projects.json SCALE )],
@@ -10,6 +11,7 @@
  {
   name  => 'rc-forest-fire',
   skip  => [qw( niecza.nqp p6.pl p6.js_v8 )],
+  tags  => [qw( io output random simulation )],
   scale => 1 << 3,
   x_label => 'Frames per Run',
   y_label => 'Frames per Second',
@@ -20,6 +22,7 @@
  {
   name  => 'rc-man-or-boy-test',
   skip  => [qw( )],
+  tags  => [qw( recursion closures )],
   scale => 15,
   work  => sub { 1 << ($_[0] - 1) },
   scaling => 'linear',
@@ -31,6 +34,7 @@
  {
   name  => 'rc-self-describing-numbers',
   skip  => [qw( )],
+  tags  => [qw( )],
   scale => 1 << 14,
   perl5 => [qw( BENCH/perl5/rc-self-describing-numbers SCALE )],
   perl6 => [qw( BENCH/perl6/rc-self-describing-numbers SCALE )],
@@ -39,6 +43,7 @@
  {
   name  => 'rc-dragon-curve',
   skip  => [qw( )],
+  tags  => [qw( io output )],
   scale => 10,
   work  => sub { 1 << $_[0] },
   scaling => 'linear',
@@ -50,6 +55,7 @@
  {
   name  => 'rc-9-billion-names',
   skip  => [qw( )],
+  tags  => [qw( bigint bigmem )],
   scale => 1 << 7,
   perl5 => [qw( BENCH/perl5/rc-9-billion-names SCALE )],
   perl6 => [qw( BENCH/perl6/rc-9-billion-names SCALE )],
