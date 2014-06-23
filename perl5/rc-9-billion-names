@@ -1,0 +1,31 @@
+use 5.010;
+
+# Where perl6 uses arbitrary precision integers everywhere
+# that you don't tell it not to do so, perl5 will only use
+# them where you *do* tell it do so.
+use Math::BigInt;
+use constant zero => Math::BigInt->bzero;
+use constant one  => Math::BigInt->bone;
+
+my @todo = [one];
+my @sums = (zero);
+sub nextrow {
+   my $n = shift;
+   for my $l (@todo .. $n) {
+      $sums[$l] = zero;
+      # print "$l\r" if $l < $n;
+      my @r;
+      for my $x (reverse 0 .. $l-1) {
+         my $todo = $todo[$x];
+         $sums[$x] += shift @$todo if @$todo;
+         push @r, $sums[$x];
+      }
+      push @todo, \@r;
+   }
+   @{ $todo[$n] };
+}
+
+my $n = $ARGV[0];
+my $i = 0;
+$i += $_ for nextrow($n);
+say $n, "\t", $i;

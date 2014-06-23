@@ -47,4 +47,12 @@
   perl6 => [qw( BENCH/perl6/rc-dragon-curve SCALE )],
   nqp   => [qw( BENCH/nqp/rc-dragon-curve   SCALE )],
  },
+ {
+  name  => 'rc-9-billion-names',
+  skip  => [qw( )],
+  scale => 1 << 7,
+  perl5 => [qw( BENCH/perl5/rc-9-billion-names SCALE )],
+  perl6 => [qw( BENCH/perl6/rc-9-billion-names SCALE )],
+  nqp   => [qw( BENCH/nqp/rc-9-billion-names   SCALE )],
+ },
 ]
