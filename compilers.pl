@@ -131,7 +131,7 @@
             show_ver  => [qw( install/bin/nqp-j --version )],
            },
            {
-            name      => 'nqp-moarvm',
+            name      => 'nqp-moar',
             enabled   => 1,
             language  => 'NQP',
             compiler  => 'nqp',

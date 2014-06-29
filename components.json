@@ -12,8 +12,8 @@
             [ "make" ]
         ]
     },
-    "nqp-moarvm": {
-        "name":         "nqp-moarvm",
+    "nqp-moar": {
+        "name":         "nqp-moar",
         "repo_url":     "git://github.com/perl6/nqp.git",
         "release_tags": "^ 20\\d\\d \\D \\d\\d [\\.\\d+]? $",
         "build_steps":  [
@@ -103,7 +103,7 @@
             [ "git", "clean", "-dxf" ],
             [ "rm", "-rf", "install", "nqp", "moarvm" ],
             [ "git", "clone", "-l", "../../moarvm/moarvm.git" ],
-            [ "git", "clone", "-l", "../../nqp-moarvm/nqp-moarvm.git", "nqp" ],
+            [ "git", "clone", "-l", "../../nqp-moar/nqp-moar.git", "nqp" ],
             [ "perl", "Configure.pl", "--backends=moar", "--gen-moar" ],
             [ "make" ],
             [ "make", "install" ]
