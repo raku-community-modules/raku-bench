@@ -1,0 +1,45 @@
+my $SQUISH := 1.5;
+
+sub MAIN($prog, $w = 31, $max_iterations = 50) {
+    my $h := nqp::floor_n($w / $SQUISH + 0.5);
+
+    my $re_min := -2;
+    my $re_max :=  1/2;
+    my $im_min := -5/4;
+    my $im_max :=  5/4;
+
+    # Allow SCALE == 0 for compile time testing
+    nqp::exit(0) if $w < 2;
+
+    my $re_step := ($re_max - $re_min) / ($w - 1);
+    my $im_step := ($im_max - $im_min) / ($h - 1);
+
+    my @color_map := < . , ; * $ # @ >;
+    @color_map.unshift(' ');
+
+    my sub mandelbrot($re, $im) {
+        my $z_re := $re;
+        my $z_im := $im;
+        my $i    := 1;
+        while $i <= $max_iterations {
+            my $tmp := $z_re * $z_re - $z_im * $z_im + $re;
+            $z_im := 2 * $z_re * $z_im + $im;
+            $z_re := $tmp;
+            return $i if $z_re * $z_re + $z_im * $z_im > 4;
+            $i++;
+        }
+        0;
+    }
+
+    my $y := $im_max;
+    while $y >= $im_min {
+        my $x := $re_min;
+        while $x <= $re_max {
+            my $iter := mandelbrot($x, $y);
+            print(@color_map[$iter % @color_map]);
+            $x := $x + $re_step;
+        }
+        print("\n");
+        $y := $y - $im_step;
+    }
+}

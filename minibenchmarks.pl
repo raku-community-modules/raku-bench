@@ -61,4 +61,14 @@
   perl6 => [qw( BENCH/perl6/rc-9-billion-names SCALE )],
   nqp   => [qw( BENCH/nqp/rc-9-billion-names   SCALE )],
  },
+ {
+  name  => 'rc-mandelbrot',
+  skip  => [qw( )],
+  tags  => [qw( complex io output )],
+  scale => 1 << 5,
+  work  => sub { $_[0] * $_[0] * 2 / 3 },
+  perl5 => [qw( BENCH/perl5/rc-mandelbrot SCALE )],
+  perl6 => [qw( BENCH/perl6/rc-mandelbrot SCALE )],
+  nqp   => [qw( BENCH/nqp/rc-mandelbrot   SCALE )],
+ },
 ]
