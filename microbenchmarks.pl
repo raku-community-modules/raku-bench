@@ -320,4 +320,20 @@
   perl6 => 'my %h; for ^SCALE { %h{$_} = $_ }; for %h.kv -> $k, $v { $k == $v }; 1',
   nqp   => undef,
  },
+ {
+  name  => 'rat_mul_div_cancel',
+  tags  => [qw( for rat )],
+  scale => 1 << 10,
+  perl5 => 'use Math::BigRat; my $r = Math::BigRat->new(1); for (1 .. SCALE) { $r *= $_; $r /= $_ + 1 }; say "<$r>"',
+  perl6 => 'my $r = 1.0; for 1 .. SCALE { $r *= $_; $r /= $_ + 1 }; say $r.perl',
+  nqp   => undef,
+ },
+ {
+  name  => 'rat_harmonic',
+  tags  => [qw( for rat fatrat )],
+  scale => 1 << 7,
+  perl5 => 'use Math::BigRat; my $r = Math::BigRat->new(0); for (1 .. SCALE) { $r += Math::BigRat->new(Math::BigInt->new(1), Math::BigInt->new($_)) }; say $r',
+  perl6 => 'my $r = FatRat.new(0, 1); for 1 .. SCALE { $r += 1 / $_ }; say $r.perl',
+  nqp   => undef,
+ },
 ]
