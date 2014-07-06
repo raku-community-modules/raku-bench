@@ -1,0 +1,44 @@
+sub MAIN($prog, $w, $h, $steps) {
+    my $RED     := "\e[1;31m";
+    my $GREEN   := "\e[0;32m";
+    my $CLEAR   := "\e[0m";
+    my $Empty   := 0;
+    my $Tree    := 1;
+    my $Burning := 2;
+
+    my @show := ('  ', $GREEN ~ '木' ~ $CLEAR, $RED ~ '火' ~ $CLEAR);
+    my @grid;
+    my $y := 0;
+    while $y < $h {
+       my @row;
+       my $x := 0;
+       while $x < $w {
+           @row.push($Empty);
+           @row.push($Tree);
+           @row.push($Burning);
+           $x++;
+       }
+       @grid.push(@row);
+       $y++;
+    }
+
+    sub stringify(@grid) {
+        my @partial;
+        for @grid -> @row {
+            for @row -> $state {
+                @partial.push(@show[$state]);
+            }
+            @partial.push("\n");
+        }
+        join('', @partial);
+    }
+
+    my $chars := 0;
+    my $i := 0;
+    while $i < $steps {
+        my str $grid := stringify(@grid);
+        $chars := $chars + nqp::chars($grid);
+        $i++;
+    }
+    say($chars);
+}

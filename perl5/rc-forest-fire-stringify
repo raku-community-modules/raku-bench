@@ -1,0 +1,25 @@
+use 5.010;
+
+my ($w, $h, $steps) = @ARGV;
+
+my $RED   = "\e[1;31m";
+my $GREEN = "\e[0;32m";
+my $CLEAR = "\e[0m";
+
+my @show = ('  ', $GREEN . '木' . $CLEAR, $RED . '火' . $CLEAR);
+my @grid = map {[ map {(0, 1, 2)} 1 .. $w ]} 1 .. $h;
+
+sub stringify(@grid) {
+    my @partial;
+    for my $i (0 .. $#grid) {
+        push @partial, @show[@{$grid[$i]}], "\n";
+    }
+    join '', @partial;
+}
+
+my $chars = 0;
+for (1 .. $steps) {
+    my $grid = stringify(@grid);
+    $chars += length $grid;
+}
+say $chars;

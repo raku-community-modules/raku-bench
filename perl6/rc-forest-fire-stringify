@@ -1,0 +1,22 @@
+sub MAIN($w, $h, $steps) {
+    my $RED   = "\e[1;31m";
+    my $GREEN = "\e[0;32m";
+    my $CLEAR = "\e[0m";
+
+    enum Cell-State <Empty Tree Burning>;
+    my @show  = ('  ', $GREEN ~ '木' ~ $CLEAR, $RED ~ '火' ~ $CLEAR);
+    my @grid := [ (Empty, Tree, Burning) xx $w ] xx $h;
+
+    sub stringify(@grid) {
+        join '', gather for ^@grid -> $i {
+            take @show[@grid[$i].list], "\n";
+        }
+    }
+
+    my $chars = 0;
+    for ^$steps {
+        my $grid := stringify(@grid);
+        $chars += $grid.chars;
+    }
+    say $chars;
+}

@@ -80,4 +80,13 @@
   perl6 => [qw( BENCH/perl6/spinner SCALE )],
   nqp   => [qw( BENCH/nqp/spinner   SCALE )],
  },
+ {
+  name  => 'rc-forest-fire-stringify',
+  skip  => [qw( )],
+  tags  => [qw( array string )],
+  scale => 1 << 7,
+  perl5 => [qw( BENCH/perl5/rc-forest-fire-stringify 16 16 SCALE )],
+  perl6 => [qw( BENCH/perl6/rc-forest-fire-stringify 16 16 SCALE )],
+  nqp   => [qw( BENCH/nqp/rc-forest-fire-stringify   16 16 SCALE )],
+ },
 ]
