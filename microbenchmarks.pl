@@ -314,7 +314,7 @@
  },
  {
   name  => 'create_and_copy_2d_grid_cross',
-  tags  => [qw( for cross array )],
+  tags  => [qw( for cross array forest-fire )],
   scale => 1 << 7,
   work  => sub { $_[0] * $_[0] },
   perl5 => 'sub mk2d { my ($h, $w) = @_; my $x = 0; my $y = 0; sub { return if $y >= $h; my @c = ($y, $x); if (++$x >= $w) { $x = 0; ++$y; }; @c } }; my (@src, @dst); my $it = mk2d(SCALE, SCALE); while (my ($i, $j) = $it->()) { $src[$i][$j] = $i + $j }; $it = mk2d(SCALE, SCALE); while (my ($i, $j) = $it->()) { $dst[$i][$j] = $src[$i][$j] }; 1',

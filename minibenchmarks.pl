@@ -11,7 +11,7 @@
  {
   name  => 'rc-forest-fire',
   skip  => [qw( niecza.nqp p6.pl p6.js_v8 )],
-  tags  => [qw( io output random simulation )],
+  tags  => [qw( io output random simulation array cross for forest-fire )],
   scale => 1 << 3,
   x_label => 'Frames per Run',
   y_label => 'Frames per Second',
@@ -74,7 +74,7 @@
  {
   name  => 'spinner',
   skip  => [qw( )],
-  tags  => [qw( io output )],
+  tags  => [qw( io output forest-fire )],
   scale => 1 << 5,
   perl5 => [qw( BENCH/perl5/spinner SCALE )],
   perl6 => [qw( BENCH/perl6/spinner SCALE )],
@@ -83,7 +83,7 @@
  {
   name  => 'rc-forest-fire-stringify',
   skip  => [qw( )],
-  tags  => [qw( array string )],
+  tags  => [qw( array string forest-fire )],
   scale => 1 << 7,
   perl5 => [qw( BENCH/perl5/rc-forest-fire-stringify 16 16 SCALE )],
   perl6 => [qw( BENCH/perl6/rc-forest-fire-stringify 16 16 SCALE )],
