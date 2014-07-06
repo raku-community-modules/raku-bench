@@ -1,0 +1,20 @@
+sub MAIN($prog, $h = 64, $w = 64, $spins = 64) {
+    my @spinner := < | / - \\ >;
+
+    my $y := 0;
+    while $y < $h {
+        my $x := 0;
+        while $x < $w {
+            print(".");
+            my $i := 0;
+            while $i < $spins {
+                print("\b" ~ @spinner[$i % @spinner]);
+                $i++;
+            }
+            print("\b.");
+            $x++;
+        }
+        print(".\n");
+        $y++;
+    }
+}

@@ -1,0 +1,14 @@
+sub MAIN($h = 64, $w = 64, $spins = 64) {
+    my @spinner = < | / - \\ >;
+
+    for ^$h {
+        for ^$w {
+            print ".";
+            for ^$spins {
+                print "\b@spinner[$_ % @spinner]";
+            }
+            print "\b.";
+        }
+        print ".\n";
+    }
+}

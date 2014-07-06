@@ -1,0 +1,17 @@
+use 5.010;
+
+my $h       = $ARGV[0] // 64;
+my $w       = $ARGV[1] // 64;
+my $spins   = $ARGV[2] // 64;
+my @spinner = qw( | / - \\ );
+
+for my $y (0 .. $h - 1) {
+    for my $x (0 .. $w - 1) {
+        print ".";
+        for (0 .. $spins - 1) {
+            print "\b$spinner[$_ % @spinner]";
+        }
+        print "\b.";
+    }
+    print ".\n";
+}

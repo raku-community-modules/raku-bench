@@ -71,4 +71,13 @@
   perl6 => [qw( BENCH/perl6/rc-mandelbrot SCALE )],
   nqp   => [qw( BENCH/nqp/rc-mandelbrot   SCALE )],
  },
+ {
+  name  => 'spinner',
+  skip  => [qw( )],
+  tags  => [qw( io output )],
+  scale => 1 << 5,
+  perl5 => [qw( BENCH/perl5/spinner SCALE )],
+  perl6 => [qw( BENCH/perl6/spinner SCALE )],
+  nqp   => [qw( BENCH/nqp/spinner   SCALE )],
+ },
 ]
