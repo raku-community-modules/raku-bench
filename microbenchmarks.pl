@@ -306,11 +306,11 @@
  {
   name  => 'visit_2d_indices_cross',
   tags  => [qw( for cross )],
-  scale => 1 << 3,
+  scale => 1 << 7,
   work  => sub { $_[0] * $_[0] },
   perl5 => 'sub mk2d { my ($h, $w) = @_; my $x = 0; my $y = 0; sub { return if $y >= $h; my @c = ($y, $x); if (++$x >= $w) { $x = 0; ++$y; }; @c } }; my $it = mk2d(SCALE, SCALE); while (my ($i, $j) = $it->()) { $i + $j }; 1',
   perl6 => 'for ^SCALE X ^SCALE -> $i, $j { $i + $j }; 1',
-  nqp   => undef,
+  nqp   => 'sub mk2d($h, $w) { my $x := 0; my $y := 0; sub () { return () if $y >= $h; my @c := ($y, $x); if ++$x >= $w { $x := 0; ++$y; }; @c } }; my $it := mk2d(SCALE, SCALE); while $it() -> @c { @c[0] + @c[1] }; 1',
  },
  {
   name  => 'create_and_copy_2d_grid_cross',
@@ -319,7 +319,7 @@
   work  => sub { $_[0] * $_[0] },
   perl5 => 'sub mk2d { my ($h, $w) = @_; my $x = 0; my $y = 0; sub { return if $y >= $h; my @c = ($y, $x); if (++$x >= $w) { $x = 0; ++$y; }; @c } }; my (@src, @dst); my $it = mk2d(SCALE, SCALE); while (my ($i, $j) = $it->()) { $src[$i][$j] = $i + $j }; $it = mk2d(SCALE, SCALE); while (my ($i, $j) = $it->()) { $dst[$i][$j] = $src[$i][$j] }; 1',
   perl6 => 'my (@src, @dst); for ^SCALE X ^SCALE -> $i, $j { @src[$i][$j] = $i + $j }; for ^SCALE X ^SCALE -> $i, $j { @dst[$i][$j] = @src[$i][$j] }; 1',
-  nqp   => undef,
+  nqp   => 'sub mk2d($h, $w) { my $x := 0; my $y := 0; sub () { return () if $y >= $h; my @c := ($y, $x); if ++$x >= $w { $x := 0; ++$y; }; @c } }; my @src; my @dst; my $it := mk2d(SCALE, SCALE); while $it() -> @c { @src[@c[0]] := [] unless @src[@c[0]]; @src[@c[0]][@c[1]] := @c[0] + @c[1] }; $it := mk2d(SCALE, SCALE); while $it() -> @c { @dst[@c[0]] := [] unless @dst[@c[0]]; @dst[@c[0]][@c[1]] := @src[@c[0]][@c[1]] }; 1',
  },
  {
   name => 'create_and_iterate_hash_kv',
