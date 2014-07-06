@@ -244,7 +244,7 @@
  },
  {
   name  => 'any_equals',
-  tags  => [qw( junctions )],
+  tags  => [qw( junctions forest-fire )],
   scale => 1 << 7,
   perl5 => 'my $match = grep { 1 == $_ } 1 .. SCALE; my $fail = grep { 0 == $_ } 1 .. SCALE; say "$match $fail"',
   perl6 => 'my $match = 1 == any(1 .. SCALE); my $fail = 0 == any(1 .. SCALE); say "{+?$match} {+?$fail}"',
@@ -352,5 +352,13 @@
   perl5 => 'my $total = 0; for (1 .. SCALE) { $total += rand }; say $total',
   perl6 => 'my $total = 0; for ^SCALE { $total += rand }; say $total',
   nqp   => 'my $total := 0; my $i := 0; while $i++ < SCALE { $total := $total + nqp::rand_n(1) }; say($total)',
+ },
+ {
+  name  => 'array_set_xx',
+  tags  => [qw( array xx forest-fire )],
+  scale => 1 << 17,
+  perl5 => 'my @a = (0) x SCALE; say my $a = @a',
+  perl6 => 'my @a = 0 xx SCALE; say +@a',
+  nqp   => undef,
  },
 ]
