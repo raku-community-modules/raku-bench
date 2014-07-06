@@ -246,8 +246,8 @@
   name  => 'any_equals',
   tags  => [qw( junctions )],
   scale => 1 << 7,
-  perl5 => undef,
-  perl6 => '1 == any(1 .. SCALE)',
+  perl5 => 'my $match = grep { 1 == $_ } 1 .. SCALE; my $fail = grep { 0 == $_ } 1 .. SCALE; say "$match $fail"',
+  perl6 => 'my $match = 1 == any(1 .. SCALE); my $fail = 0 == any(1 .. SCALE); say "{+?$match} {+?$fail}"',
   nqp   => undef,
  },
  {
