@@ -345,4 +345,12 @@
   perl6 => 'my $r = FatRat.new(0, 1); for 1 .. SCALE { $r += 1 / $_ }; say $r.perl',
   nqp   => undef,
  },
+ {
+  name  => 'rand',
+  tags  => [qw( for random forest-fire )],
+  scale => 1 << 20,
+  perl5 => 'my $total = 0; for (1 .. SCALE) { $total += rand }; say $total',
+  perl6 => 'my $total = 0; for ^SCALE { $total += rand }; say $total',
+  nqp   => 'my $total := 0; my $i := 0; while $i++ < SCALE { $total := $total + nqp::rand_n(1) }; say($total)',
+ },
 ]
