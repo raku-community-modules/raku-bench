@@ -294,7 +294,7 @@ multi MAIN ('time', *@components, :$variants?, :$tests?, :$tests-tagged?,
 
 #= Compare benchmark timings
 multi MAIN ('compare', *@timings, :$format?, :$style?, :$outfile?,
-            :$ignore-startup = True, :$ignore-compile = True) {
+            Bool :$ignore-startup = True, Bool :$ignore-compile = True) {
     needs-timings('compare');
 
     my @options = as-options(:compare, :$ignore-startup, :$ignore-compile, :$format, :$style, :$outfile);
@@ -309,7 +309,7 @@ multi MAIN ('compare', *@timings, :$format?, :$style?, :$outfile?,
 
 #= Compare historical peak performance scores
 multi MAIN ('history', *@timings, :$format?, :$style?, :$outfile?,
-            :$ignore-startup = True, :$ignore-compile = True) {
+            Bool :$ignore-startup = True, Bool :$ignore-compile = True) {
     needs-timings('show history');
 
     my @options = as-options(:compare, :history,
