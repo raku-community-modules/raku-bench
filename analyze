@@ -317,7 +317,7 @@ sub summarize_results_text {
 
     my $times        = $data->{times};
     my @test_names   = map { $_->{name} } @$times;
-    my $longest_test = max 8, map { length } @test_names;
+    my $longest_test = max 13, map { length } @test_names;
 
     my $groups       = $data->{config}{groups};
     my $compilers    = $data->{config}{compilers};
