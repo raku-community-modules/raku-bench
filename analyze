@@ -579,6 +579,9 @@ sub summarize_results_html_snippet {
 CSS
     }
 
+    return summarize_results_html_history($data, $opt, $out_fh)
+        if $opt->{history};
+
     my $times        = $data->{times};
     my @test_names   = map { $_->{name} } @$times;
     my $groups       = $data->{config}{groups};
@@ -680,6 +683,15 @@ CSS
     $html .= "</table>\n";
 
     print $out_fh $html;
+}
+
+sub summarize_results_html_history {
+    my ($data, $opt, $out_fh) = @_;
+
+    my $scores = $data->{score}
+        or die "Can't show history without comparison scores!";
+
+    die "HTML table format for history NYI!";
 }
 
 sub summarize_results_html_plot {
