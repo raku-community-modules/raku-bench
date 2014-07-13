@@ -356,31 +356,31 @@ sub time_all_compilers {
     my $cwd       = cwd;
     my %times;
 
-    for my $perl (@COMPILERS) {
-        next unless $perl->{enabled};
+    for my $comp (@COMPILERS) {
+        next unless $comp->{enabled};
 
-        my $name = $perl->{name};
+        my $name = $comp->{name};
         my $skip = $test->{skip};
         if ($skip) {
-            say("--> skipping"), next if ref $skip eq 'CODE'  && $skip->($perl);
+            say("--> skipping"), next if ref $skip eq 'CODE'  && $skip->($comp);
             say("--> skipping"), next if ref $skip eq 'ARRAY' && grep { $_ eq $name } @$skip;
         }
 
-        my $dir   = $perl->{dir} || $START_CWD;
-        my $comp  = $perl->{"${test_type}_compile"} || [];
-        my $run   = $perl->{"${test_type}_run"};
-        my $group = $perl->{group};
-        my $args  = $test->{$group} // next;
-        my @args  = ref $args ? @$args : ($args);
+        my $dir     = $comp->{dir} || $START_CWD;
+        my $compile = $comp->{"${test_type}_compile"} || [];
+        my $run     = $comp->{"${test_type}_run"};
+        my $group   = $comp->{group};
+        my $args    = $test->{$group} // next;
+        my @args    = ref $args ? @$args : ($args);
 
-        s/\bVM\b/$VM{$perl->{vm}}/g      for       @$comp, @$run, @args;
-        s/\bBENCH\b/$FindBin::Bin/g      for $dir, @$comp, @$run, @args;
-        s{\bDATA\b}{$FindBin::Bin/data}g for $dir, @$comp, @$run, @args;
+        s/\bVM\b/$VM{$comp->{vm}}/g      for       @$compile, @$run, @args;
+        s/\bBENCH\b/$FindBin::Bin/g      for $dir, @$compile, @$run, @args;
+        s{\bDATA\b}{$FindBin::Bin/data}g for $dir, @$compile, @$run, @args;
 
         my @compile;
-        if (@$comp) {
+        if (@$compile) {
             # XXXX: This shift is a code smell ...
-            @compile = (@$comp, shift @args);
+            @compile = (@$compile, shift @args);
         }
         my @run = (@$run, @args);
 
@@ -505,7 +505,7 @@ sub best_times {
     my $raw_times = shift;
     my %best;
 
-    while (my ($perl, $times) = each %$raw_times) {
+    while (my ($comp, $times) = each %$raw_times) {
         my %runs_by_scale;
         for my $run (@$times) {
             push @{$runs_by_scale{$run->{scale}} ||= []}, $run;
@@ -516,7 +516,7 @@ sub best_times {
             $best_by_scale{$scale} = min_by { $_->{time} } @$runs;
         }
 
-        $best{$perl} = \%best_by_scale;
+        $best{$comp} = \%best_by_scale;
     }
 
     return \%best;

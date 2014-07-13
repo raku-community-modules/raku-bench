@@ -14,6 +14,11 @@ use IO::File;
 use DateTime;
 use JSON;
 
+use FindBin;
+use lib "$FindBin::Bin/lib";
+use Analyze::Summary;
+
+
 my %FORMATTER = (
                  json         => \&summarize_results_json,
                  text         => \&summarize_results_text,
@@ -194,9 +199,9 @@ sub compare_scaled_times {
 
     my %times_by_scale;
     my %rates_by_scale;
-    my %rates_by_perl;
-    while (my ($perl, $scale_runs) = each %$times) {
-        my $startup_time = $ignore_startup ? $startup->{$perl} || 0 : 0;
+    my %rates_by_comp;
+    while (my ($comp, $scale_runs) = each %$times) {
+        my $startup_time = $ignore_startup ? $startup->{$comp} || 0 : 0;
         my $compile_time = $ignore_compile ? $scale_runs->{0}{time} || 0 : 0;
         my $ignore_time  = max($startup_time, $compile_time);
 
@@ -205,9 +210,9 @@ sub compare_scaled_times {
             my $time = $run->{time};
             my $work = $run->{work};
 
-            my $bounded = $times_by_scale{$scale}{$perl} = max($time - $ignore_time, $min_time);
-            my $rate    = $rates_by_scale{$scale}{$perl} = $work / $bounded;
-            $rates_by_perl{$perl}{$scale} = $rate;
+            my $bounded = $times_by_scale{$scale}{$comp} = max($time - $ignore_time, $min_time);
+            my $rate    = $rates_by_scale{$scale}{$comp} = $work / $bounded;
+            $rates_by_comp{$comp}{$scale} = $rate;
             $max_rate = $rate if $max_rate < $rate;
             $max_rates{$scale} = $rate
                 if !$max_rates{$scale} || $max_rates{$scale} < $rate;
@@ -215,18 +220,18 @@ sub compare_scaled_times {
     }
 
     my %relative_rates;
-    while (my ($scale, $perl_rates) = each %rates_by_scale) {
-        while (my ($perl, $rate) = each %$perl_rates) {
-            $relative_rates{$scale}{$perl} = $rate / $max_rates{$scale};
+    while (my ($scale, $comp_rates) = each %rates_by_scale) {
+        while (my ($comp, $rate) = each %$comp_rates) {
+            $relative_rates{$scale}{$comp} = $rate / $max_rates{$scale};
         }
     }
 
     my %peak_rate;
-    while (my ($perl, $scale_rates) = each %rates_by_perl) {
+    while (my ($comp, $scale_rates) = each %rates_by_comp) {
         my @sorted  = sort { $scale_rates->{$b} <=> $scale_rates->{$a} } keys %$scale_rates;
         my $fastest = $sorted[0];
         my $rate    = $scale_rates->{$fastest};
-        $peak_rate{$perl} = {
+        $peak_rate{$comp} = {
                              scale             => $fastest,
                              rate              => $rate,
                              relative_to_max   => $rate / $max_rate,
@@ -237,7 +242,7 @@ sub compare_scaled_times {
     return {
             times_by_scale => \%times_by_scale,
             rates_by_scale => \%rates_by_scale,
-            rates_by_perl  => \%rates_by_perl,
+            rates_by_comp  => \%rates_by_comp,
             relative_rates => \%relative_rates,
             peak_rate      => \%peak_rate,
             max_rate       => $max_rate,
@@ -303,74 +308,59 @@ sub summarize_results_json {
 sub summarize_results_text {
     my ($data, $opt, $out_fh) = @_;
 
+    $opt->{style} = -t $out_fh
+        if $opt->{style} eq 'auto';
+
     return summarize_results_text_history($data, $opt, $out_fh)
         if $opt->{history};
 
-    my $style = $opt->{style};
-       $style = -t $out_fh
-        if $style eq 'auto';
-
+    my $style  = $opt->{style};
     my $RED    = $style ? "\e[1;31m" : '';
     my $GREEN  = $style ? "\e[32m"   : '';
     my $YELLOW = $style ? "\e[1;33m" : '';
     my $CLEAR  = $style ? "\e[0m"    : '';
 
-    my $times        = $data->{times};
-    my @test_names   = map { $_->{name} } @$times;
-    my $longest_test = max 13, map { length } @test_names;
+    my $s = Analyze::Summary::Compare->new(data => $data, opt => $opt);
 
-    my $groups       = $data->{config}{groups};
-    my $compilers    = $data->{config}{compilers};
-    my @perls        = enabled_perls($groups, $compilers);
-    my @run_names    = map { $_->{run} || '' } @perls;
-    my @lang_names   = map { $_->{language} } @perls;
-    my @comp_names   = map { $_->{compiler} } @perls;
-    my @vm_names     = map { $_->{vm}       } @perls;
-    my $longest_perl = max 8, map { length } @run_names, @lang_names, @comp_names, @vm_names;
+    my $longest_test = max 13, map { length } @{$s->{test_names}};
+    my $longest_comp = max 8,  map { length } @{$s->{run_names}},
+        @{$s->{lang_names}}, @{$s->{comp_names}}, @{$s->{vm_names}};
 
     my $spacer_length = 3;
     my $spacer = ' ' x $spacer_length;
-    my $format = join $spacer => "%-${longest_test}s", (("%${longest_perl}s  ") x @perls);
 
-    my %lang_count;
-       $lang_count{$_}++ for @lang_names;
-    my @langs = uniq @lang_names;
-    my @lang_titles = map { center(" $_ ", $lang_count{$_} * ($longest_perl + $spacer_length + 2) - $spacer_length, bg => '-') } @langs;
+    my @comps  = @{$s->{compilers}};
+    my $format = join $spacer => "%-${longest_test}s", (("%${longest_comp}s  ") x @comps);
 
-    my $run    = $data->{run};
-    my $start  = friendly_time($run->{start_time});
-
-    my @ignore;
-    push @ignore, 'startup time' if $opt->{'ignore-startup'};
-    push @ignore, 'compile time' if $opt->{'ignore-compile'};
-    my $ignore = @ignore ? ' (ignoring ' . join(' and ' => @ignore) . ')' : '';
-
-    my $run_at = $opt->{compare} ? '' : " run at $start";
-    my $output = "$CLEAR\n==> perl6-bench version $run->{versions}{bench}$run_at$ignore\n";
-
-    my   @showing = ('PEAK RATE (/s)');
-    push @showing, 'TIMES SLOWER THAN FASTEST (x)' if $opt->{compare};
-    push @showing, 'SUMMARY SCORES' if $data->{score};
-    $output   .= '--- showing ' . english_list(@showing) . "\n\n";
-
+    my @lang_titles = map { center(" $_ ", $s->{lang_count}{$_} * ($longest_comp + $spacer_length + 2) - $spacer_length, bg => '-') } @{$s->{langs}};
     my $titles = join $spacer => @lang_titles;
+
+    my @ignore = @{$s->{ignoring}};
+    my $ignore = @ignore ? ' (ignoring ' . join(' and ' => @ignore) . ')' : '';
+    my $start  = friendly_time($data->{run}{start_time});
+    my $run_at = $opt->{compare} ? '' : " run at $start";
+    my $showing = 'showing ' . english_list(@{$s->{showing}});
+
+    my $output = "$CLEAR\n==> perl6-bench version $data->{run}{versions}{bench}$run_at$ignore\n--- $showing\n\n";
+
     $output   .= ' ' x $longest_test . "$spacer$titles\n";
-    $output   .= sprintf "$format\n", '',     @run_names if grep {length} @run_names;
-    $output   .= sprintf "$format\n", '',     @comp_names;
-    $output   .= sprintf "$format\n", 'TEST', @vm_names;
+    $output   .= sprintf "$format\n", '',     @{$s->{run_names}}
+        if grep {length} @{$s->{run_names}};
+    $output   .= sprintf "$format\n", '',     @{$s->{comp_names}};
+    $output   .= sprintf "$format\n", 'TEST', @{$s->{vm_names}};
     $output   .= ' ' x $longest_test . $spacer . '-' x length($titles) . "\n";
 
-    for my $test (@$times) {
+    for my $test (@{$data->{times}}) {
         $output .= "\n" unless $style;
         $output .= sprintf "%-${longest_test}s", $test->{name};
-        for my $perl (@perls) {
-            my $key  = $perl->{key} || $perl->{name};
+        for my $comp (@comps) {
+            my $key  = $comp->{key} || $comp->{name};
             my $peak = $test->{compare}{peak_rate}{$key};
             if (defined $peak && defined $peak->{rate}) {
-                $output .= sprintf "$spacer%${longest_perl}.0f/s", $peak->{rate};
+                $output .= sprintf "$spacer%${longest_comp}.0f/s", $peak->{rate};
             }
             else {
-                $output .= sprintf "$spacer%${longest_perl}s  ", '-- ';
+                $output .= sprintf "$spacer%${longest_comp}s  ", '-- ';
             }
         }
         $output .= "\n";
@@ -378,8 +368,8 @@ sub summarize_results_text {
         next unless $opt->{compare};
 
         $output .= sprintf "%-${longest_test}s", '';
-        for my $perl (@perls) {
-            my $key  = $perl->{key} || $perl->{name};
+        for my $comp (@comps) {
+            my $key  = $comp->{key} || $comp->{name};
             my $peak = $test->{compare}{peak_rate}{$key};
             my $rel  = $peak->{relative_to_max};
             if ($rel) {
@@ -387,15 +377,15 @@ sub summarize_results_text {
                 my $color = $rel <  2 ? $GREEN  :
                             $rel < 10 ? $YELLOW :
                                         $RED    ;
-                $output .= sprintf "$spacer$color%${longest_perl}.1fx $CLEAR", $rel;
+                $output .= sprintf "$spacer$color%${longest_comp}.1fx $CLEAR", $rel;
             }
             else {
                 # XXXX: May have to make this based on key instead of name
                 my $conf    =  $test->{conf};
-                my $is_skip =  !defined $conf->{$perl->{group}}
-                            || (grep { $_ eq $perl->{name} } @{$conf->{skip} || []})
+                my $is_skip =  !defined $conf->{$comp->{group}}
+                            || (grep { $_ eq $comp->{name} } @{$conf->{skip} || []})
                             || (exists $conf->{skip} && !defined $conf->{skip});
-                $output .= sprintf "$spacer$RED%${longest_perl}s  $CLEAR",
+                $output .= sprintf "$spacer$RED%${longest_comp}s  $CLEAR",
                        $is_skip ? 'SKIP' : 'FAIL';
             }
         }
@@ -406,17 +396,17 @@ sub summarize_results_text {
     if ($scores) {
         $output .= ' ' x $longest_test . $spacer . '=' x length($titles) . "\n";
         $output .= sprintf "%-${longest_test}s", 'SUMMARY SCORE';
-        for my $perl (@perls) {
-            my $key   = $perl->{key} || $perl->{name};
+        for my $comp (@comps) {
+            my $key   = $comp->{key} || $comp->{name};
             my $score = $scores->{$key};
             if (defined $score) {
                 my $color = $score > 50 ? $GREEN  :
                             $score > 10 ? $YELLOW :
                                           $RED    ;
-                $output .= sprintf "$spacer$color%${longest_perl}.1f  $CLEAR", $score;
+                $output .= sprintf "$spacer$color%${longest_comp}.1f  $CLEAR", $score;
             }
             else {
-                $output .= sprintf "$spacer%${longest_perl}s  ", '-- ';
+                $output .= sprintf "$spacer%${longest_comp}s  ", '-- ';
             }
         }
         $output .= "\n";
@@ -431,20 +421,16 @@ sub summarize_results_text_history {
     my $scores = $data->{score}
         or die "Can't show history without comparison scores!";
 
-    my $style = $opt->{style};
-       $style = -t $out_fh
-        if $style eq 'auto';
-
+    my $style  = $opt->{style};
     my $RED    = $style ? "\e[1;31m" : '';
     my $GREEN  = $style ? "\e[32m"   : '';
     my $YELLOW = $style ? "\e[1;33m" : '';
     my $CLEAR  = $style ? "\e[0m"    : '';
 
-    my $groups       = $data->{config}{groups};
-    my $compilers    = $data->{config}{compilers};
-    my @perls        = enabled_perls($groups, $compilers);
-    my @comp_names   = uniq map { $_->{name} } @perls;
-    my $longest_perl = max 8, map { length } @comp_names;
+    my $s = Analyze::Summary->new(data => $data, opt => $opt);
+
+    my @comp_names   = uniq map { $_->{name} } @{$s->{compilers}};
+    my $longest_comp = max 8, map { length } @comp_names;
 
     my %column;
     my $col = 0;
@@ -452,21 +438,17 @@ sub summarize_results_text_history {
 
     my $spacer_length = 3;
     my $spacer  = ' ' x $spacer_length;
-    my $format  = join $spacer => "%-10s", (("%${longest_perl}s  ") x $col);
+    my $format  = join $spacer => "%-10s", (("%${longest_comp}s  ") x $col);
        $format .= "\n";
 
     my @date_sorted  = sort {     ($a->{commit_time} || 0)
-                              <=> ($b->{commit_time} || 0) } @perls;
-    my $run    = $data->{run};
-    my $start  = friendly_time($run->{start_time});
+                              <=> ($b->{commit_time} || 0) } @{$s->{compilers}};
 
-    my @ignore;
-    push @ignore, 'startup time' if $opt->{'ignore-startup'};
-    push @ignore, 'compile time' if $opt->{'ignore-compile'};
+    my @ignore = @{$s->{ignoring}};
     my $ignore = @ignore ? ' (ignoring ' . join(' and ' => @ignore) . ')' : '';
-
+    my $start  = friendly_time($data->{run}{start_time});
     my $run_at = $opt->{compare} ? '' : " run at $start";
-    my $output = "$CLEAR\n==> perl6-bench version $run->{versions}{bench}$run_at$ignore\n";
+    my $output = "$CLEAR\n==> perl6-bench version $data->{run}{versions}{bench}$run_at$ignore\n";
     $output   .= "--- showing HISTORICAL SCORES\n\n";
     $output   .= sprintf $format, 'DATE', @comp_names;
 
@@ -481,14 +463,14 @@ sub summarize_results_text_history {
         @row       = ($date, ('') x $col);
     };
 
-    for my $perl (@date_sorted) {
-        my $commit = $perl->{commit_time} || 0;
+    for my $comp (@date_sorted) {
+        my $commit = $comp->{commit_time} || 0;
         my $date = DateTime->from_epoch(epoch => $commit)->ymd;
         $new_row->($date) if $old_date ne $date;
 
-        my $key    = $perl->{key} || $perl->{name};
+        my $key    = $comp->{key} || $comp->{name};
         my $score  = $scores->{$key};
-        my $column = $column{$perl->{name}};
+        my $column = $column{$comp->{name}};
 
         if (defined $score) {
             # Don't let new scores on the same date overwrite old ones
@@ -498,7 +480,7 @@ sub summarize_results_text_history {
                         $score > 10 ? $YELLOW :
                                       $RED    ;
 
-            $row[$column] = sprintf "$color%${longest_perl}.1f$CLEAR", $score;
+            $row[$column] = sprintf "$color%${longest_comp}.1f$CLEAR", $score;
         }
     }
     $output .= sprintf $format, @row if @row;
@@ -546,11 +528,10 @@ sub summarize_results_html_snippet {
     my $html = '';
 
     # Default to no style info if just generating an HTML snippet
-    my $style = $opt->{style};
-       $style = 0
-        if $style eq 'auto';
+    $opt->{style} = 0
+        if $opt->{style} eq 'auto';
 
-    if ($style) {
+    if ($opt->{style}) {
         $html .= <<'CSS';
 <style type="text/css">
 .bench_summary         { font-family: sans-serif; }
@@ -582,46 +563,26 @@ CSS
     return summarize_results_html_history($data, $opt, $out_fh)
         if $opt->{history};
 
-    my $times        = $data->{times};
-    my @test_names   = map { $_->{name} } @$times;
-    my $groups       = $data->{config}{groups};
-    my $compilers    = $data->{config}{compilers};
+    my $s = Analyze::Summary::Compare->new(data => $data, opt => $opt);
 
-    my @perls        = enabled_perls($groups, $compilers);
-    my @run_names    = map { $_->{run} || '' } @perls;
-    my @lang_names   = map { $_->{language} } @perls;
-    my @comp_names   = map { $_->{compiler} } @perls;
-    my @vm_names     = map { $_->{vm}       } @perls;
-
-    my %lang_count;
-       $lang_count{$_}++ for @lang_names;
-    my @langs = uniq @lang_names;
-
-    my $run    = $data->{run};
-
-    my @ignore;
-    push @ignore, 'startup time' if $opt->{'ignore-startup'};
-    push @ignore, 'compile time' if $opt->{'ignore-compile'};
-    my $ignore = @ignore ? ' (ignoring ' . join(' and ' => @ignore) . ')' : '';
-
-    my $run_at = $opt->{compare} ? '' : qq{ run at <span class="bench_start_time">} . friendly_time($run->{start_time}) . qq{</span>};
-
-    my   @showing = ('PEAK RATE (<strong>/s</strong>)');
-    push @showing, 'TIMES SLOWER THAN FASTEST (<strong>x</strong>)' if $opt->{compare};
-    push @showing, 'SUMMARY SCORES' if $data->{score};
-    my   $showing = 'showing ' . english_list(@showing);
+    my @ignore  = @{$s->{ignoring}};
+    my $ignore  = @ignore ? ' (ignoring ' . join(' and ' => @ignore) . ')' : '';
+    my $run_at  = $opt->{compare} ? '' : qq{ run at <span class="bench_start_time">} . friendly_time($data->{run}{start_time}) . qq{</span>};
+    my $showing = 'showing ' . english_list(@{$s->{showing}});
+    $showing =~ s/\((.+?)\)/(<strong>$1<\/strong>)/g;
 
     $html .= qq{<table class="bench_summary" cellspacing="0" cellpadding="0">\n};
-    $html .= qq{<caption>perl6-bench version <span class="bench_ver">$run->{versions}{bench}</span>$run_at$ignore<br>$showing</caption>\n};
-    $html .= "<tr><th></th>\n"     . join('' => map qq{    <th class="bench_language" colspan="$lang_count{$_}">$_</th>\n} => @langs) . "</tr>\n";
-    $html .= "<tr><th></th>\n"     . join('' => map qq{    <th class="bench_run">$_</th>\n} => @run_names) . "</tr>\n" if grep {length} @run_names;
-    $html .= "<tr><th></th>\n"     . join('' => map qq{    <th class="bench_compiler">$_</th>\n} => @comp_names) . "</tr>\n";
-    $html .= "<tr><th>TEST</th>\n" . join('' => map qq{    <th class="bench_vm">$_</th>\n} => @vm_names) . "</tr>\n";
+    $html .= qq{<caption>perl6-bench version <span class="bench_ver">$data->{run}{versions}{bench}</span>$run_at$ignore<br>$showing</caption>\n};
+    $html .= "<tr><th></th>\n"     . join('' => map qq{    <th class="bench_language" colspan="$s->{lang_count}{$_}">$_</th>\n} => @{$s->{langs}}) . "</tr>\n";
+    $html .= "<tr><th></th>\n"     . join('' => map qq{    <th class="bench_run">$_</th>\n} => @{$s->{run_names}}) . "</tr>\n" if grep {length} @{$s->{run_names}};
+    $html .= "<tr><th></th>\n"     . join('' => map qq{    <th class="bench_compiler">$_</th>\n} => @{$s->{comp_names}}) . "</tr>\n";
+    $html .= "<tr><th>TEST</th>\n" . join('' => map qq{    <th class="bench_vm">$_</th>\n} => @{$s->{vm_names}}) . "</tr>\n";
 
-    for my $test (@$times) {
+    my @comps = @{$s->{compilers}};
+    for my $test (@{$data->{times}}) {
         $html .= qq{<tr class="bench_time_row"><td>$test->{name}</td>\n};
-        for my $perl (@perls) {
-            my $key  = $perl->{key} || $perl->{name};
+        for my $comp (@comps) {
+            my $key  = $comp->{key} || $comp->{name};
             my $peak = $test->{compare}{peak_rate}{$key};
             if (defined $peak && defined $peak->{rate}) {
                 $html .= sprintf qq{    <td class="bench_rate">%.0f/s</td>\n}, $peak->{rate};
@@ -635,8 +596,8 @@ CSS
         next unless $opt->{compare};
 
         $html .= qq{<tr class="bench_compare_row"><td></td>\n};
-        for my $perl (@perls) {
-            my $key  = $perl->{key} || $perl->{name};
+        for my $comp (@comps) {
+            my $key  = $comp->{key} || $comp->{name};
             my $peak = $test->{compare}{peak_rate}{$key};
             my $rel  = $peak->{relative_to_max};
             if ($rel) {
@@ -649,8 +610,8 @@ CSS
             else {
                 # XXXX: May have to make this based on key instead of name
                 my $conf    =  $test->{conf};
-                my $is_skip =  !defined $conf->{$perl->{group}}
-                            || (grep { $_ eq $perl->{name} } @{$conf->{skip} || []})
+                my $is_skip =  !defined $conf->{$comp->{group}}
+                            || (grep { $_ eq $comp->{name} } @{$conf->{skip} || []})
                             || (exists $conf->{skip} && !defined $conf->{skip});
                 my $class   = $is_skip ? 'bench_skip' : 'bench_fail';
                 my $message = $is_skip ? 'SKIP'       : 'FAIL';
@@ -665,8 +626,8 @@ CSS
     if ($scores) {
         $html .= qq{</tr>\n<tr class="bench_spacer_row"></tr>\n};
         $html .= qq{<tr class="bench_compare_row"><th>SUMMARY SCORE</th>\n};
-        for my $perl (@perls) {
-            my $key   = $perl->{key} || $perl->{name};
+        for my $comp (@comps) {
+            my $key   = $comp->{key} || $comp->{name};
             my $score = $scores->{$key};
             if (defined $score) {
                 my $class = $score > 50 ? 'bench_good' :
@@ -759,14 +720,14 @@ sub summarize_results_html_plot {
         s.toggleDisplay(ev, doLegendToggle);
     };
     charts = [];
-    
-    function toggle_perl (idx, v) {
+
+    function toggle_comp (idx, v) {
         for (var i = 0; i < charts.length; i++) {
             var c = charts[i];
             var s = c.series[idx];
-            
+
             if (!!v === s.show) continue;
-            
+
             var l = c.legend;
             handleToggle({ data: {
                 plot: c,
@@ -778,7 +739,7 @@ sub summarize_results_html_plot {
 
         return v;
     }
-    
+
     function do_plot (chart_div, title, series_data, series_labels, opt) {
         var series_conf = [];
         for (var i in series_labels) {
@@ -972,30 +933,25 @@ sub summarize_results_html_plot {
 <body>
 PLOT_HEADER
 
-    my $run    = $data->{run};
-    my @ignore;
-    push @ignore, 'startup time' if $opt->{'ignore-startup'};
-    push @ignore, 'compile time' if $opt->{'ignore-compile'};
+    my $s = Analyze::Summary->new(data => $data, opt => $opt);
+
+    my @ignore = @{$s->{ignoring}};
     my $ignore = @ignore ? ' (ignoring ' . join(' and ' => @ignore) . ')' : '';
 
-    my $run_at = $opt->{compare} ? '' : qq{ run at <span class="bench_start_time">} . friendly_time($run->{start_time}) . qq{</span>};
-    $html .= qq{<h2>perl6-bench version <span class="bench_ver">$run->{versions}{bench}</span>$run_at$ignore</h2>\n\n};
+    my $run_at = $opt->{compare} ? '' : qq{ run at <span class="bench_start_time">} . friendly_time($data->{run}{start_time}) . qq{</span>};
+    $html .= qq{<h2>perl6-bench version <span class="bench_ver">$data->{run}{versions}{bench}</span>$run_at$ignore</h2>\n\n};
 
-    my $times      = $data->{times};
-    my @test_names = map { $_->{name} } @$times;
-    my $groups     = $data->{config}{groups};
-    my $compilers  = $data->{config}{compilers};
-    my @perls      = enabled_perls($groups, $compilers);
-    my $labels     = join ', ' => map {'"' . ($_->{key} || $_->{name}) . '"'} @perls;
-    
+    my @comps  = @{$s->{compilers}};
+    my $labels = join ', ' => map {'"' . ($_->{key} || $_->{name}) . '"'} @comps;
+
     $html .= qq^
         <form autocomplete="off" id="toggleform">
             <div id="toggleswitches">
                 <div>^;
-    for (0..$#perls) {
-        my $perl = $perls[$_];
-        my $label = $perl->{key} || $perl->{name};
-        $html .= qq^<label><input type="checkbox" value="$_" checked="checked" onclick="toggle_perl(this.value, this.checked); return true;">$label</label>^;
+    for (0..$#comps) {
+        my $comp = $comps[$_];
+        my $label = $comp->{key} || $comp->{name};
+        $html .= qq^<label><input type="checkbox" value="$_" checked="checked" onclick="toggle_comp(this.value, this.checked); return true;">$label</label>^;
     }
     $html .= qq^
             </div>
@@ -1003,7 +959,7 @@ PLOT_HEADER
         <div id="togglebutton" onclick="\$('#toggleswitches').slideToggle()">Toggles</div>
     </form>^;
 
-    for my $test (@$times) {
+    for my $test (@{$data->{times}}) {
         # In compare mode, the 'empty' test data is just residual noise
         next if $opt->{compare} && $test->{name} eq 'empty';
 
@@ -1044,8 +1000,8 @@ CHART_TOP
 
             my ($rates) = values %$by_scale;
             my @data_points;
-            for my $perl (@perls) {
-                my $key = $perl->{key} || $perl->{name};
+            for my $comp (@comps) {
+                my $key = $comp->{key} || $comp->{name};
                 push @data_points, $rates->{$key} || 0;
             }
             $html .= join ', ' => @data_points;
@@ -1054,9 +1010,9 @@ CHART_TOP
             $chart_type = 'plot';
 
             my @data_rows;
-            for my $perl (@perls) {
-                my $key = $perl->{key} || $perl->{name};
-                my $scale_rates = $compare->{rates_by_perl}{$key};
+            for my $comp (@comps) {
+                my $key = $comp->{key} || $comp->{name};
+                my $scale_rates = $compare->{rates_by_comp}{$key};
                 my $rel_rates   = $compare->{relative_rates};
 
                 my @data_points;
@@ -1101,21 +1057,6 @@ CHART_BOTTOM
 PLOT_FOOTER
 
     print $out_fh $html;
-}
-
-sub enabled_perls {
-    my ($groups, $compilers) = @_;
-
-    my %by_group;
-    for my $perl (@$compilers) {
-        push @{$by_group{$perl->{group}} ||= []}, $perl
-            if $perl->{enabled};
-    }
-
-    return
-      sort { ($a->{key} || $a->{name}) cmp ($b->{key} || $b->{name}) }
-      map { @{$by_group{$_} || []} }
-      @$groups;
 }
 
 sub friendly_time {
