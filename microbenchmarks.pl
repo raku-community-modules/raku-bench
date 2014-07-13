@@ -36,7 +36,7 @@
  },
  {
   name  => 'while_bind',
-  tags  => [qw( while )],
+  tags  => [qw( while bind )],
   scale => 1 << 10,
   perl5 => 'use Data::Alias; alias my $a = 0; alias my $b = 1; my $i = 0; while (++$i <= SCALE) { alias $a = $b }',
   perl6 => 'my $a := 0; my $b := 1; my $i = 0; while (++$i <= SCALE) { $a := $b }',
@@ -132,7 +132,7 @@
  },
  {
   name  => 'for_bind',
-  tags  => [qw( for )],
+  tags  => [qw( for bind )],
   scale => 1 << 10,
   perl5 => 'use Data::Alias; alias my $a = 0; alias my $b = 1; for (1 .. SCALE) { alias $a = $b; }; 1',
   perl6 => 'my $a := 0; my $b := 1; for (1 .. SCALE) { $a := $b; }; 1',
