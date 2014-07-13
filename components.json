@@ -18,8 +18,8 @@
         "release_tags": "^ 20\\d\\d \\D \\d\\d [\\.\\d+]? $",
         "build_steps":  [
             [ "make", "realclean" ],
-            [ "rm", "-rf", "install", "moarvm" ],
-            [ "git", "clone", "-l", "../../moarvm/moarvm.git" ],
+            [ "rm", "-rf", "install", "MoarVM" ],
+            [ "git", "clone", "-l", "../../moarvm/moarvm.git", "MoarVM" ],
             [ "perl", "Configure.pl", "--backends=moar", "--gen-moar" ],
             [ "make" ],
             [ "make", "install" ]
@@ -101,9 +101,9 @@
         "build_steps":  [
             [ "make", "realclean" ],
             [ "git", "clean", "-dxf" ],
-            [ "rm", "-rf", "install", "nqp", "moarvm" ],
-            [ "git", "clone", "-l", "../../moarvm/moarvm.git" ],
+            [ "rm", "-rf", "install", "nqp" ],
             [ "git", "clone", "-l", "../../nqp-moar/nqp-moar.git", "nqp" ],
+            [ "git", "clone", "-l", "../../moarvm/moarvm.git", "nqp/MoarVM" ],
             [ "perl", "Configure.pl", "--backends=moar", "--gen-moar" ],
             [ "make" ],
             [ "make", "install" ]
