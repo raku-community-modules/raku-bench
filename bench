@@ -16,6 +16,55 @@ init_bench_handling();
 
 # MAIN COMMANDS
 
+# NOTE: The quickstart command is first here so it will appear first
+#       in the help text and hopefully catch the user's eye
+
+#= Setup, build, and test default compilers
+multi MAIN ('quickstart') {
+    say "CONFIGURATION";
+    MAIN('config');
+
+    say "\nSETUP AND CLONE REPOS";
+    MAIN('setup');
+
+    say "\nFETCH NEW COMMITS";
+    MAIN('fetch');
+
+    # Figure out which tags to build and test by default
+    my @compilers = < perl5 nqp-moar rakudo-moar >;
+    my %tags     := known-tags(@compilers);
+
+    my sub modern-release($tag) {
+           $tag ~~ /^ \d**4\.\d**2 $/ && $tag ge '2014.01'
+        || $tag ~~ /^ 'v5.'(\d+)\.(\d+) $/ && +$0 >= 18 && +$0 %% 2
+    }
+    my %default;
+    %default{$_} = %tags{$_}.grep(&modern-release) for @compilers;
+
+    %default<nqp-moar>.push: 'master';
+    %default<rakudo-moar>.push: 'nom';
+
+    my @checkouts = gather for %default.kv -> $compiler, @defaults {
+        take "$compiler/$_" for @defaults;
+    }
+
+    say "\nPLANNED CHECKOUTS";
+    .say for @checkouts;
+
+    # Extract, build, time, and compare the default checkouts
+    say "\nEXTRACT CHECKOUTS";
+    MAIN('extract', @checkouts);
+
+    say "\nBUILD COMPILERS";
+    MAIN('build',   @checkouts);
+
+    say "\nRUN BENCHMARKS";
+    MAIN('time',    @checkouts, :tests-tagged('has-lang:nqp,-bind'));
+
+    say "\nPERFORMANCE HISTORY";
+    MAIN('history', @checkouts);
+}
+
 #= Show benchmark configuration
 multi MAIN ('config') {
     my $perl6 = $*PERL.compiler;
