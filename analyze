@@ -480,15 +480,18 @@ sub summarize_results_text_history {
         my $score  = $scores->{$key};
         my $column = $column{$comp->{name}};
 
-        if (defined $score) {
-            # Don't let new scores on the same date overwrite old ones
-            $new_row->($date) if $row[$column] ne '';
+        # Don't let new scores on the same date overwrite old ones
+        $new_row->($date) if $row[$column] ne '';
 
+        if (defined $score) {
             my $color = $score > 50 ? $GREEN  :
                         $score > 10 ? $YELLOW :
                                       $RED    ;
 
             $row[$column] = sprintf "$color%${longest_comp}.1f$CLEAR", $score;
+        }
+        else {
+            $row[$column] = sprintf "$RED%${longest_comp}s$CLEAR", '--';
         }
     }
     $output .= sprintf $format, @row if @row;
