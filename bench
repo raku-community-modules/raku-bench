@@ -233,6 +233,15 @@ multi MAIN ('list-branches', *@components) {
 multi MAIN ('list-tags', *@components) {
     needs-setup('list');
 
+    my %tags := known-tags(@components, :with-dates);
+    for %tags.values -> @tags {
+        say "    $_<date>   $_<name>" for @tags;
+    }
+}
+
+#= Find known tags in cloned components
+sub known-tags(*@components, :$with-dates) {
+    my %tags;
     for-components @components, -> $comp, $name {
         my $comp_dir = "$COMPONENTS_DIR/$name";
         my $bare     = "$name.git";
@@ -246,14 +255,21 @@ multi MAIN ('list-tags', *@components) {
         %*ENV<GIT_DIR> = "$comp_dir/$bare";
         my @all-tags   = qx{git tag}.lines;
 
-        for @all-tags -> $tag {
-            my $detect = "git show -s --format=%ct $tag^\{commit}";
-            my $commit-time = qqx{$detect};
-            my $date = DateTime.new(+$commit-time).Date;
-            say "    $date   $tag";
+        if $with-dates {
+            %tags{$name} = gather for @all-tags -> $tag {
+                my $detect = "git show -s --format=%ct $tag^\{commit}";
+                my $commit-time = qqx{$detect};
+                my $date = DateTime.new(+$commit-time).Date;
+                take { name => $tag, :$date };
+            }
+        }
+        else {
+            %tags{$name} = @all-tags;
         }
         %*ENV<GIT_DIR>:delete;
     }
+
+    %tags;
 }
 
 #= Build checked out component trees
