@@ -3,18 +3,16 @@
 # ABSTRACT: Master console/"porcelain" for Perl language family benchmarking tools
 
 use v6;
-
-use lib <lib>;
-
-use Bench::Handling;
-use Bench::Globals;
-
-
 use JSON::Tiny;
 use Shell::Command;
 
+use lib <lib>;
+use Bench::Handling;
+use Bench::Globals;
+
 go_to_bench_dir();
 init_bench_handling();
+
 
 # MAIN COMMANDS
 
