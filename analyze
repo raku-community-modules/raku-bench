@@ -193,7 +193,7 @@ sub load_timing_file {
 
 sub compare_scaled_times {
     my ($times, $startup, $ignore_startup, $ignore_compile) = @_;
-    my $min_time = 1e-3;
+    my $min_time = 1e-2;
     my $max_rate = 0;
     my %max_rates;
 
@@ -210,11 +210,11 @@ sub compare_scaled_times {
             my $time = $run->{time};
             my $work = $run->{work};
 
-            # If below twice the minimum time after removing ignored
+            # If below the minimum time after removing ignored
             # startup/compile time, the calculated rate is going to be
             # effectively garbage, so just skip this data point
             $time -= $ignore_time;
-            next if $time < 2 * $min_time;
+            next if $time < $min_time;
 
             $times_by_scale{$scale}{$comp} = $time;
             my $rate =
