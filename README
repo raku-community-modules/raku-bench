@@ -4,6 +4,7 @@
 
 TABLE OF CONTENTS
 -----------------
+* REALLY QUICK START
 * QUICK START
 * NETWORK TRAFFIC
 * BENCHMARKING TIPS
@@ -11,6 +12,13 @@ TABLE OF CONTENTS
 * COPYRIGHT
 
 -->
+
+
+REALLY QUICK START
+------------------
+1. Make sure you'll have a net connection and idle CPUs for the next few hours
+2. Run: ./bench quickstart
+3. Profit!
 
 
 QUICK START
@@ -42,9 +50,10 @@ again (unless you run `./bench fetch` to bring in new upstream commits).
 During the setup process, `bench` clones a bare mirror of the git repos of
 every component it knows about.  After that, the extract command simply
 makes local clones of these bare mirrors as needed, not touching the network
-at all.  Also, special care is taken during component builds so that components
-such as NQP and Rakudo that want to automatically clone other components during
-build don't do so over the network, making fast local clones instead.
+at all.  Also, special care is taken during component builds so that
+components such as NQP and Rakudo that want to automatically clone other
+components during build don't do so over the network, making fast local
+clones instead.
 
 Thus, after setup you can build, benchmark, and analyze without touching the
 network again.  Eventually though you may want to grab the latest changes to
@@ -54,13 +63,13 @@ mirrors across the network -- not requiring nearly as much bandwidth as the
 original setup since only new commits and tags are pulled -- and then update
 all extracted checkouts locally from those mirrors.
 
-NOTE: There is one exception to this magic -- Niecza's build process needs to
-download a ZIP of an older release in order to build a new one.  Unfortunately,
-because these are changed quite often, it would waste quite a bit of bandwidth
-to download all the ZIPs at once during setup if the user doesn't plan to
-benchmark *every* Niecza release.  For this reason, if you plan to benchmark
-Niecza when you are not on a fast network, you should at least *build* the
-Niecza releases you want to test while still well-connected.
+NOTE: There is one exception to this magic -- Niecza's build process needs
+to download a ZIP of an older release in order to build a new one.
+Unfortunately, because these are changed quite often, it would waste quite a
+bit of bandwidth to download all the ZIPs at once during setup if the user
+doesn't plan to benchmark *every* Niecza release.  For this reason, if you
+plan to benchmark Niecza when you are not on a fast network, you should at
+least *build* the Niecza releases you want to test while still well-connected.
 
 
 BENCHMARKING TIPS
@@ -139,7 +148,7 @@ Enjoy!
 COPYRIGHT
 ---------
 
-perl6-bench is Copyright 2012-2013, Geoffrey Broadwell.  This project is
+perl6-bench is Copyright 2012-2014, Geoffrey Broadwell.  This project is
 open source, and may be used, copied, modified, distributed, and redistributed
 under the terms of the
 [Artistic License 2.0](http://www.perlfoundation.org/artistic_license_2_0) .
