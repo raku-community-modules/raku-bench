@@ -17,7 +17,7 @@ TABLE OF CONTENTS
 REALLY QUICK START
 ------------------
 1. Make sure you'll have a net connection and idle CPUs for the next few hours
-2. Run: ./bench quickstart
+2. Run: `./bench quickstart`
 3. Profit!
 
 
