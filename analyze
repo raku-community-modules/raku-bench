@@ -48,6 +48,7 @@ sub process_options_and_arguments {
     GetOptions(\%opt, 'help|h|?!', 'man!', 'format=s', 'style=s', 'outfile=s',
                       'ignore-startup|ignore_startup|ignorestartup!',
                       'ignore-compile|ignore_compile|ignorecompile!',
+                      'skip-incomplete|skip_incomplete|skipincomplete!',
                       'compare!', 'history!')
         or pod2usage(-verbose => 0);
     pod2usage(-verbose => 1) if $opt{help};
@@ -76,8 +77,10 @@ sub process_options_and_arguments {
 sub analyze_timings_files {
     my ($opt, $out_fh, @files) = @_;
 
-    my $ignore_startup = $opt->{'ignore-startup'};
-    my $ignore_compile = $opt->{'ignore-compile'};
+    my $ignore_startup  = $opt->{'ignore-startup'};
+    my $ignore_compile  = $opt->{'ignore-compile'};
+    my $skip_incomplete = $opt->{'skip-incomplete'};
+
     my $analyze_timing_data = sub {
         my $data    = shift;
         my $startup = $data->{run}{startup} || {};
@@ -87,7 +90,7 @@ sub analyze_timings_files {
                                                     $ignore_startup,
                                                     $ignore_compile);
         }
-        $data->{score} = compute_scores($data);
+        $data->{score} = compute_scores($data, $skip_incomplete);
 
         $opt->{formatter}->($data, $opt, $out_fh);
     };
@@ -261,7 +264,7 @@ sub compare_scaled_times {
 # Compute overall 'score' by geometric mean of relative rates to
 # a standard compiler serving as the reference 1.0 value.
 sub compute_scores {
-    my $data  = shift;
+    my ($data, $skip_incomplete) = @_;
     my $tests = $data->{times};
 
     my @compilers = map { $_->{key} } @{$data->{config}{compilers}};
@@ -270,11 +273,19 @@ sub compute_scores {
     my %score;
     $score{$_} = 1.0 for @compilers;
 
-    for my $test (@$tests) {
+    TEST: for my $test (@$tests) {
         my $peak_rate = $test->{compare}{peak_rate};
-        my $reference = $peak_rate->{$standard}{rate};
+
+        # Optionally skip any test that doesn't have a peak rate
+        # specified for every compiler being compared
+        if ($skip_incomplete) {
+            for my $compiler (@compilers) {
+                next TEST unless defined $peak_rate->{$compiler}{rate};
+            }
+        }
 
         # Can't compute scores at all if we lack a reference point
+        my $reference = $peak_rate->{$standard}{rate};
         return unless $reference;
 
         for my $compiler (@compilers) {
@@ -456,8 +467,9 @@ sub summarize_results_text_history {
     my $ignore = @ignore ? ' (ignoring ' . join(' and ' => @ignore) . ')' : '';
     my $start  = friendly_time($data->{run}{start_time});
     my $run_at = $opt->{compare} ? '' : " run at $start";
+    my $skip   = $opt->{'skip-incomplete'} ? ' (skipping incomplete data)' : '';
     my $output = "$CLEAR\n==> perl6-bench version $data->{run}{versions}{bench}$run_at$ignore\n";
-    $output   .= "--- showing HISTORICAL SCORES\n\n";
+    $output   .= "--- showing HISTORICAL SCORES$skip\n\n";
     $output   .= sprintf $format, 'DATE', @comp_names;
 
     # Put scores into columns by compiler name, allowing multiple scores
@@ -580,7 +592,7 @@ CSS
     my $ignore  = @ignore ? ' (ignoring ' . join(' and ' => @ignore) . ')' : '';
     my $run_at  = $opt->{compare} ? '' : qq{ run at <span class="bench_start_time">} . friendly_time($data->{run}{start_time}) . qq{</span>};
     my $showing = 'showing ' . english_list(@{$s->{showing}});
-    $showing =~ s/\((.+?)\)/(<strong>$1<\/strong>)/g;
+    $showing =~ s/\((\S+?)\)/(<strong>$1<\/strong>)/g;
 
     $html .= qq{<table class="bench_summary" cellspacing="0" cellpadding="0">\n};
     $html .= qq{<caption>perl6-bench version <span class="bench_ver">$data->{run}{versions}{bench}</span>$run_at$ignore<br>$showing</caption>\n};
@@ -1100,7 +1112,7 @@ analyze -- Analyze benchmark data produced by timeall
     analyze [--help|-h|-?] [--man]
             [--format=text|json|html|html_snippet|html_plot]
             [--style=0|1|auto] [--outfile=path/to/file.ext]
-            [--ignore-startup] [--ignore-compile]
+            [--ignore-startup] [--ignore-compile] [--skip-incomplete]
             [--compare] [--history]
             path/to/timing_file.json [path/to/second_timing_file.json ...]
 
@@ -1167,6 +1179,15 @@ Ignore (subtract out) the time the compiler spends compiling the test
 itself from each benchmark result, so that runtime performance can be
 compared more directly.  Only works for scalable tests, because it uses
 runtime at C<SCALE = 0> as a portable proxy for true compile time.
+
+=item --skip-incomplete
+
+When computing summary scores, skip any incomplete test data (tests that
+have timing data for some compilers but not others).  This enables summary
+comparison of compilers that can't all complete every test.  This can occur
+because of bugs, old versions of compilers that don't support current syntax,
+or compilers/languages that lack certain language features (NQP being the
+most common example of this).
 
 =item --compare
 

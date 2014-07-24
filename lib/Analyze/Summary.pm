@@ -74,7 +74,10 @@ sub init {
 
     my   @showing = ('PEAK RATE (/s)');
     push @showing, 'TIMES SLOWER THAN FASTEST (x)' if $o->{compare};
-    push @showing, 'SUMMARY SCORES' if $d->{score};
+    if ($d->{score}) {
+        my $skip = $o->{'skip-incomplete'} ? ' (skipping incomplete data)' : '';
+        push @showing, "SUMMARY SCORES$skip";
+    }
     $s->{showing} = \@showing;
 
     return $s;
