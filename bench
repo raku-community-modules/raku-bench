@@ -59,7 +59,7 @@ multi MAIN ('quickstart') {
     MAIN('build',   @checkouts);
 
     say "\nRUN BENCHMARKS";
-    MAIN('time',    @checkouts, :tests-tagged('has-lang:nqp,-bind'));
+    MAIN('time',    @checkouts);
 
     say "\nPERFORMANCE HISTORY";
     MAIN('history', @checkouts);
