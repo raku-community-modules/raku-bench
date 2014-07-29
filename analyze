@@ -583,14 +583,15 @@ sub summarize_results_html_snippet {
 CSS
     }
 
-    return summarize_results_html_history($data, $opt, $out_fh)
+    return summarize_results_html_history($html, $data, $opt, $out_fh)
         if $opt->{history};
 
     my $s = Analyze::Summary::Compare->new(data => $data, opt => $opt);
 
     my @ignore  = @{$s->{ignoring}};
     my $ignore  = @ignore ? ' (ignoring ' . join(' and ' => @ignore) . ')' : '';
-    my $run_at  = $opt->{compare} ? '' : qq{ run at <span class="bench_start_time">} . friendly_time($data->{run}{start_time}) . qq{</span>};
+    my $start   = friendly_time($data->{run}{start_time});
+    my $run_at  = $opt->{compare} ? '' : qq{ run at <span class="bench_start_time">$start</span>};
     my $showing = 'showing ' . english_list(@{$s->{showing}});
     $showing =~ s/\((\S+?)\)/(<strong>$1<\/strong>)/g;
 
@@ -671,12 +672,79 @@ CSS
 }
 
 sub summarize_results_html_history {
-    my ($data, $opt, $out_fh) = @_;
+    my ($html, $data, $opt, $out_fh) = @_;
 
     my $scores = $data->{score}
         or die "Can't show history without comparison scores!";
 
-    die "HTML table format for history NYI!";
+    my $s = Analyze::Summary->new(data => $data, opt => $opt);
+
+    my @comp_names = uniq map { $_->{name} } @{$s->{compilers}};
+
+    my %column;
+    my $col = 0;
+    $column{$_} = ++$col for @comp_names;
+
+    my @date_sorted = sort {     ($a->{commit_time} || 0)
+                             <=> ($b->{commit_time} || 0) } @{$s->{compilers}};
+
+    my @ignore  = @{$s->{ignoring}};
+    my $ignore  = @ignore ? ' (ignoring ' . join(' and ' => @ignore) . ')' : '';
+    my $start   = friendly_time($data->{run}{start_time});
+    my $run_at  = $opt->{compare} ? '' : qq{ run at <span class="bench_start_time">$start</span>};
+    my $skip    = $opt->{'skip-incomplete'} ? ' (skipping incomplete data)' : '';
+    my $showing = "showing HISTORICAL SCORES$skip";
+
+    # XXXX: WIP
+    $html .= qq{<table class="bench_summary" cellspacing="0" cellpadding="0">\n};
+    $html .= qq{<caption>perl6-bench version <span class="bench_ver">$data->{run}{versions}{bench}</span>$run_at$ignore<br>$showing</caption>\n};
+
+    $html .= join "\n" => '<tr><th>DATE</th>', (map qq{    <th class="bench_compiler">$_</th>} => @comp_names), "</tr>\n";
+
+    # Put scores into columns by compiler name, allowing multiple scores
+    # for different compilers on the same date to appear in the same row.
+    my @row;
+    my $old_date = '';
+    my $new_row  = sub {
+        my $date   = shift;
+        $old_date  = $date;
+        if (@row) {
+            $_ ||= '    <td></td>' for @row;
+            $html .= join "\n" => '<tr>', @row, "</tr>\n";
+        }
+        @row       = ("    <td>$date</td>", ('') x $col);
+    };
+
+    for my $comp (@date_sorted) {
+        my $commit = $comp->{commit_time} || 0;
+        my $date = DateTime->from_epoch(epoch => $commit)->ymd;
+        $new_row->($date) if $old_date ne $date;
+
+        my $key    = $comp->{key} || $comp->{name};
+        my $score  = $scores->{$key};
+        my $column = $column{$comp->{name}};
+
+        # Don't let new scores on the same date overwrite old ones
+        $new_row->($date) if $row[$column] ne '';
+
+        if (defined $score) {
+            my $class = $score > 50 ? 'bench_good' :
+                        $score > 10 ? 'bench_bad'  :
+                                      'bench_ugly' ;
+
+            $row[$column] = sprintf qq{    <td class="$class">%.1f</td>}, $score;
+        }
+        else {
+            $row[$column] = sprintf qq{    <td class="bench_ugly">%.1f</td>}, '--';
+        }
+    }
+    if (@row) {
+        $_ ||= '    <td></td>' for @row;
+        $html .= join "\n" => '<tr>', @row, "</tr>\n";
+    }
+    $html .= "</table>\n";
+
+    print $out_fh $html;
 }
 
 sub summarize_results_html_plot {
