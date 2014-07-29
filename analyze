@@ -647,7 +647,7 @@ CSS
 
     my  $scores = $data->{score};
     if ($scores) {
-        $html .= qq{</tr>\n<tr class="bench_spacer_row"></tr>\n};
+        $html .= qq{<tr class="bench_spacer_row"></tr>\n};
         $html .= qq{<tr class="bench_compare_row"><th>SUMMARY SCORE</th>\n};
         for my $comp (@comps) {
             my $key   = $comp->{key} || $comp->{name};
@@ -662,6 +662,7 @@ CSS
                 $html .= qq{    <td class="bench_skip">--</td>\n};
             }
         }
+        $html .= qq{</tr>\n};
     }
 
     $html .= "</table>\n";
