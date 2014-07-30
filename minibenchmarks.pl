@@ -9,6 +9,14 @@
   nqp   => [qw( BENCH/nqp/parse-json   DATA/panda-projects.json SCALE )],
  },
  {
+  name  => 'parse-json-no-obj-creation',
+  skip  => [qw( )],
+  tags  => [qw( io input parsing )],
+  scale => 1 << 3,
+  perl6 => [qw( BENCH/perl6/parse-json-no-obj-creation DATA/panda-projects.json SCALE )],
+  nqp   => [qw( BENCH/nqp/parse-json-no-obj-creation   DATA/panda-projects.json SCALE )],
+ },
+ {
   name  => 'rc-forest-fire',
   skip  => [qw( niecza.nqp p6.pl p6.js_v8 )],
   tags  => [qw( io output random simulation array cross for forest-fire )],

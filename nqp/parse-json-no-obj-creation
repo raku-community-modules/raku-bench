@@ -1,0 +1,56 @@
+# JSON parsing copied from JSON::Tiny with changes to work in NQP
+# and other very minor changes
+
+grammar JSON::Tiny::Grammar {
+    token TOP       { ^ \s* [ <object> | <array> ] \s* $ }
+    rule object     { '{' ~ '}' <pairlist>     }
+    rule pairlist   { <?> <pair> * % \,             }
+    rule pair       { <?> <string> ':' <value>     }
+    rule array      { '[' ~ ']' <arraylist>    }
+    rule arraylist  { <?> <value>* % [ \, ]        }
+
+    proto token value {*}
+    token value:sym<number> {
+        '-'?
+        [ 0 | <[1..9]> <[0..9]>* ]
+        [ \. <[0..9]>+ ]?
+        [ <[eE]> [\+|\-]? <[0..9]>+ ]?
+    }
+    token value:sym<true>    { <sym>    }
+    token value:sym<false>   { <sym>    }
+    token value:sym<null>    { <sym>    }
+    token value:sym<object>  { <object> }
+    token value:sym<array>   { <array>  }
+    token value:sym<string>  { <string> }
+
+    token string {
+        \" ~ \" ( <str> | \\ <str_escape> )*
+    }
+
+    token str {
+        <-["\\\t\n]>+
+    }
+
+    token str_escape {
+        <["\\/bfnrt]> | u <xdigit>**4
+    }
+}
+
+sub from-json($text) {
+    JSON::Tiny::Grammar.parse($text);
+}
+
+sub main($json-file, $count) {
+    my $json := slurp($json-file);
+
+    my int $i := 0;
+    while $i < $count {
+        my $data := from-json($json);
+        $i := $i + 1;
+    }
+}
+
+sub MAIN (*@args) {
+    @args.shift if @args == 3;
+    main(|@args);
+}
