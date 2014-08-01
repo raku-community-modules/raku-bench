@@ -1159,6 +1159,30 @@ CHART_BOTTOM
     print $out_fh $html;
 }
 
+sub summarize_results_html_plot_history {
+    my ($data, $opt, $out_fh) = @_;
+
+    my $scores = $data->{score}
+        or die "Can't show history without comparison scores!";
+
+    my $html = plot_header();
+
+    my $s = Analyze::Summary->new(data => $data, opt => $opt);
+
+    my @ignore = @{$s->{ignoring}};
+    my $ignore = @ignore ? ' (ignoring ' . join(' and ' => @ignore) . ')' : '';
+
+    my $run_at = $opt->{compare} ? '' : qq{ run at <span class="bench_start_time">} . friendly_time($data->{run}{start_time}) . qq{</span>};
+    $html .= qq{<h2>perl6-bench version <span class="bench_ver">$data->{run}{versions}{bench}</span>$run_at$ignore</h2>\n\n};
+
+    my @comp_names = uniq map { $_->{name} } @{$s->{compilers}};
+    my $labels = join ', ' => map qq{"$_"} => @comp_names;
+
+    $html .= plot_footer();
+
+    print $out_fh $html;
+}
+
 sub friendly_time {
     my $time     = shift;
     my $dt       = DateTime->from_epoch(epoch => $time);
