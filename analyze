@@ -878,6 +878,52 @@ sub plot_header {
         }) );
     }
 
+
+    function do_summary_plot (chart_div, title, series_data, series_labels, opt) {
+        var series_conf = [];
+        for (var i in series_labels) {
+            series_conf.push({ label: series_labels[i] });
+        }
+
+        var rows = 10;
+        if (series_data.length < rows) rows = series_data.length;
+        charts.push( $.jqplot(chart_div, series_data, {
+            title: title,
+            series: series_conf,
+            highlighter: {
+                show: true,
+                yvalues: 1,
+                tooltipAxes: "y",
+                tooltipLocation: "n",
+                useAxesFormatters: false,
+                formatString: "<!--%.0f--><strong>%.1f</strong>",
+                tooltipContentEditor: function (str, i, j) {
+                    return '<span class="highlight-series-label">' + series_labels[i] + '</span><br>' + str;
+                }
+            },
+            legend: {
+                renderer: $.jqplot.EnhancedLegendRenderer,
+                rendererOptions: {numberRows: rows},
+                show: true,
+                placement: "outsideGrid"
+            },
+            axes: {
+                xaxis: {
+                    label:         opt.x_label,
+                    labelRenderer: $.jqplot.CanvasAxisLabelRenderer,
+                    renderer:      $.jqplot.DateAxisRenderer,
+                    tickRenderer:  $.jqplot.CanvasAxisTickRenderer,
+                    tickOptions:   { angle: -30 }
+                },
+                yaxis: {
+                    label:         opt.y_label,
+                    labelRenderer: $.jqplot.CanvasAxisLabelRenderer,
+                    renderer:      $.jqplot.LinearAxisRenderer
+                }
+            }
+        }) );
+    }
+
     function do_bar (chart_div, title, bar_data, tick_labels, opt) {
         var data = [];
         for (var i in bar_data) {
@@ -1035,6 +1081,9 @@ PLOT_FOOTER
 sub summarize_results_html_plot {
     my ($data, $opt, $out_fh) = @_;
 
+    return summarize_results_html_plot_history($data, $opt, $out_fh)
+        if $opt->{history};
+
     my $html = plot_header();
 
     my $s = Analyze::Summary->new(data => $data, opt => $opt);
@@ -1178,6 +1227,28 @@ sub summarize_results_html_plot_history {
 
     my @comp_names = uniq map { $_->{name} } @{$s->{compilers}};
     my $labels = join ', ' => map qq{"$_"} => @comp_names;
+
+    $html .= <<"CHART_TOP";
+<div class="chartwrapper">
+<div id="chart_summary" style="position:relative"></div>
+<script type="text/javascript">
+    \$(function () {
+        var labels = [$labels];
+        var data   = [
+CHART_TOP
+
+    $html .= <<"CHART_BOTTOM";
+        ];
+
+        var opt = {
+            x_label: "Commit Date",
+            y_label: "Summary Score"
+        };
+        do_summary_plot("chart_summary", "HISTORICAL SCORES", data, labels, opt);
+    });
+</script>
+</div>
+CHART_BOTTOM
 
     $html .= plot_footer();
 
