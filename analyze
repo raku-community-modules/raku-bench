@@ -747,10 +747,8 @@ sub summarize_results_html_history {
     print $out_fh $html;
 }
 
-sub summarize_results_html_plot {
-    my ($data, $opt, $out_fh) = @_;
-
-    my $html = <<'PLOT_HEADER';
+sub plot_header {
+    return <<'PLOT_HEADER';
 <!DOCTYPE html>
 <html>
 <head>
@@ -1024,6 +1022,19 @@ sub summarize_results_html_plot {
 
 <body>
 PLOT_HEADER
+}
+
+sub plot_footer {
+    return <<'PLOT_FOOTER';
+</body>
+</html>
+PLOT_FOOTER
+}
+
+sub summarize_results_html_plot {
+    my ($data, $opt, $out_fh) = @_;
+
+    my $html = plot_header();
 
     my $s = Analyze::Summary->new(data => $data, opt => $opt);
 
@@ -1143,10 +1154,7 @@ CHART_TOP
 CHART_BOTTOM
     }
 
-    $html .= <<'PLOT_FOOTER';
-</body>
-</html>
-PLOT_FOOTER
+    $html .= plot_footer();
 
     print $out_fh $html;
 }
