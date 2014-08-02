@@ -90,7 +90,8 @@ sub analyze_timings_files {
                                                     $ignore_startup,
                                                     $ignore_compile);
         }
-        $data->{score} = compute_scores($data, $skip_incomplete);
+        ($data->{score}, $data->{test_score})
+            = compute_scores($data, $skip_incomplete);
 
         $opt->{formatter}->($data, $opt, $out_fh);
     };
@@ -273,6 +274,7 @@ sub compute_scores {
     my %score;
     $score{$_} = 1.0 for @compilers;
 
+    my %test_score;
     TEST: for my $test (@$tests) {
         my $peak_rate = $test->{compare}{peak_rate};
 
@@ -295,6 +297,7 @@ sub compute_scores {
 
             my $relative = $rate / $reference;
             $score{$compiler} *= $relative;
+            $test_score{$test->{name}}{$compiler} = $relative * 100;
         }
     }
 
@@ -307,7 +310,7 @@ sub compute_scores {
         $score{$compiler}  *= 100;
     }
 
-    return \%score;
+    return (\%score, \%test_score);
 }
 
 sub summarize_results_json {
@@ -896,10 +899,7 @@ sub plot_header {
                 tooltipAxes: "y",
                 tooltipLocation: "n",
                 useAxesFormatters: false,
-                formatString: "<!--%.0f--><strong>%.1f</strong>",
-                tooltipContentEditor: function (str, i, j) {
-                    return '<span class="highlight-series-label">' + series_labels[i] + '</span><br>' + str;
-                }
+                formatString: "<!--%d--><strong>%.1f</strong><br>%s"
             },
             legend: {
                 renderer: $.jqplot.EnhancedLegendRenderer,
@@ -1213,7 +1213,7 @@ CHART_BOTTOM
 sub summarize_results_html_plot_history {
     my ($data, $opt, $out_fh) = @_;
 
-    my $scores = $data->{score}
+    my $summary_scores = $data->{score}
         or die "Can't show history without comparison scores!";
 
     my $html = plot_header();
@@ -1236,46 +1236,65 @@ sub summarize_results_html_plot_history {
     my $row = 0;
     $row{$_} = $row++ for @comp_names;
 
-    $html .= <<"CHART_TOP";
+    my $make_chart = sub {
+        my ($scores, $type, $name, $title) = @_;
+        $title ||= $name;
+
+        $html .= <<"CHART_TOP";
 <div class="chartwrapper">
-<div id="chart_summary" style="position:relative"></div>
+<div id="chart_$name" style="position:relative"></div>
 <script type="text/javascript">
     \$(function () {
         var labels = [$labels];
         var data   = [
 CHART_TOP
 
-    my @data_rows;
-    for my $comp (@date_sorted) {
-        my $data_row = $data_rows[$row{$comp->{name}}] ||= [];
-        my $key      = $comp->{key} || $comp->{name};
-        my $score    = $scores->{$key};
-        next unless defined $score;
+        my @data_rows;
+        for my $comp (@date_sorted) {
+            my $data_row = $data_rows[$row{$comp->{name}}] ||= [];
+            my $key      = $comp->{key} || $comp->{name};
+            my $score    = $scores->{$key};
+            next unless defined $score;
 
-        my $commit = $comp->{commit_time} || 0;
-        my $date   = DateTime->from_epoch(epoch => $commit)->ymd;
+            my $commit = $comp->{commit_time} || 0;
+            my $date   = DateTime->from_epoch(epoch => $commit)->ymd;
 
-        push @$data_row, qq{["$date",$score]};
-    }
-    my @rows;
-    for my $data_row (@data_rows) {
-        push @$data_row, "[]" unless @$data_row;
-        push @rows, '      [' . join(',' => @$data_row) . ']';
-    }
-    $html .= join ",\n" => @rows;
+            push @$data_row, qq{["$date",$score,"$key"]};
+        }
+        my @rows;
+        for my $data_row (@data_rows) {
+            push @$data_row, "[]" unless @$data_row;
+            push @rows, '      [' . join(',' => @$data_row) . ']';
+        }
+        $html .= join ",\n" => @rows;
 
-    $html .= <<"CHART_BOTTOM";
+        my $y_label = ucfirst($type) . ' Score';
+        $html .= <<"CHART_BOTTOM";
+
         ];
 
         var opt = {
             x_label: "Commit Date",
-            y_label: "Summary Score"
+            y_label: "$y_label"
         };
-        do_summary_plot("chart_summary", "HISTORICAL SCORES", data, labels, opt);
+        do_summary_plot("chart_$name", "$title", data, labels, opt);
     });
 </script>
 </div>
 CHART_BOTTOM
+    };
+
+    $make_chart->($summary_scores, qw( summary summary SUMMARY ));
+
+    for my $test (@{$data->{times}}) {
+        my $name = $test->{name};
+
+        # In compare mode, the 'empty' test data is just residual noise
+        next if $opt->{compare} && $name eq 'empty';
+
+        my $test_scores = $data->{test_score}{$name} or next;
+        $make_chart->($test_scores, 'test', $name);
+    }
 
     $html .= plot_footer();
 
