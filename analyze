@@ -460,8 +460,8 @@ sub summarize_results_text_history {
     my $format  = join $spacer => "%-10s", (("%${longest_comp}s  ") x $col);
        $format .= "\n";
 
-    my @date_sorted  = sort {     ($a->{commit_time} || 0)
-                              <=> ($b->{commit_time} || 0) } @{$s->{compilers}};
+    my @date_sorted = sort {     ($a->{commit_time} || 0)
+                             <=> ($b->{commit_time} || 0) } @{$s->{compilers}};
 
     my @ignore = @{$s->{ignoring}};
     my $ignore = @ignore ? ' (ignoring ' . join(' and ' => @ignore) . ')' : '';
