@@ -918,7 +918,8 @@ sub plot_header {
                 yaxis: {
                     label:         opt.y_label,
                     labelRenderer: $.jqplot.CanvasAxisLabelRenderer,
-                    renderer:      $.jqplot.LinearAxisRenderer
+                    renderer:      $.jqplot.LinearAxisRenderer,
+                    pad:           0
                 }
             }
         }) );
@@ -1225,8 +1226,15 @@ sub summarize_results_html_plot_history {
     my $run_at = $opt->{compare} ? '' : qq{ run at <span class="bench_start_time">} . friendly_time($data->{run}{start_time}) . qq{</span>};
     $html .= qq{<h2>perl6-bench version <span class="bench_ver">$data->{run}{versions}{bench}</span>$run_at$ignore</h2>\n\n};
 
-    my @comp_names = uniq map { $_->{name} } @{$s->{compilers}};
-    my $labels = join ', ' => map qq{"$_"} => @comp_names;
+    my @compilers   = @{$s->{compilers}};
+    my @comp_names  = uniq map { $_->{name} } @compilers;
+    my $labels      = join ', ' => map qq{"$_"} => @comp_names;
+    my @date_sorted = sort {     ($a->{commit_time} || 0)
+                             <=> ($b->{commit_time} || 0) } @compilers;
+
+    my %row;
+    my $row = 0;
+    $row{$_} = $row++ for @comp_names;
 
     $html .= <<"CHART_TOP";
 <div class="chartwrapper">
@@ -1236,6 +1244,25 @@ sub summarize_results_html_plot_history {
         var labels = [$labels];
         var data   = [
 CHART_TOP
+
+    my @data_rows;
+    for my $comp (@date_sorted) {
+        my $data_row = $data_rows[$row{$comp->{name}}] ||= [];
+        my $key      = $comp->{key} || $comp->{name};
+        my $score    = $scores->{$key};
+        next unless defined $score;
+
+        my $commit = $comp->{commit_time} || 0;
+        my $date   = DateTime->from_epoch(epoch => $commit)->ymd;
+
+        push @$data_row, qq{["$date",$score]};
+    }
+    my @rows;
+    for my $data_row (@data_rows) {
+        push @$data_row, "[]" unless @$data_row;
+        push @rows, '      [' . join(',' => @$data_row) . ']';
+    }
+    $html .= join ",\n" => @rows;
 
     $html .= <<"CHART_BOTTOM";
         ];
