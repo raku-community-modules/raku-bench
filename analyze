@@ -46,6 +46,7 @@ sub MAIN {
 sub process_options_and_arguments {
     my %opt;
     GetOptions(\%opt, 'help|h|?!', 'man!', 'format=s', 'style=s', 'outfile=s',
+                      'min-time|min_time|mintime=f',
                       'ignore-startup|ignore_startup|ignorestartup!',
                       'ignore-compile|ignore_compile|ignorecompile!',
                       'skip-incomplete|skip_incomplete|skipincomplete!',
@@ -53,6 +54,8 @@ sub process_options_and_arguments {
         or pod2usage(-verbose => 0);
     pod2usage(-verbose => 1) if $opt{help};
     pod2usage(-verbose => 2) if $opt{man};
+
+    $opt{'min-time'} //= 1e-2;
 
     $opt{outfile} //= '-';
     my $suffix      = (fileparse($opt{outfile}, qr/\.[^.]+$/))[2] || '.';
@@ -77,6 +80,7 @@ sub process_options_and_arguments {
 sub analyze_timings_files {
     my ($opt, $out_fh, @files) = @_;
 
+    my $min_time        = $opt->{'min-time'};
     my $ignore_startup  = $opt->{'ignore-startup'};
     my $ignore_compile  = $opt->{'ignore-compile'};
     my $skip_incomplete = $opt->{'skip-incomplete'};
@@ -86,9 +90,9 @@ sub analyze_timings_files {
         my $startup = $data->{run}{startup} || {};
 
         for my $test (@{$data->{times}}) {
-            $test->{compare} = compare_scaled_times($test->{best}, $startup,
-                                                    $ignore_startup,
-                                                    $ignore_compile);
+            $test->{compare}
+                = compare_scaled_times($test->{best}, $startup, $min_time,
+                                       $ignore_startup, $ignore_compile);
         }
         ($data->{score}, $data->{test_score})
             = compute_scores($data, $skip_incomplete);
@@ -196,8 +200,7 @@ sub load_timing_file {
 }
 
 sub compare_scaled_times {
-    my ($times, $startup, $ignore_startup, $ignore_compile) = @_;
-    my $min_time = 1e-2;
+    my ($times, $startup, $min_time, $ignore_startup, $ignore_compile) = @_;
     my $max_rate = 0;
     my %max_rates;
 
@@ -1331,6 +1334,7 @@ analyze -- Analyze benchmark data produced by timeall
     analyze [--help|-h|-?] [--man]
             [--format=text|json|html|html_snippet|html_plot]
             [--style=0|1|auto] [--outfile=path/to/file.ext]
+            [--min-time=0.01]
             [--ignore-startup] [--ignore-compile] [--skip-incomplete]
             [--compare] [--history]
             path/to/timing_file.json [path/to/second_timing_file.json ...]
@@ -1386,6 +1390,13 @@ Write the summary report to a particular path and file, or to STDOUT (the
 default) if C<--outfile> is set to C<-> (a single hyphen).  If this option
 is set and C<--format> is not, then the summary format defaults to the
 lowercased extension (F<ext> in F<path/to/file.ext>) of the C<--outfile>.
+
+=item --min-time=0.01
+
+Set the noise floor for test timings, below which timing data will be
+ignored to avoid nonsensical rate calculations and wildly oscillating
+plots.  This filter considers the times after ignoring startup and/or
+compile times, and defaults to 0.01 seconds.
 
 =item --ignore-startup
 
