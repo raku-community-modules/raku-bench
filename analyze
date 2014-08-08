@@ -283,6 +283,7 @@ sub compute_scores {
     $score{$_} = 1.0 for @compilers;
 
     my %test_score;
+    my $summarized = 0;
     TEST: for my $test (@$tests) {
         my $peak_rate = $test->{compare}{peak_rate};
 
@@ -298,18 +299,22 @@ sub compute_scores {
         my $reference = $peak_rate->{$standard}{rate};
         return unless $reference;
 
+        # Determine if test should be included in summary
+        my $summarize = $test->{conf}{summarize} // 1;
+        $summarized++ if $summarize;
+
         for my $compiler (@compilers) {
             my $rate = $peak_rate->{$compiler}{rate};
             $score{$compiler} = undef, next
                 unless defined $rate && defined $score{$compiler};
 
             my $relative = $rate / $reference;
-            $score{$compiler} *= $relative;
+            $score{$compiler} *= $relative if $summarize;
             $test_score{$test->{name}}{$compiler} = $relative * 100;
         }
     }
 
-    my $power = 1 / @$tests;
+    my $power = 1 / ($summarized || 1);
     for my $compiler (@compilers) {
         next unless defined $score{$compiler};
         $score{$compiler} **= $power;
