@@ -150,6 +150,11 @@ sub merge_timing_files {
                  best   => {},
                 };
 
+            # Merge in any new configuration keys
+            for my $key (keys %{$test->{conf}}) {
+                $merged->{conf}{$key} //= $test->{conf}{$key};
+            }
+
             for my $compiler (keys %{$test->{best}}) {
                 my $key = "$compiler/$basename";
                 $merged->{$_}{$key} = $test->{$_}{$compiler} for qw( raw best );
