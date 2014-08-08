@@ -1,6 +1,6 @@
 * Top tasks
   + Bring forward existing JS-targeting compilers to new component framework
-  + Add pmurias' nqp-js and rakudo-js compilers
+  + Test and update components for pmurias' nqp-js and rakudo-js compilers
 * Features
   + Check for prereqs (e.g. JDK 7) during setup command
   + Check for built compiler before timing, if not there, recommend build
