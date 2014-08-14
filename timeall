@@ -454,8 +454,8 @@ sub time_command {
                      . (length $err ? "Error:\n$err\n" : '');
                 return undef;
             }
-            if ($out =~ /Segmentation/) {
-                warn "segfaulted";
+            if ($out =~ /Segmentation/i || $err =~ /Segmentation/i) {
+                warn "Command segfaulted: @$compile";
                 return undef;
             }
 
@@ -467,8 +467,8 @@ sub time_command {
 
         my ($out, $err, $status)  = capture { system @run };
         my $time = time - $start;
-        if ($out =~ /Segmentation/ || $err =~ /Segmentation/) {
-            warn "segfaulted";
+        if ($out =~ /Segmentation/i || $err =~ /Segmentation/i) {
+            warn "Command segfaulted: @run";
             return undef;
         }
 
