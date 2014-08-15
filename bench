@@ -350,7 +350,7 @@ multi MAIN ('time', *@components, :$variants?, :$tests?, :$tests-tagged?,
         mkpath $timings_dir;
 
         my @variants = $variants ?? $variants.split(',') !! $name;
-        run "$PROGRAM_DIR/timeall", "--outfile=$timings_dir/$checkout.json",
+        run "perl", "$PROGRAM_DIR/timeall", "--outfile=$timings_dir/$checkout.json",
                                     @options, @variants;
     }
 }
@@ -372,7 +372,7 @@ multi MAIN ('compare', *@timings, :$format?, :$style?, :$outfile?,
         @timings-files.push: @files.map: "$TIMINGS_DIR/$component/" ~ *;
     }
 
-    run "$PROGRAM_DIR/analyze", @options, @timings-files;
+    run "perl", "$PROGRAM_DIR/analyze", @options, @timings-files;
 }
 
 #= Compare historical peak performance scores
