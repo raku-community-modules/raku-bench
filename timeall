@@ -376,6 +376,9 @@ sub time_all_compilers {
         s/\bVM\b/$VM{$comp->{vm}}/g      for       @$compile, @$run, @args;
         s/\bBENCH\b/$FindBin::Bin/g      for $dir, @$compile, @$run, @args;
         s{\bDATA\b}{$FindBin::Bin/data}g for $dir, @$compile, @$run, @args;
+        if ($^O =~ /MSWin32/) {
+            s/"/'/g for @$run, @args;
+        }
 
         my @compile;
         if (@$compile) {
