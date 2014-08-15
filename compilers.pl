@@ -6,9 +6,9 @@
             language  => 'Perl 5',
             compiler  => 'perl5',
             vm        => 'perl5',
-            f_run     => [qw( install/bin/perl           )],
-            e_run     => [qw( install/bin/perl -E        )],
-            show_ver  => [qw( install/bin/perl -E say+$] )],
+            f_run     => [$^O =~ /MSWin32/ ? qw( c:/perl/bin/perl           ) : qw( install/bin/perl           )],
+            e_run     => [$^O =~ /MSWin32/ ? qw( c:/perl/bin/perl -E        ) : qw( install/bin/perl -E        )],
+            show_ver  => [$^O =~ /MSWin32/ ? qw( c:/perl/bin/perl -E say+$] ) : qw( install/bin/perl -E say+$] )],
            },
            {
             name      => 'p5.pl',
