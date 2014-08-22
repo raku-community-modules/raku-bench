@@ -25,14 +25,16 @@ class Forest {
     }
 
     method !init-neighbors {
-        @!neighbors = [ ] xx $!height; # XXX rakudo doesn't autoviv yet
+        @!neighbors = [ [] xx $!width ] xx $!height; # XXX rakudo doesn't autoviv yet
         for ^$!height X ^$!width -> $i, $j {
-            @!neighbors[$i][$j] = gather for
+	    my $k = 0;
+            for
                     [-1,-1],[+0,-1],[+1,-1],
                     [-1,+0],(     ),[+1,+0],
                     [-1,+1],[+0,+1],[+1,+1]
             {
-                take-rw @!grid[$i + .[0]][$j + .[1]] // next;
+		my $n := @!grid[$i + .[0]][$j + .[1]];
+                @!neighbors[$i][$j][$k++] := $n if $n;
             }
         }
     }
@@ -44,7 +46,7 @@ class Forest {
             given @!grid[$i][$j] {
                 when Empty   { @new[$i][$j] = rand < $!p ?? Tree !! Empty }
                 when Tree    { @new[$i][$j] =
-                     (any(@!neighbors[$i][$j]) === Burning or rand < $!f) ?? Burning !! Tree;
+                     (@!neighbors[$i][$j].any === Burning or rand < $!f) ?? Burning !! Tree;
                 }
                 when Burning { @new[$i][$j] = Empty }
             }
