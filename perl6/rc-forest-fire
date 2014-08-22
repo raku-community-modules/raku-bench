@@ -27,13 +27,13 @@ class Forest {
     method !init-neighbors {
         @!neighbors = [ [] xx $!width ] xx $!height; # XXX rakudo doesn't autoviv yet
         for ^$!height X ^$!width -> $i, $j {
-	    my $k = 0;
+            my $k = 0;
             for
                     [-1,-1],[+0,-1],[+1,-1],
                     [-1,+0],(     ),[+1,+0],
                     [-1,+1],[+0,+1],[+1,+1]
             {
-		my $n := @!grid[$i + .[0]][$j + .[1]];
+                my $n := @!grid[$i + .[0]][$j + .[1]];
                 @!neighbors[$i][$j][$k++] := $n if $n;
             }
         }
