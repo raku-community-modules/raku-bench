@@ -1,4 +1,12 @@
 {
+    "arane": {
+        "name":         "arane",
+        "repo_url":     "https://github.com/BizarreCake/Arane.git",
+        "build_steps":  [
+            [ "cmake", "-G", "Unix Makefiles" ],
+            [ "make" ]
+        ]
+    },
     "moarvm": {
         "name":         "moarvm",
         "repo_url":     "git://github.com/MoarVM/MoarVM.git"
