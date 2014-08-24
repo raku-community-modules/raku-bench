@@ -45,6 +45,16 @@
           ],
  perl6 => [
            {
+            name      => 'arane',
+            enabled   => 1,
+            language  => 'Perl 6',
+            compiler  => 'arane',
+            vm        => 'arane',
+            f_run     => [qw( build/arane           )],
+            e_run     => [qw( build/arane -e        )],
+            show_ver  => [qw( build/arane --version )],
+           },
+           {
             name      => 'rakudo-parrot',
             enabled   => 1,
             language  => 'Perl 6',
