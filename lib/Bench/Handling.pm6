@@ -17,7 +17,7 @@ our sub init_bench_handling() is export {
     $COMPONENTS = from-json(slurp "$PROGRAM_DIR/components.json");
 }
 
-#= Check whether components dir exists and bail out if not (recommending 'setup' command)
+#| Check whether components dir exists and bail out if not (recommending 'setup' command)
 our sub needs-setup ($action) is export {
     unless $COMPONENTS_DIR.path.d {
         print qq:to/COMPONENTS/;
@@ -28,7 +28,7 @@ our sub needs-setup ($action) is export {
     }
 }
 
-#= Check whether timings dir exists and bail out if not (recommending steps to produce timings)
+#| Check whether timings dir exists and bail out if not (recommending steps to produce timings)
 our sub needs-timings ($action) is export {
     unless $TIMINGS_DIR.path.d {
         print qq:to/TIMINGS/;
@@ -43,7 +43,7 @@ our sub needs-timings ($action) is export {
     }
 }
 
-#= Convert pairs to command line option strings
+#| Convert pairs to command line option strings
 our sub as-options (*%args) is export {
     my @options;
     for %args.kv -> $k, $v {
@@ -57,14 +57,14 @@ our sub as-options (*%args) is export {
     return @options;
 }
 
-#= Simulate the behavior of `git clean -dxf`
+#| Simulate the behavior of `git clean -dxf`
 our sub rmtree ($dir, :$noisy = True) is export {
     return unless $dir.path.d;
     say "Removing $dir" if $noisy;
     rm_rf $dir;
 }
 
-#= Run code for every requested component
+#| Run code for every requested component
 our sub for-components (@components, &code, :$quiet) is export {
     for explode-components(@components) -> $comp {
         my $name = $comp<info><name>;
@@ -74,7 +74,7 @@ our sub for-components (@components, &code, :$quiet) is export {
     }
 }
 
-#= Run code for every checkout in every requested component
+#| Run code for every checkout in every requested component
 our sub for-checkouts (@components, &code, :$quiet) is export {
     for-components @components, -> $comp, $name {
         for $comp<checkouts>.list -> $checkout {
@@ -85,7 +85,7 @@ our sub for-checkouts (@components, &code, :$quiet) is export {
     }, :$quiet;
 }
 
-#= Expand a partially-specified list of components and checkouts
+#| Expand a partially-specified list of components and checkouts
 our sub explode-components (@component-specs, :$chdir = True, :$default-to-dirs = True) is export {
     chdir $COMPONENTS_DIR if $chdir;
     @component-specs ||= dir($COMPONENTS_DIR).sort if $default-to-dirs;
@@ -121,7 +121,7 @@ our sub explode-components (@component-specs, :$chdir = True, :$default-to-dirs 
     return @exploded;
 }
 
-#= Expand a partially-specified list of timings files
+#| Expand a partially-specified list of timings files
 our sub explode-timings (@timing-specs, :$chdir = True, :$default-to-dirs = True) is export {
     chdir $TIMINGS_DIR if $chdir;
     @timing-specs ||= dir($TIMINGS_DIR).sort if $default-to-dirs;

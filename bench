@@ -19,7 +19,7 @@ init_bench_handling();
 # NOTE: The quickstart command is first here so it will appear first
 #       in the help text and hopefully catch the user's eye
 
-#= Setup, build, and test default compilers
+#| Setup, build, and test default compilers
 multi MAIN ('quickstart') {
     say "CONFIGURATION";
     MAIN('config');
@@ -65,7 +65,7 @@ multi MAIN ('quickstart') {
     MAIN('history', @checkouts);
 }
 
-#= Show benchmark configuration
+#| Show benchmark configuration
 multi MAIN ('config') {
     my $perl6 = $*PERL.compiler;
     print qq:to/CONFIG/;
@@ -76,7 +76,7 @@ multi MAIN ('config') {
         CONFIG
 }
 
-#= Prepare for mass benchmarking
+#| Prepare for mass benchmarking
 multi MAIN ('setup') {
     say 'Creating directories ...';
     mkdir $COMPONENTS_DIR unless $COMPONENTS_DIR.path.d;
@@ -101,7 +101,7 @@ multi MAIN ('setup') {
     say 'Setup complete.';
 }
 
-#= Fetch latest commits in each cloned component
+#| Fetch latest commits in each cloned component
 multi MAIN ('fetch', *@components) {
     needs-setup('fetch');
 
@@ -148,10 +148,10 @@ multi MAIN ('fetch', *@components) {
     }
 }
 
-#= Alias for 'extract'
+#| Alias for 'extract'
 multi MAIN ('extract-releases', *@components) { MAIN('extract', |@components) }
 
-#= Extract historical releases from cloned components
+#| Extract historical releases from cloned components
 multi MAIN ('extract', *@components) {
     needs-setup('extract releases');
 
@@ -213,7 +213,7 @@ multi MAIN ('extract', *@components) {
     }
 }
 
-#= List known components with clone status
+#| List known components with clone status
 multi MAIN ('list-components') {
     my @names = $COMPONENTS.keys.sort;
     my $max-length = max('COMPONENT'.chars, @names>>.chars);
@@ -231,7 +231,7 @@ multi MAIN ('list-components') {
     say "\nPlease run `$*PROGRAM_NAME setup` to clone missing components." if $missing;
 }
 
-#= List checked out component trees with matching git revision
+#| List checked out component trees with matching git revision
 multi MAIN ('list-checkouts', *@components) {
     needs-setup('list');
 
@@ -256,7 +256,7 @@ multi MAIN ('list-checkouts', *@components) {
     }, :quiet;
 }
 
-#= List available branches in cloned components
+#| List available branches in cloned components
 multi MAIN ('list-branches', *@components) {
     needs-setup('list');
 
@@ -278,7 +278,7 @@ multi MAIN ('list-branches', *@components) {
     }
 }
 
-#= List available tags in cloned components
+#| List available tags in cloned components
 multi MAIN ('list-tags', *@components) {
     needs-setup('list');
 
@@ -288,7 +288,7 @@ multi MAIN ('list-tags', *@components) {
     }
 }
 
-#= Find known tags in cloned components
+#| Find known tags in cloned components
 sub known-tags(*@components, :$with-dates) {
     my %tags;
     for-components @components, -> $comp, $name {
@@ -321,7 +321,7 @@ sub known-tags(*@components, :$with-dates) {
     %tags;
 }
 
-#= Build checked out component trees
+#| Build checked out component trees
 multi MAIN ('build', *@components) {
     needs-setup('build components');
 
@@ -335,7 +335,7 @@ multi MAIN ('build', *@components) {
     }
 }
 
-#= Run timing benchmarks on (variants of) built components
+#| Run timing benchmarks on (variants of) built components
 multi MAIN ('time', *@components, :$variants?, :$tests?, :$tests-tagged?,
                                   :$runs?, :$enough-time?, :$min-scaling-points?,
                                   Bool :$verbose?) {
@@ -355,7 +355,7 @@ multi MAIN ('time', *@components, :$variants?, :$tests?, :$tests-tagged?,
     }
 }
 
-#= Compare benchmark timings
+#| Compare benchmark timings
 multi MAIN ('compare', *@timings, :$format?, :$style?, :$outfile?,
             Numeric :$min-time,
             Bool :$ignore-startup = True, Bool :$ignore-compile = True,
@@ -375,7 +375,7 @@ multi MAIN ('compare', *@timings, :$format?, :$style?, :$outfile?,
     run "perl", "$PROGRAM_DIR/analyze", @options, @timings-files;
 }
 
-#= Compare historical peak performance scores
+#| Compare historical peak performance scores
 multi MAIN ('history', *@timings, :$format?, :$style?, :$outfile?,
             Numeric :$min-time,
             Bool :$ignore-startup = True, Bool :$ignore-compile = True,
@@ -395,7 +395,7 @@ multi MAIN ('history', *@timings, :$format?, :$style?, :$outfile?,
     run "$PROGRAM_DIR/analyze", @options, @timings-files;
 }
 
-#= Clean up build trees in $COMPONENTS_DIR, keeping bare clones by default
+#| Clean up build trees in $COMPONENTS_DIR, keeping bare clones by default
 multi MAIN ('clean', *@components) {
     unless $COMPONENTS_DIR.path.d {
         say "No 'components' tree exists, so there is nothing to clean.";
@@ -407,7 +407,7 @@ multi MAIN ('clean', *@components) {
     }
 }
 
-#= Remove *everything* not part of the core benchmark tree
+#| Remove *everything* not part of the core benchmark tree
 multi MAIN ('realclean', Bool :$force) {
     unless $force {
         print q:to/NEED_FORCE/;  # : -- Dang syntax highlighting
@@ -426,12 +426,12 @@ multi MAIN ('realclean', Bool :$force) {
     run < git clean -dxf >;
 }
 
-#= Perform benchmark timings (low-level command)
+#| Perform benchmark timings (low-level command)
 multi MAIN ('timeall', *@options) {
     run('./timeall', |@options);
 }
 
-#= Analyze results from benchmark timings (low-level command)
+#| Analyze results from benchmark timings (low-level command)
 multi MAIN ('analyze', *@options_and_files) {
     run('./analyze', |@options_and_files);
 }
