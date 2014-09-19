@@ -112,6 +112,16 @@
   nqp   => 'my @a; my $i := 0; while ($i := $i + 1) <= SCALE { nqp::push(@a, 1) }',
  },
  {
+  name  => 'while_pushme',
+  tags  => [qw( while array )],
+  scale => 1,
+  scaling => 'linear',
+  work  => sub { 1 << $_[0] },
+  perl5 => 'my @a; push @a, 42; my $i = 0; while (++$i <= SCALE) { push @a, @a }',
+  perl6 => 'my @a; @a.push(42); my $i = 0; while (++$i <= SCALE) { @a.push(@a) }',
+  nqp   => 'my @a; nqp::push(@a,42); my $i := 0; while ($i := $i + 1) <= SCALE { nqp::push(@a, @a) }',
+ },
+ {
   name  => 'while_array_set',
   tags  => [qw( while array )],
   scale => 1 << 7,
