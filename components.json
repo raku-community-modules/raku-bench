@@ -1,7 +1,7 @@
 {
     "arane": {
         "name":         "arane",
-        "repo_url":     "https://github.com/BizarreCake/Arane.git",
+        "repo_url":     "git://github.com/BizarreCake/Arane.git",
         "build_steps":  [
             [ "cmake", "-G", "Unix Makefiles" ],
             [ "make" ]
@@ -81,7 +81,7 @@
     },
     "perlito": {
         "name":         "perlito",
-        "repo_url":     "https://github.com/fglock/Perlito.git",
+        "repo_url":     "git://github.com/fglock/Perlito.git",
         "build_steps":  [
             "perl -Isrc5/lib perlito5.pl -Cjs src5/util/perlito5.pl > perlito5.js",
             "perl -Ilib5     perlito6.pl -Cjs src6/util/perlito6.pl > perlito6.js"
