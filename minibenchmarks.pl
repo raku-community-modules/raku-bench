@@ -97,4 +97,13 @@
   perl6 => [qw( BENCH/perl6/rc-forest-fire-stringify 16 16 SCALE )],
   nqp   => [qw( BENCH/nqp/rc-forest-fire-stringify   16 16 SCALE )],
  },
+ {
+  name  => 'string-escape',
+  skip  => [qw( )],
+  tags  => [qw( string escape trans subs )],
+  scale => 1 << 13,
+  perl5 => [qw( BENCH/perl5/string-escape SCALE )],
+  perl6 => [qw( BENCH/perl6/string-escape SCALE )],
+  nqp   => undef,
+ },
 ]

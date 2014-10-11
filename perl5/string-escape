@@ -1,0 +1,15 @@
+use 5.010;
+my %subst = (
+    '"'     => '\\"',
+    '\\'    => '\\\\',
+    "\b"    => '\b',
+    "\f"    => '\f',
+    "\n"    => '\n',
+    "\r"    => '\r',
+    "\t"    => '\t',
+);
+
+my $re = join '|', map quotemeta, sort keys %subst;
+my $str = "\n" x $ARGV[0];
+$str =~ s/($re)/$subst{$1}/g;
+say length $str;
