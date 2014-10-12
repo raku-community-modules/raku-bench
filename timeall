@@ -486,6 +486,47 @@ sub time_command {
     return \@times;
 }
 
+sub diagnose_capture {
+    my ($out, $err, $status, $expected) = @_;
+
+    my $failed = 0;
+    my $reason = '';
+
+    if ($out =~ /Segmentation/i || $err =~ /Segmentation/i) {
+        $failed = 1;
+        $reason = 'segfaulted';
+    }
+    elsif ($status) {
+        $failed = 1;
+        if ($status < 0) {
+            $reason = 'failed to spawn';
+        }
+        elsif (my $signal = $status & 127) {
+            $reason = "received signal $signal";
+
+            # Handle SIGINT specially as it indicates user intervention
+            if ($signal == 2) {
+                $failed = -1;
+                $reason = 'terminated by SIGINT';
+            }
+        }
+        else {
+            my $exit = $status >> 8;
+            $reason = "exited with exit status $exit";
+        }
+    }
+    elsif (length $err) {
+        $failed = 1;
+        $reason = 'wrote to STDERR';
+    }
+    elsif (defined $expected && $expected ne $out) {
+        $failed = 1;
+        $reason = 'did not produce expected output';
+    }
+
+    return ($failed, $reason);
+}
+
 sub min_by(&@) {
     my $code = shift;
 
