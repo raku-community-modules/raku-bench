@@ -317,11 +317,13 @@ sub run_all_tests {
     my $empty_test    = $TESTS{e}[0];
 
     say "Measuring startup times ...";
+    # If user aborts now, don't bother catching it; normal testing hasn't begun
     my $times   = time_all_compilers($empty_test, $startup_runs, 0, $enough_time, 0, $opt->{verbose});
     my $startup = best_times($times);
     $startup->{$_} = $startup->{$_}{1}{time} for keys %$startup;
 
     my @results;
+    # Catch user aborts so that results for completed tests can be returned
     eval { run_tests(\@TESTS, \@results, $startup, $runs, $overhead_runs, $enough_time, $scale_points, $opt->{verbose}) };
     warn "\n$@\n" if $@;
     return (\@results, $startup);
@@ -338,6 +340,8 @@ sub run_tests {
         my $name = $test->{name};
         say "$testnum/$testcount: Testing $name ...";
 
+        # Let user aborts fall out to run_all_tests() so that the last test
+        # timed won't have partial (and possibly misleading) timing data
         my $raw_times = time_all_compilers($test, $runs, $overhead_runs, $enough_time, $min_scaling_points, $verbose, $startup);
         my $best      = best_times($raw_times);
         push @$results, {
