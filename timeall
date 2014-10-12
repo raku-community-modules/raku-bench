@@ -407,7 +407,7 @@ sub time_all_compilers {
 
             # Determine 0-scale time (mostly compile time)
             say '+++ Determining compile time for this test ...' if $verbose;
-            my  $run_times = time_command(\@compile, \@run, $overhead_runs, 0, 0, $verbose);
+            my  $run_times = time_command(\@compile, \@run, $overhead_runs, 0, 0, $expected->(0), $verbose);
             if ($run_times) {
                 say '+++ Running scaled timings for this test ...' if $verbose;
                 push @all_times, @$run_times;
@@ -418,7 +418,7 @@ sub time_all_compilers {
                 # Run scaled timing loop
                 my $scale_points = 0;
                 while ($run_times && ($lowest < $enough_time || $scale_points < $min_scaling_points)) {
-                    $run_times = time_command(\@compile, \@run, $runs, $scale, $work->($scale), $verbose) or last;
+                    $run_times = time_command(\@compile, \@run, $runs, $scale, $work->($scale), $expected->($scale), $verbose) or last;
                     push @all_times, @$run_times;
                     $scale_points++;
 
@@ -430,7 +430,7 @@ sub time_all_compilers {
             }
         }
         else {
-            my $run_times = time_command(\@compile, \@run, $runs, 1, 1, $verbose);
+            my $run_times = time_command(\@compile, \@run, $runs, 1, 1, $expected->(1), $verbose);
             push @all_times, @$run_times if $run_times;
         }
 
