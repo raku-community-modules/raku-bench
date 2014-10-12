@@ -398,6 +398,10 @@ sub time_all_compilers {
         my $expected = $test->{expected};
         $expected = sub { $expected } unless ref $expected eq 'CODE';
 
+        # XXXX: Fix handling of failed runs in below calls to time_command()
+        #       to properly support stress tests; this probably means fallout
+        #       in other places to handle failed as well as missing results.
+
         my  @all_times;
         my  $scalable = $test->{scalable} // ((grep /\bSCALE\b/ => @run) ? 1 : 0);
         if ($scalable) {
@@ -407,31 +411,45 @@ sub time_all_compilers {
 
             # Determine 0-scale time (mostly compile time)
             say '+++ Determining compile time for this test ...' if $verbose;
-            my  $run_times = time_command(\@compile, \@run, $overhead_runs, 0, 0, $expected->(0), $verbose);
-            if ($run_times) {
-                say '+++ Running scaled timings for this test ...' if $verbose;
-                push @all_times, @$run_times;
-                my $min_run_time = min(map { $_->{time} } @$run_times);
-                my $startup_time = $startup ? $startup->{$name} || 0 : 0;
-                my $ignore_time  = max($startup_time, $min_run_time);
+            my $run_times = time_command(\@compile, \@run, $overhead_runs, 0, 0, $expected->(0), $verbose);
+            if (!$run_times || grep { $_->{failed} } @$run_times) {
+                warn "Compiler $name is failing at scale=0 for test $test->{name}, aborting remaining runs.\n";
+                # XXXX: Should we push onto @all_times before aborting?
+                next;
+            }
 
-                # Run scaled timing loop
-                my $scale_points = 0;
-                while ($run_times && ($lowest < $enough_time || $scale_points < $min_scaling_points)) {
-                    $run_times = time_command(\@compile, \@run, $runs, $scale, $work->($scale), $expected->($scale), $verbose) or last;
-                    push @all_times, @$run_times;
-                    $scale_points++;
+            say '+++ Running scaled timings for this test ...' if $verbose;
+            push @all_times, @$run_times;
+            my $min_run_time = min(map { $_->{time} } @$run_times);
+            my $startup_time = $startup ? $startup->{$name} || 0 : 0;
+            my $ignore_time  = max($startup_time, $min_run_time);
 
-                    $lowest  = min(map { $_->{time} } @$run_times);
-                    $lowest -= $ignore_time;
-                    $scale   = $test->{scaling} eq 'linear' ? $scale + 1
-                                                            : $scale * 2;
+            # Run scaled timing loop
+            my $scale_points = 0;
+            while ($run_times && ($lowest < $enough_time || $scale_points < $min_scaling_points)) {
+                $run_times = time_command(\@compile, \@run, $runs, $scale, $work->($scale), $expected->($scale), $verbose);
+                if (!$run_times || grep { $_->{failed} } @$run_times) {
+                    warn "Compiler $name is failing at scale=$scale for test $test->{name}, aborting remaining runs.\n";
+                    # XXXX: Should we push onto @all_times before aborting?
+                    last;
                 }
+                push @all_times, @$run_times;
+                $scale_points++;
+
+                $lowest  = min(map { $_->{time} } @$run_times);
+                $lowest -= $ignore_time;
+                $scale   = $test->{scaling} eq 'linear' ? $scale + 1
+                                                        : $scale * 2;
             }
         }
         else {
             my $run_times = time_command(\@compile, \@run, $runs, 1, 1, $expected->(1), $verbose);
-            push @all_times, @$run_times if $run_times;
+            if (!$run_times || grep { $_->{failed} } @$run_times) {
+                warn "Compiler $name is failing for test $test->{name}, continuing to next compiler/test.\n";
+                # XXXX: Should we push onto @all_times before aborting?
+                next;
+            }
+            push @all_times, @$run_times;
         }
 
         $times{$name} = \@all_times;
@@ -457,16 +475,28 @@ sub time_command {
         my $start = time;
 
         if (@$compile) {
-            my ($out, $err, $status) = capture { eval system @$compile };
-            if ($status) {
-                die "Test's compile command terminated by SIGINT.\n" if ($status & 127) == 2;
-                warn "Failed to run compile command: @$compile\n"
-                     . (length $err ? "Error:\n$err\n" : '');
-                return undef;
-            }
-            if ($out =~ /Segmentation/i || $err =~ /Segmentation/i) {
-                warn "Command segfaulted: @$compile";
-                return undef;
+            my ($out, $err, $status) = capture { system @$compile };
+            my ($failed, $reason) = diagnose_capture($out, $err, $status);
+            if ($failed) {
+                my $run_info = {
+                    run => $i, scale => $scale, work => $work, time => 0,
+                    out => $out, err => $err, status => $status,
+                    failed => $failed, reason => $reason,
+                    command => $compile, phase => 'compile',
+                };
+                push @times, $run_info;
+
+                my $msg = "Compile command $reason: @$compile\n";
+
+                # User requested to abort testing
+                if ($failed < 0) {
+                    die $msg;
+                }
+                # Normal failures
+                else {
+                    warn $msg;
+                    last;
+                }
             }
 
             my ($fh, $filename) = tempfile(UNLINK => 1);
@@ -475,18 +505,29 @@ sub time_command {
             s/\bCOMPILED\b/$filename/g for @run;
         }
 
-        my ($out, $err, $status)  = capture { system @run };
+        my ($out, $err, $status) = capture { system @run };
         my $time = time - $start;
-        if ($out =~ /Segmentation/i || $err =~ /Segmentation/i) {
-            warn "Command segfaulted: @run";
-            return undef;
-        }
+        my ($failed, $reason) = diagnose_capture($out, $err, $status, $expected);
 
-        push @times, { run => $i, scale => $scale, work => $work, time => $time };
-        if ($status) {
-            die "Test's run command terminated by SIGINT.\n" if ($status & 127) == 2;
-            warn "Failed to run command: @run\n";
-            return undef;
+        my $run_info = {
+            run => $i, scale => $scale, work => $work, time => $time,
+            out => $out, err => $err, status => $status, phase => 'run',
+            failed => $failed, reason => $reason, command => \@run,
+        };
+        push @times, $run_info;
+
+        if ($failed) {
+            my $msg = "Run command $reason: @run\n";
+
+            # User requested to abort testing
+            if ($failed < 0) {
+                die $msg;
+            }
+            # Normal failures
+            else {
+                warn $msg;
+                last;
+            }
         }
     }
 
