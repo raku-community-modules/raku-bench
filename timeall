@@ -398,10 +398,6 @@ sub time_all_compilers {
         my $expected = $test->{expected};
         $expected = sub { $expected } unless ref $expected eq 'CODE';
 
-        # XXXX: Fix handling of failed runs in below calls to time_command()
-        #       to properly support stress tests; this probably means fallout
-        #       in other places to handle failed as well as missing results.
-
         my  @all_times;
         my  $scalable = $test->{scalable} // ((grep /\bSCALE\b/ => @run) ? 1 : 0);
         if ($scalable) {
@@ -412,14 +408,13 @@ sub time_all_compilers {
             # Determine 0-scale time (mostly compile time)
             say '+++ Determining compile time for this test ...' if $verbose;
             my $run_times = time_command(\@compile, \@run, $overhead_runs, 0, 0, $expected->(0), $verbose);
+            push @all_times, @{$run_times || []};
             if (!$run_times || grep { $_->{failed} } @$run_times) {
                 warn "Compiler $name is failing at scale=0 for test $test->{name}, aborting remaining runs.\n";
-                # XXXX: Should we push onto @all_times before aborting?
                 next;
             }
 
             say '+++ Running scaled timings for this test ...' if $verbose;
-            push @all_times, @$run_times;
             my $min_run_time = min(map { $_->{time} } @$run_times);
             my $startup_time = $startup ? $startup->{$name} || 0 : 0;
             my $ignore_time  = max($startup_time, $min_run_time);
@@ -428,12 +423,11 @@ sub time_all_compilers {
             my $scale_points = 0;
             while ($run_times && ($lowest < $enough_time || $scale_points < $min_scaling_points)) {
                 $run_times = time_command(\@compile, \@run, $runs, $scale, $work->($scale), $expected->($scale), $verbose);
+                push @all_times, @{$run_times || []};
                 if (!$run_times || grep { $_->{failed} } @$run_times) {
                     warn "Compiler $name is failing at scale=$scale for test $test->{name}, aborting remaining runs.\n";
-                    # XXXX: Should we push onto @all_times before aborting?
                     last;
                 }
-                push @all_times, @$run_times;
                 $scale_points++;
 
                 $lowest  = min(map { $_->{time} } @$run_times);
@@ -444,12 +438,11 @@ sub time_all_compilers {
         }
         else {
             my $run_times = time_command(\@compile, \@run, $runs, 1, 1, $expected->(1), $verbose);
+            push @all_times, @{$run_times || []};
             if (!$run_times || grep { $_->{failed} } @$run_times) {
                 warn "Compiler $name is failing for test $test->{name}, continuing to next compiler/test.\n";
-                # XXXX: Should we push onto @all_times before aborting?
                 next;
             }
-            push @all_times, @$run_times;
         }
 
         $times{$name} = \@all_times;
@@ -600,8 +593,11 @@ sub best_times {
     while (my ($comp, $times) = each %$raw_times) {
         my %runs_by_scale;
         for my $run (@$times) {
-            push @{$runs_by_scale{$run->{scale}} ||= []}, $run;
+            push @{$runs_by_scale{$run->{scale}} ||= []}, $run
+                unless $run->{failed};
         }
+        # If all runs failed, don't add the compiler to the best times at all
+        next unless %runs_by_scale;
 
         my %best_by_scale;
         while (my ($scale, $runs) = each %runs_by_scale) {
