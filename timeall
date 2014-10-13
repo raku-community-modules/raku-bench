@@ -395,8 +395,9 @@ sub time_all_compilers {
             chdir $dir or die "Could not change to $name directory '$dir': $!";
         }
 
-        my $expected = $test->{expected};
-        $expected = sub { $expected } unless ref $expected eq 'CODE';
+        my $is_code  = ref $test->{expected} eq 'CODE';
+        my $expected = $is_code ?       $test->{expected}
+                                : sub { $test->{expected} };
 
         my  @all_times;
         my  $scalable = $test->{scalable} // ((grep /\bSCALE\b/ => @run) ? 1 : 0);
