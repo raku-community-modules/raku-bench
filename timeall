@@ -410,31 +410,33 @@ sub time_all_compilers {
             say '+++ Determining compile time for this test ...' if $verbose;
             my $run_times = time_command(\@compile, \@run, $overhead_runs, 0, 0, $expected->(0), $verbose);
             push @all_times, @{$run_times || []};
+
             if (!$run_times || grep { $_->{failed} } @$run_times) {
                 warn "Compiler $name is failing at scale=0 for test $test->{name}, aborting remaining runs.\n";
-                next;
             }
+            else {
+                say '+++ Running scaled timings for this test ...' if $verbose;
+                my $min_run_time = min(map { $_->{time} } @$run_times);
+                my $startup_time = $startup ? $startup->{$name} || 0 : 0;
+                my $ignore_time  = max($startup_time, $min_run_time);
 
-            say '+++ Running scaled timings for this test ...' if $verbose;
-            my $min_run_time = min(map { $_->{time} } @$run_times);
-            my $startup_time = $startup ? $startup->{$name} || 0 : 0;
-            my $ignore_time  = max($startup_time, $min_run_time);
+                # Run scaled timing loop
+                my $scale_points = 0;
+                while ($run_times && ($lowest < $enough_time || $scale_points < $min_scaling_points)) {
+                    $run_times = time_command(\@compile, \@run, $runs, $scale, $work->($scale), $expected->($scale), $verbose);
+                    push @all_times, @{$run_times || []};
+                    $scale_points++;
 
-            # Run scaled timing loop
-            my $scale_points = 0;
-            while ($run_times && ($lowest < $enough_time || $scale_points < $min_scaling_points)) {
-                $run_times = time_command(\@compile, \@run, $runs, $scale, $work->($scale), $expected->($scale), $verbose);
-                push @all_times, @{$run_times || []};
-                if (!$run_times || grep { $_->{failed} } @$run_times) {
-                    warn "Compiler $name is failing at scale=$scale for test $test->{name}, aborting remaining runs.\n";
-                    last;
+                    if (!$run_times || grep { $_->{failed} } @$run_times) {
+                        warn "Compiler $name is failing at scale=$scale for test $test->{name}, aborting remaining runs.\n";
+                        last;
+                    }
+
+                    $lowest  = min(map { $_->{time} } @$run_times);
+                    $lowest -= $ignore_time;
+                    $scale   = $test->{scaling} eq 'linear' ? $scale + 1
+                                                            : $scale * 2;
                 }
-                $scale_points++;
-
-                $lowest  = min(map { $_->{time} } @$run_times);
-                $lowest -= $ignore_time;
-                $scale   = $test->{scaling} eq 'linear' ? $scale + 1
-                                                        : $scale * 2;
             }
         }
         else {
@@ -442,7 +444,6 @@ sub time_all_compilers {
             push @all_times, @{$run_times || []};
             if (!$run_times || grep { $_->{failed} } @$run_times) {
                 warn "Compiler $name is failing for test $test->{name}, continuing to next compiler/test.\n";
-                next;
             }
         }
 
