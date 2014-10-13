@@ -20,15 +20,18 @@ init_bench_handling();
 #       in the help text and hopefully catch the user's eye
 
 #| Setup, build, and test default compilers
-multi MAIN ('quickstart') {
+multi MAIN ('quickstart', Str :$stop-after = '') {
     say "CONFIGURATION";
     MAIN('config');
+    return if $stop-after eq 'config';
 
     say "\nSETUP AND CLONE REPOS";
     MAIN('setup');
+    return if $stop-after eq 'setup';
 
     say "\nFETCH NEW COMMITS";
     MAIN('fetch');
+    return if $stop-after eq 'fetch';
 
     # Figure out which tags to build and test by default
     my @compilers = < perl5 nqp-moar rakudo-moar >;
@@ -50,16 +53,20 @@ multi MAIN ('quickstart') {
 
     say "\nPLANNED CHECKOUTS";
     .say for @checkouts;
+    return if $stop-after eq 'plan';
 
     # Extract, build, time, and compare the default checkouts
     say "\nEXTRACT CHECKOUTS";
     MAIN('extract', @checkouts);
+    return if $stop-after eq 'extract'|'checkout';
 
     say "\nBUILD COMPILERS";
     MAIN('build',   @checkouts);
+    return if $stop-after eq 'build';
 
     say "\nRUN BENCHMARKS";
     MAIN('time',    @checkouts);
+    return if $stop-after eq 'time';
 
     say "\nPERFORMANCE HISTORY";
     MAIN('history', @checkouts);
