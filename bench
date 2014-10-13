@@ -305,7 +305,7 @@ sub known-tags(*@components, :$with-dates) {
         my @all-tags   = qx{git tag}.lines;
 
         if $with-dates {
-            %tags{$name} = gather for @all-tags -> $tag {
+            %tags{$name} = eager gather for @all-tags -> $tag {
                 my $detect = "git show -s --format=%ct $tag^\{commit}";
                 my $commit-time = qqx{$detect};
                 my $date = DateTime.new(+$commit-time).Date;
