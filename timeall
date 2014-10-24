@@ -471,12 +471,14 @@ sub time_command {
 
         if (@$compile) {
             my ($out, $err, $status) = capture { system @$compile };
-            my ($failed, $reason) = diagnose_capture($out, $err, $status);
+            my ($failed, $reason, $diagnosis)
+                = diagnose_capture($out, $err, $status);
             if ($failed) {
                 my $run_info = {
                     run => $i, scale => $scale, work => $work, time => 0,
                     out => $out, err => $err, status => $status,
                     failed => $failed, reason => $reason,
+                    diagnosis => $diagnosis,
                     command => $compile, phase => 'compile',
                 };
                 push @times, $run_info;
@@ -502,12 +504,14 @@ sub time_command {
 
         my ($out, $err, $status) = capture { system @run };
         my $time = time - $start;
-        my ($failed, $reason) = diagnose_capture($out, $err, $status, $expected);
+        my ($failed, $reason, $diagnosis)
+            = diagnose_capture($out, $err, $status, $expected);
 
         my $run_info = {
             run => $i, scale => $scale, work => $work, time => $time,
             out => $out, err => $err, status => $status, phase => 'run',
-            failed => $failed, reason => $reason, command => \@run,
+            failed => $failed, reason => $reason, diagnosis => $diagnosis,
+            command => \@run,
         };
         push @times, $run_info;
 
@@ -534,40 +538,48 @@ sub diagnose_capture {
 
     my $failed = 0;
     my $reason = '';
+    my $diagnosis = '';
 
     if ($out =~ /Segmentation/i || $err =~ /Segmentation/i) {
         $failed = 1;
         $reason = 'segfaulted';
+        $diagnosis = 'SEGFAULT';
     }
     elsif ($status) {
         $failed = 1;
         if ($status < 0) {
             $reason = 'failed to spawn';
+            $diagnosis = 'SPAWN_FAILED';
         }
         elsif (my $signal = $status & 127) {
             $reason = "received signal $signal";
+            $diagnosis = 'RECEIVED_SIGNAL';
 
             # Handle SIGINT specially as it indicates user intervention
             if ($signal == 2) {
                 $failed = -1;
                 $reason = 'terminated by SIGINT';
+                $diagnosis = 'RECEIVED_SIGINT';
             }
         }
         else {
             my $exit = $status >> 8;
             $reason = "exited with exit status $exit";
+            $diagnosis = 'NONZERO_EXIT';
         }
     }
     elsif (length $err) {
         $failed = 1;
         $reason = 'wrote to STDERR';
+        $diagnosis = 'WROTE_TO_STDERR';
     }
     elsif (defined $expected && $expected ne $out) {
         $failed = 1;
         $reason = 'did not produce expected output';
+        $diagnosis = 'OUTPUT_MISMATCH';
     }
 
-    return ($failed, $reason);
+    return ($failed, $reason, $diagnosis);
 }
 
 sub min_by(&@) {
