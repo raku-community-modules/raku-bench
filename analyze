@@ -515,7 +515,7 @@ sub summarize_results_text {
     }
 
     my  $scores = $data->{score};
-    if ($scores) {
+    if ($scores && $opt->{compare}) {
         $output .= ' ' x $longest_test . $spacer . '=' x length($titles) . "\n";
         $output .= sprintf "%-${longest_test}s", 'SUMMARY SCORE';
         for my $comp (@comps) {
