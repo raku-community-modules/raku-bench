@@ -462,44 +462,44 @@ sub summarize_results_text {
         }
         $output .= "\n";
 
-        next unless $opt->{compare};
-
-        $output .= sprintf "%-${longest_test}s", '';
-        for my $comp (@comps) {
-            my $key  = $comp->{key} || $comp->{name};
-            my $peak = $test->{compare}{peak_rate}{$key};
-            my $rel  = $peak->{relative_to_max};
-            if ($rel) {
-                $rel =  1 / $rel;
-                my $color = $rel <  2 ? $GREEN  :
-                            $rel < 10 ? $YELLOW :
-                                        $RED    ;
-                $output .= sprintf "$spacer$color%${longest_comp}.1fx $CLEAR", $rel;
+        if ($opt->{compare}) {
+            $output .= sprintf "%-${longest_test}s", '';
+            for my $comp (@comps) {
+                my $key  = $comp->{key} || $comp->{name};
+                my $peak = $test->{compare}{peak_rate}{$key};
+                my $rel  = $peak->{relative_to_max};
+                if ($rel) {
+                    $rel =  1 / $rel;
+                    my $color = $rel <  2 ? $GREEN  :
+                                $rel < 10 ? $YELLOW :
+                                            $RED    ;
+                    $output .= sprintf "$spacer$color%${longest_comp}.1fx $CLEAR", $rel;
+                }
+                else {
+                    # XXXX: May have to make this based on key instead of name
+                    my $conf    =  $test->{conf};
+                    my $is_skip =  !defined $conf->{$comp->{group}}
+                                || (grep { $_ eq $comp->{name} } @{$conf->{skip} || []})
+                                || (exists $conf->{skip} && !defined $conf->{skip});
+                    $output .= sprintf "$spacer$RED%${longest_comp}s  $CLEAR",
+                           $is_skip ? 'SKIP' : 'FAIL';
+                }
             }
-            else {
-                # XXXX: May have to make this based on key instead of name
-                my $conf    =  $test->{conf};
-                my $is_skip =  !defined $conf->{$comp->{group}}
-                            || (grep { $_ eq $comp->{name} } @{$conf->{skip} || []})
-                            || (exists $conf->{skip} && !defined $conf->{skip});
-                $output .= sprintf "$spacer$RED%${longest_comp}s  $CLEAR",
-                       $is_skip ? 'SKIP' : 'FAIL';
+            $output .= "\n";
+        }
+
+        if ($opt->{'show-failures'}) {
+            $output .= sprintf "%-${longest_test}s", '';
+            my $len  = $longest_comp + 2;
+            for my $comp (@comps) {
+                my $key   = $comp->{key} || $comp->{name};
+                my $diag  = $test->{diagnoses}{$key}{sorted};
+                my @icons = map {    $DIAGNOSIS_ICON{$_}
+                                  // $DIAGNOSIS_ICON{unknown} } @$diag;
+                $output .= sprintf "$spacer%${len}s", join '' => @icons;
             }
+            $output .= "\n";
         }
-        $output .= "\n";
-
-        next unless $opt->{'show-failures'};
-
-        $output .= sprintf "%-${longest_test}s", '';
-        my $len  = $longest_comp + 2;
-        for my $comp (@comps) {
-            my $key   = $comp->{key} || $comp->{name};
-            my $diag  = $test->{diagnoses}{$key}{sorted};
-            my @icons = map {    $DIAGNOSIS_ICON{$_}
-                              // $DIAGNOSIS_ICON{unknown} } @$diag;
-            $output .= sprintf "$spacer%${len}s", join '' => @icons;
-        }
-        $output .= "\n";
     }
 
     my  $scores = $data->{score};
