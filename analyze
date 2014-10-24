@@ -27,6 +27,19 @@ my %FORMATTER = (
                  html_plot    => \&summarize_results_html_plot,
                 );
 
+my %DIAGNOSIS_ICON = (
+    SEGFAULT        => '☠',
+    SPAWN_FAILED    => '⛔',
+    RECEIVED_SIGNAL => '⚡',
+    RECEIVED_SIGINT => '⎊',
+    NONZERO_EXIT    => 'Ø',
+    WROTE_TO_STDERR => 'E',
+    OUTPUT_MISMATCH => '≠',
+    other           => '?',
+    mixed           => '⦻',
+    ''              => '+',
+    );
+
 
 MAIN();
 
