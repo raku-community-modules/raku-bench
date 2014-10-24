@@ -447,9 +447,16 @@ sub summarize_results_text {
     $output   .= sprintf "$format\n", 'TEST', @{$s->{vm_names}};
     $output   .= ' ' x $longest_test . $spacer . '-' x length($titles) . "\n";
 
+    my %test_name_shown;
+    my $show_test_name = sub {
+        my $test = shift;
+        my $name = $test_name_shown{$test->{name}}++ ? '' : $test->{name};
+        $output .= sprintf "%-${longest_test}s", $name;
+    };
+
     for my $test (@{$data->{times}}) {
         $output .= "\n" unless $style;
-        $output .= sprintf "%-${longest_test}s", $test->{name};
+        $show_test_name->($test);
         for my $comp (@comps) {
             my $key  = $comp->{key} || $comp->{name};
             my $peak = $test->{compare}{peak_rate}{$key};
@@ -463,7 +470,7 @@ sub summarize_results_text {
         $output .= "\n";
 
         if ($opt->{compare}) {
-            $output .= sprintf "%-${longest_test}s", '';
+            $show_test_name->($test);
             for my $comp (@comps) {
                 my $key  = $comp->{key} || $comp->{name};
                 my $peak = $test->{compare}{peak_rate}{$key};
@@ -489,7 +496,7 @@ sub summarize_results_text {
         }
 
         if ($opt->{'show-failures'}) {
-            $output .= sprintf "%-${longest_test}s", '';
+            $show_test_name->($test);
             my $len  = $longest_comp + 2;
             for my $comp (@comps) {
                 my $key   = $comp->{key} || $comp->{name};
