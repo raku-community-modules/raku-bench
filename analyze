@@ -90,6 +90,7 @@ sub analyze_timings_files {
         my $startup = $data->{run}{startup} || {};
 
         for my $test (@{$data->{times}}) {
+            $test->{diagnoses} = diagnose_runs($test->{raw});
             $test->{compare}
                 = compare_scaled_times($test->{best}, $startup, $min_time,
                                        $ignore_startup, $ignore_compile);
@@ -202,6 +203,37 @@ sub load_timing_file {
     my $json = <$in_fh>;
 
     return $decoder->decode($json);
+}
+
+sub diagnose_runs {
+    my ($run_info) = @_;
+    my %diagnoses;
+
+    while (my ($comp, $runs) = each %$run_info) {
+        my %by_scale;
+        for my $run (@$runs) {
+            my $scale     = $run->{scale};
+            my $diagnosis = $run->{diagnosis};
+            push @{$by_scale{$scale} ||= []}, $diagnosis;
+        }
+
+        my %summary;
+        while (my ($scale, $diagnoses) = each %by_scale) {
+            my @diagnoses = uniq @$diagnoses;
+            $summary{$scale} = @diagnoses > 1 ? 'mixed' : $diagnoses[0];
+        }
+
+        my @sorted = map { $summary{$_} }
+                         sort { $a <=> $b } keys %summary;
+
+        $diagnoses{$comp} = {
+            by_scale => \%by_scale,
+            summary  => \%summary,
+            sorted   => \@sorted,
+        };
+    }
+
+    return \%diagnoses;
 }
 
 sub compare_scaled_times {
