@@ -1433,6 +1433,7 @@ analyze -- Analyze benchmark data produced by timeall
             [--style=0|1|auto] [--outfile=path/to/file.ext]
             [--min-time=0.01]
             [--ignore-startup] [--ignore-compile] [--skip-incomplete]
+            [--show-rates] [--show-failures]
             [--compare] [--history]
             path/to/timing_file.json [path/to/second_timing_file.json ...]
 
@@ -1520,6 +1521,17 @@ most common example of this).
 
 When processing multiple timing files, compare times across all timing files
 at once, rather than analyzing each timing file individually.
+
+=item --show-rates
+
+Show actual benchmark processing rates as opposed to normalized scores
+(or if --compare is on, in addition to).  Defaults to on; use --no-show-rates
+to turn this off.
+
+=item --show-failures
+
+Show information about test failures.  Used especially when performing
+stress testing, to show the failure modes exhibited by a failing compiler.
 
 =item --history
 
