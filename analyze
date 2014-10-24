@@ -236,6 +236,19 @@ sub diagnose_runs {
     return \%diagnoses;
 }
 
+sub most_diagnoses {
+    my ($tests) = @_;
+
+    my @test_maxes;
+
+    for my $test (@$tests) {
+        my @diagnoses = values %{$test->{diagnoses}};
+        push @test_maxes, max map { scalar @{$_->{sorted}} } @diagnoses;
+    }
+
+    return max @test_maxes;
+}
+
 sub compare_scaled_times {
     my ($times, $startup, $min_time, $ignore_startup, $ignore_compile) = @_;
     my $max_rate = 0;
@@ -392,6 +405,9 @@ sub summarize_results_text {
     my $longest_test = max 13, map { length } @{$s->{test_names}};
     my $longest_comp = max 8,  map { length } @{$s->{run_names}},
         @{$s->{lang_names}}, @{$s->{comp_names}}, @{$s->{vm_names}};
+
+    my $most_diagnoses = most_diagnoses($data->{times});
+    $longest_comp = max $longest_comp, $most_diagnoses;
 
     my $spacer_length = 3;
     my $spacer = ' ' x $spacer_length;
