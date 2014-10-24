@@ -64,12 +64,14 @@ sub process_options_and_arguments {
                       'ignore-compile|ignore_compile|ignorecompile!',
                       'skip-incomplete|skip_incomplete|skipincomplete!',
                       'show-failures|show_failures|showfailures!',
+                      'show-rates|show_rates|showrates!',
                       'compare!', 'history!')
         or pod2usage(-verbose => 0);
     pod2usage(-verbose => 1) if $opt{help};
     pod2usage(-verbose => 2) if $opt{man};
 
-    $opt{'min-time'} //= 1e-2;
+    $opt{'min-time'}   //= 1e-2;
+    $opt{'show-rates'} //= 1;
 
     $opt{outfile} //= '-';
     my $suffix      = (fileparse($opt{outfile}, qr/\.[^.]+$/))[2] || '.';
@@ -456,18 +458,21 @@ sub summarize_results_text {
 
     for my $test (@{$data->{times}}) {
         $output .= "\n" unless $style;
-        $show_test_name->($test);
-        for my $comp (@comps) {
-            my $key  = $comp->{key} || $comp->{name};
-            my $peak = $test->{compare}{peak_rate}{$key};
-            if (defined $peak && defined $peak->{rate}) {
-                $output .= sprintf "$spacer%${longest_comp}.0f/s", $peak->{rate};
+
+        if ($opt->{'show-rates'}) {
+            $show_test_name->($test);
+            for my $comp (@comps) {
+                my $key  = $comp->{key} || $comp->{name};
+                my $peak = $test->{compare}{peak_rate}{$key};
+                if (defined $peak && defined $peak->{rate}) {
+                    $output .= sprintf "$spacer%${longest_comp}.0f/s", $peak->{rate};
+                }
+                else {
+                    $output .= sprintf "$spacer%${longest_comp}s  ", '-- ';
+                }
             }
-            else {
-                $output .= sprintf "$spacer%${longest_comp}s  ", '-- ';
-            }
+            $output .= "\n";
         }
-        $output .= "\n";
 
         if ($opt->{compare}) {
             $show_test_name->($test);
