@@ -35,7 +35,7 @@ my %DIAGNOSIS_ICON = (
     NONZERO_EXIT    => 'Ø',
     WROTE_TO_STDERR => 'E',
     OUTPUT_MISMATCH => '≠',
-    other           => '?',
+    unknown         => '?',
     mixed           => '⦻',
     ''              => '+',
     );
@@ -226,7 +226,7 @@ sub diagnose_runs {
         my %by_scale;
         for my $run (@$runs) {
             my $scale     = $run->{scale};
-            my $diagnosis = $run->{diagnosis};
+            my $diagnosis = $run->{diagnosis} // 'unknown';
             push @{$by_scale{$scale} ||= []}, $diagnosis;
         }
 
