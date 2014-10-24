@@ -63,6 +63,7 @@ sub process_options_and_arguments {
                       'ignore-startup|ignore_startup|ignorestartup!',
                       'ignore-compile|ignore_compile|ignorecompile!',
                       'skip-incomplete|skip_incomplete|skipincomplete!',
+                      'show-failures|show_failures|showfailures!',
                       'compare!', 'history!')
         or pod2usage(-verbose => 0);
     pod2usage(-verbose => 1) if $opt{help};
@@ -484,6 +485,19 @@ sub summarize_results_text {
                 $output .= sprintf "$spacer$RED%${longest_comp}s  $CLEAR",
                        $is_skip ? 'SKIP' : 'FAIL';
             }
+        }
+        $output .= "\n";
+
+        next unless $opt->{'show-failures'};
+
+        $output .= sprintf "%-${longest_test}s", '';
+        my $len  = $longest_comp + 2;
+        for my $comp (@comps) {
+            my $key   = $comp->{key} || $comp->{name};
+            my $diag  = $test->{diagnoses}{$key}{sorted};
+            my @icons = map {    $DIAGNOSIS_ICON{$_}
+                              // $DIAGNOSIS_ICON{unknown} } @$diag;
+            $output .= sprintf "$spacer%${len}s", join '' => @icons;
         }
         $output .= "\n";
     }
