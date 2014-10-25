@@ -787,7 +787,7 @@ Enable only a subset of the available tests (instead of the default of all
 known tests), using a comma separated list of the test names.  To see the
 list of known test names, use the C<--list-tests> option.
 
-=item --list-tests-tagged=required-tag,-forbidden-tag
+=item --tests-tagged=required-tag,-forbidden-tag
 
 Enable only tests that match a tag query specifying which tags a test is
 required to have and which tags it must B<not> have.  Tags should be
