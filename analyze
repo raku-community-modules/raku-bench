@@ -457,8 +457,11 @@ sub summarize_results_text {
         $output .= sprintf "%-${longest_test}s", $name;
     };
 
+    my $row_height = grep $_, @$opt{qw( show-rates show-failures compare )};
+    my $double_space = !$style && $row_height > 1;
+
     for my $test (@{$data->{times}}) {
-        $output .= "\n" unless $style;
+        $output .= "\n" if $double_space;
 
         if ($opt->{'show-rates'}) {
             $show_test_name->($test);
