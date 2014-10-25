@@ -337,7 +337,8 @@ sub compute_scores {
     my ($data, $skip_incomplete) = @_;
     my $tests = $data->{times};
 
-    my @compilers = map { $_->{key} } @{$data->{config}{compilers}};
+    my @compilers = map { $_->{key} || $_->{name} }
+                        @{$data->{config}{compilers}};
     my $standard  = $compilers[0];
 
     my %score;
