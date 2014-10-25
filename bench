@@ -402,6 +402,49 @@ multi MAIN ('history', *@timings, :$format?, :$style?, :$outfile?,
     run "$PROGRAM_DIR/analyze", @options, @timings-files;
 }
 
+#| Run stress tests on (variants of) built components
+multi MAIN ('stress', *@components, :$variants?, :$tests?,
+                                    :$tests-tagged = 'stress',
+                                    :$runs?, :$enough-time?,
+                                    :$min-scaling-points?,
+                                    Bool :$verbose?) {
+    needs-setup('stress test Perls');
+
+    my @options = as-options(:$tests, :$tests-tagged, :$runs, :$enough-time,
+                             :$min-scaling-points, :$verbose);
+
+    for-checkouts @components, -> $comp, $name, $checkout {
+        chdir "$COMPONENTS_DIR/$name/$checkout";
+
+        my $timings_dir = "$TIMINGS_DIR/$name";
+        mkpath $timings_dir;
+
+        my @variants = $variants ?? $variants.split(',') !! $name;
+        run "perl", "$PROGRAM_DIR/timeall", "--outfile=$timings_dir/$checkout.json",
+                                            @options, @variants;
+    }
+}
+
+#| Diagnose failures in stress tests
+multi MAIN ('diagnose', *@timings, :$format?, :$style?, :$outfile?,
+            Numeric :$min-time,
+            Bool :$ignore-startup = True, Bool :$ignore-compile = True,
+            Bool :$skip-incomplete = True) {
+    needs-timings('diagnose failures');
+
+    my @options = as-options(:show-failures, :!show-rates, :$min-time,
+                             :$ignore-startup, :$ignore-compile,
+                             :$skip-incomplete,
+                             :$format, :$style, :$outfile);
+
+    my @timings-files;
+    for explode-timings(@timings, :!chdir).kv -> $component, @files {
+        @timings-files.push: @files.map: "$TIMINGS_DIR/$component/" ~ *;
+    }
+
+    run "perl", "$PROGRAM_DIR/analyze", @options, @timings-files;
+}
+
 #| Clean up build trees in $COMPONENTS_DIR, keeping bare clones by default
 multi MAIN ('clean', *@components) {
     unless $COMPONENTS_DIR.path.d {
