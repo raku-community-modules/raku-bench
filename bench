@@ -429,12 +429,12 @@ multi MAIN ('stress', *@components, :$variants?, :$tests?,
 multi MAIN ('diagnose', *@timings, :$format?, :$style?, :$outfile?,
             Numeric :$min-time,
             Bool :$ignore-startup = True, Bool :$ignore-compile = True,
-            Bool :$skip-incomplete = True) {
+            Bool :$skip-incomplete = True, Bool :$verbose?) {
     needs-timings('diagnose failures');
 
     my @options = as-options(:show-failures, :!show-rates, :$min-time,
                              :$ignore-startup, :$ignore-compile,
-                             :$skip-incomplete,
+                             :$skip-incomplete, :$verbose,
                              :$format, :$style, :$outfile);
 
     my @timings-files;

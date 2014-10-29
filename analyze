@@ -59,7 +59,7 @@ sub MAIN {
 sub process_options_and_arguments {
     my %opt;
     GetOptions(\%opt, 'help|h|?!', 'man!', 'format=s', 'style=s', 'outfile=s',
-                      'min-time|min_time|mintime=f',
+                      'verbose!', 'min-time|min_time|mintime=f',
                       'ignore-startup|ignore_startup|ignorestartup!',
                       'ignore-compile|ignore_compile|ignorecompile!',
                       'skip-incomplete|skip_incomplete|skipincomplete!',
@@ -509,10 +509,25 @@ sub summarize_results_text {
             my $len  = $longest_comp + 2;
             for my $comp (@comps) {
                 my $key   = $comp->{key} || $comp->{name};
-                my $diag  = $test->{diagnoses}{$key}{sorted};
-                my @icons = map {    $DIAGNOSIS_ICON{$_}
-                                  // $DIAGNOSIS_ICON{unknown} } @$diag;
-                $output .= sprintf "$spacer%${len}s", join '' => @icons;
+                my $diags = $test->{diagnoses}{$key};
+                if ($opt->{verbose}) {
+                    my $by_scale = $diags->{by_scale};
+                    my @scales   = sort { $a <=> $b } keys %$by_scale;
+                    my @out;
+                    for my $scale (@scales) {
+                        my $diag = $by_scale->{$scale};
+                        my @icons = map {    $DIAGNOSIS_ICON{$_}
+                                          // $DIAGNOSIS_ICON{unknown} } @$diag;
+                        push @out, join '' => @icons;
+                    }
+                    $output .= sprintf "$spacer%${len}s", join ',' => @out;
+                }
+                else {
+                    my $diag  = $diags->{sorted};
+                    my @icons = map {    $DIAGNOSIS_ICON{$_}
+                                      // $DIAGNOSIS_ICON{unknown} } @$diag;
+                    $output .= sprintf "$spacer%${len}s", join '' => @icons;
+                }
             }
             $output .= "\n";
         }
@@ -1437,7 +1452,7 @@ analyze -- Analyze benchmark data produced by timeall
             [--style=0|1|auto] [--outfile=path/to/file.ext]
             [--min-time=0.01]
             [--ignore-startup] [--ignore-compile] [--skip-incomplete]
-            [--show-rates] [--show-failures]
+            [--show-rates] [--show-failures] [--verbose]
             [--compare] [--history]
             path/to/timing_file.json [path/to/second_timing_file.json ...]
 
@@ -1536,6 +1551,12 @@ to turn this off.
 
 Show information about test failures.  Used especially when performing
 stress testing, to show the failure modes exhibited by a failing compiler.
+
+=item --verbose
+
+Show more detailed information about test failures, especially useful when
+a compiler has mixed failure modes on a single test (e.g. sometimes giving
+wrong results, sometimes dying with an error, sometimes segfaulting).
 
 =item --history
 
