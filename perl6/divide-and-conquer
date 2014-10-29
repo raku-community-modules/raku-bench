@@ -1,0 +1,11 @@
+my \SCALE = @*ARGS[0];
+my \FANOUT = 2;
+
+sub divide-and-conquer($n, $depth) {
+    say "$depth: $n" if 0;
+    $depth <= 0 ?? $n !! [+] await do for ^FANOUT {
+        start { divide-and-conquer($n / FANOUT, $depth - 1) }
+    }
+}
+
+say divide-and-conquer(1.0, SCALE);
