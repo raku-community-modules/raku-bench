@@ -405,7 +405,7 @@ multi MAIN ('history', *@timings, :$format?, :$style?, :$outfile?,
 #| Run stress tests on (variants of) built components
 multi MAIN ('stress', *@components, :$variants?, :$tests?,
                                     :$tests-tagged = 'stress',
-                                    :$runs?, :$enough-time?,
+                                    :$runs = 10, :$enough-time?,
                                     :$min-scaling-points?,
                                     Bool :$verbose?) {
     needs-setup('stress test Perls');
