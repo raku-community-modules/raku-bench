@@ -525,7 +525,6 @@ sub time_command {
             # Normal failures
             else {
                 warn $msg;
-                last;
             }
         }
     }
