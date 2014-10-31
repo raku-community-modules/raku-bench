@@ -448,4 +448,12 @@
   perl6 => 'my @a = 0 xx SCALE; say +@a',
   nqp   => undef,
  },
+ {
+  name => 'deep_scan_for_interpolated_string_var',
+  tags  => [qw( for regex scan interpolated variable )],
+  scale => 1 << 4,
+  perl5 => '$_ = ("0" x 100) . "foo bar baz"; my $s = "foo bar baz"; for (my $i = 0; $i < SCALE; $i++) { /\Q$s\E/ }',
+  perl6 => '$_ = "0" x 100 ~ "foo bar baz"; my $s = "foo bar baz"; loop (my $i = 0; $i < SCALE; $i++) { /$s/ }',
+  nqp   => undef,
+ },
 ]
