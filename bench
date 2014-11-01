@@ -471,7 +471,8 @@ multi MAIN ('diagnose', *@timings, :$format?, :$style?, :$outfile?,
             Bool :$skip-incomplete = True, Bool :$verbose?) {
     needs-timings('diagnose failures');
 
-    my @options = as-options(:show-failures, :!show-rates, :$min-time,
+    my @options = as-options(:show-failures, :!show-rates, :!show-relative,
+                             :compare, :$min-time,
                              :$ignore-startup, :$ignore-compile,
                              :$skip-incomplete, :$verbose,
                              :$format, :$style, :$outfile);
