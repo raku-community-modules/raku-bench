@@ -813,7 +813,7 @@ CSS
 
 
     my  $scores = $data->{score};
-    if ($scores) {
+    if ($scores && $opt->{'show-relative'}) {
         $html .= qq{<tr class="bench_spacer_row"></tr>\n};
         $html .= qq{<tr class="bench_compare_row"><th>SUMMARY SCORE</th>\n};
         for my $comp (@comps) {
