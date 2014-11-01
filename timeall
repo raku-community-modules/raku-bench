@@ -21,6 +21,7 @@ use Cwd;
 
 my %DEFAULT = (
                TEST_RUNS          => 2,   # times to run each test, taking best time
+               MAX_FAILURES       => 5,   # maximum number of failed runs by a given compiler at a given SCALE to still continue that test
                MIN_STARTUP_RUNS   => 10,  # minimum times to run startup time test
                ENOUGH_TIME        => 1.0, # minimum run time (seconds) to give clean timing data for scalable tests
                MIN_SCALING_POINTS => 3,   # minimum different points to test on each scaling curve
@@ -176,7 +177,8 @@ sub known_tags {
 sub process_options_and_arguments {
     my %opt;
     GetOptions(\%opt, 'help|h|?!', 'man!', 'verbose!', 'format=s', 'outfile=s',
-                      'runs=i', 'enough-time=f', 'min-scaling-points=i',
+                      'runs=i', 'max-failures=i',
+                      'enough-time=f', 'min-scaling-points=i',
                       'list-variants!', 'list-tests!', 'tests=s',
                       'list-tags!', 'list-tests-tagged=s', 'tests-tagged=s')
         or pod2usage(-verbose => 0);
@@ -314,23 +316,24 @@ sub run_all_tests {
     my $overhead_runs = $startup_runs;
     my $enough_time   = $opt->{'enough-time'} || $DEFAULT{ENOUGH_TIME};
     my $scale_points  = $opt->{'min-scaling-points'} || $DEFAULT{MIN_SCALING_POINTS};
+    my $max_failures  = $opt->{'max-failures'} // $DEFAULT{MAX_FAILURES};
     my $empty_test    = $TESTS{e}[0];
 
     say "Measuring startup times ...";
     # If user aborts now, don't bother catching it; normal testing hasn't begun
-    my $times   = time_all_compilers($empty_test, $startup_runs, 0, $enough_time, 0, $opt->{verbose});
+    my $times   = time_all_compilers($empty_test, $startup_runs, 0, $enough_time, 0, 0, $opt->{verbose});
     my $startup = best_times($times);
     $startup->{$_} = $startup->{$_}{1}{time} for keys %$startup;
 
     my @results;
     # Catch user aborts so that results for completed tests can be returned
-    eval { run_tests(\@TESTS, \@results, $startup, $runs, $overhead_runs, $enough_time, $scale_points, $opt->{verbose}) };
+    eval { run_tests(\@TESTS, \@results, $startup, $runs, $overhead_runs, $enough_time, $scale_points, $max_failures, $opt->{verbose}) };
     warn "\n$@\n" if $@;
     return (\@results, $startup);
 }
 
 sub run_tests {
-    my ($tests, $results, $startup, $runs, $overhead_runs, $enough_time, $min_scaling_points, $verbose) = @_;
+    my ($tests, $results, $startup, $runs, $overhead_runs, $enough_time, $min_scaling_points, $max_failures, $verbose) = @_;
 
     my @enabled   = grep { $_->{enabled} } @$tests;
     my $testcount = @enabled;
@@ -342,7 +345,7 @@ sub run_tests {
 
         # Let user aborts fall out to run_all_tests() so that the last test
         # timed won't have partial (and possibly misleading) timing data
-        my $raw_times = time_all_compilers($test, $runs, $overhead_runs, $enough_time, $min_scaling_points, $verbose, $startup);
+        my $raw_times = time_all_compilers($test, $runs, $overhead_runs, $enough_time, $min_scaling_points, $max_failures, $verbose, $startup);
         my $best      = best_times($raw_times);
         push @$results, {
                          name    => $name,
@@ -354,7 +357,7 @@ sub run_tests {
 }
 
 sub time_all_compilers {
-    my ($test, $runs, $overhead_runs, $enough_time, $min_scaling_points, $verbose, $startup) = @_;
+    my ($test, $runs, $overhead_runs, $enough_time, $min_scaling_points, $max_failures, $verbose, $startup) = @_;
 
     my $test_type = $test->{type};
     my $cwd       = cwd;
@@ -411,7 +414,8 @@ sub time_all_compilers {
             my $run_times = time_command(\@compile, \@run, $overhead_runs, 0, 0, $expected->(0), $verbose);
             push @all_times, @{$run_times || []};
 
-            if (!$run_times || grep { $_->{failed} } @$run_times) {
+            if (!$run_times
+            || (grep { $_->{failed} } @$run_times) > $max_failures) {
                 warn "Compiler $name is failing at scale=0 for test $test->{name}, aborting remaining runs.\n";
             }
             else {
@@ -427,7 +431,8 @@ sub time_all_compilers {
                     push @all_times, @{$run_times || []};
                     $scale_points++;
 
-                    if (!$run_times || grep { $_->{failed} } @$run_times) {
+                    if (!$run_times
+                    || (grep { $_->{failed} } @$run_times) > $max_failures) {
                         warn "Compiler $name is failing at scale=$scale for test $test->{name}, aborting remaining runs.\n";
                         last;
                     }
@@ -442,7 +447,8 @@ sub time_all_compilers {
         else {
             my $run_times = time_command(\@compile, \@run, $runs, 1, 1, $expected->(1), $verbose);
             push @all_times, @{$run_times || []};
-            if (!$run_times || grep { $_->{failed} } @$run_times) {
+            if (!$run_times
+            || (grep { $_->{failed} } @$run_times) > $max_failures) {
                 warn "Compiler $name is failing for test $test->{name}, continuing to next compiler/test.\n";
             }
         }
@@ -654,7 +660,7 @@ timeall -- Benchmark Perl-family compilers against each other
 
     timeall [--help|-h|-?] [--man] [--list-variants] [--list-tests]
             [--list-tags] [--list-tests-tagged=required-tag,-forbidden-tag]
-    timeall [--verbose] [--runs=2] [--enough-time=3.0]
+    timeall [--verbose] [--runs=2] [--max-failures=0] [--enough-time=3.0]
             [--format=json] [--outfile=path/to/file.ext]
             [--tests=list,of,tests] [--tests-tagged=required,-forbidden]
             [<enabled compiler variants>]
@@ -749,6 +755,12 @@ measurements and the effects of random background processes, but rapidly
 reaches diminishing returns.  Many times it's more effective to just turn off
 as many background processes (such as email clients) as possible while
 benchmarking.
+
+=item --max-failures=0
+
+The maximum number of failed runs that can occur at a given SCALE for a
+given compiler before that compiler is assumed over-stressed and testing
+continues with the next compiler or next test.
 
 =item --enough-time=1.0
 

@@ -445,12 +445,13 @@ multi MAIN ('history', *@timings, :$format?, :$style?, :$outfile?,
 multi MAIN ('stress', *@components, :$variants?, :$tests?,
                                     :$tests-tagged = 'stress',
                                     :$runs = 10, :$enough-time?,
+                                    :$max-failures = Int($runs / 2 + .5),
                                     :$min-scaling-points?,
                                     Bool :$verbose?) {
     needs-setup('stress test Perls');
 
     my @options = as-options(:$tests, :$tests-tagged, :$runs, :$enough-time,
-                             :$min-scaling-points, :$verbose);
+                             :$max-failures, :$min-scaling-points, :$verbose);
 
     for-checkouts @components, -> $comp, $name, $checkout {
         chdir "$COMPONENTS_DIR/$name/$checkout";
