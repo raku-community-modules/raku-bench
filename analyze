@@ -453,15 +453,15 @@ sub summarize_results_text {
     $output   .= sprintf "$format\n", 'TEST', @{$s->{vm_names}};
     $output   .= ' ' x $longest_test . $spacer . '-' x length($titles) . "\n";
 
+    my $row_height = grep $_, @$opt{qw( show-rates show-failures compare )};
+    my $double_space = !$style && $row_height > 1;
+
     my %test_name_shown;
     my $show_test_name = sub {
         my $test = shift;
         my $name = $test_name_shown{$test->{name}}++ ? '' : $test->{name};
         $output .= sprintf "%-${longest_test}s", $name;
     };
-
-    my $row_height = grep $_, @$opt{qw( show-rates show-failures compare )};
-    my $double_space = !$style && $row_height > 1;
 
     my $icon_set = sub {
         my @icons = map {    $DIAGNOSIS_ICON{$_}
