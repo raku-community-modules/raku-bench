@@ -720,10 +720,12 @@ sub summarize_results_html_snippet {
 .bench_vm              { text-align: center; padding-top: .1em; }
 .bench_time_row    td  { }
 .bench_compare_row td  { }
+.bench_diagnoses_row td { vertical-align: top; }
 .bench_spacer_row      { height: .7em; }
 .bench_rate            { text-align: right; font-family: monospace; }
 .bench_time            { text-align: right; font-family: monospace; }
 .bench_no_time         { text-align: right; font-family: monospace; }
+.bench_diagnoses       { text-align: right; font-family: monospace; }
 .bench_good            { text-align: right; font-family: monospace; background-color: #3f7; color: black; }
 .bench_bad             { text-align: right; font-family: monospace; background-color: #ee0; color: black; }
 .bench_ugly            { text-align: right; font-family: monospace; background-color: #f55; color: white; }
@@ -761,6 +763,12 @@ CSS
         my ($test, $class) = @_;
         my $name = $test_name_shown{$test->{name}}++ ? '' : $test->{name};
         $html .= qq{<tr class="$class"><td>$name</td>\n};
+    };
+
+    my $icon_set = sub {
+        my @icons = map {    $DIAGNOSIS_ICON{$_}
+                          // $DIAGNOSIS_ICON{unknown} } @_;
+        join '' => @icons;
     };
 
     my @comps = @{$s->{compilers}};
@@ -803,6 +811,33 @@ CSS
                     my $message = $is_skip ? 'SKIP'       : 'FAIL';
                     $html .= qq{    <td class="$class">$message</td>\n};
                 }
+            }
+            $html .= "</tr>\n";
+        }
+
+
+        if ($opt->{'show-failures'}) {
+            $show_test_name->($test, 'bench_diagnoses_row');
+            for my $comp (@comps) {
+                my $key   = $comp->{key} || $comp->{name};
+                my $diags = $test->{diagnoses}{$key};
+
+                my (@icon_sets, $icons);
+                if ($opt->{verbose}) {
+                    my $by_scale = $diags->{by_scale};
+                    my @scales   = sort { $a <=> $b } keys %$by_scale;
+                    my @icon_sets;
+                    for my $scale (@scales) {
+                        my $diag = $by_scale->{$scale};
+                        push @icon_sets, $icon_set->(@$diag);
+                    }
+                    $icons = join '<br>' => @icon_sets;
+                }
+                else {
+                    my $diag = $diags->{sorted};
+                    $icons = $icon_set->(@$diag);
+                }
+                $html .= qq{    <td class="bench_diagnoses">$icons</td>\n};
             }
             $html .= "</tr>\n";
         }
