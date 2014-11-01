@@ -753,47 +753,62 @@ CSS
     $html .= "<tr><th></th>\n"     . join('' => map qq{    <th class="bench_compiler">$_</th>\n} => @{$s->{comp_names}}) . "</tr>\n";
     $html .= "<tr><th>TEST</th>\n" . join('' => map qq{    <th class="bench_vm">$_</th>\n} => @{$s->{vm_names}}) . "</tr>\n";
 
+    my $row_height = grep $_, @$opt{qw( show-rates show-failures compare )};
+    my $double_space = $row_height > 1;
+
+    my %test_name_shown;
+    my $show_test_name = sub {
+        my ($test, $class) = @_;
+        my $name = $test_name_shown{$test->{name}}++ ? '' : $test->{name};
+        $html .= qq{<tr class="$class"><td>$name</td>\n};
+    };
+
     my @comps = @{$s->{compilers}};
     for my $test (@{$data->{times}}) {
-        $html .= qq{<tr class="bench_time_row"><td>$test->{name}</td>\n};
-        for my $comp (@comps) {
-            my $key  = $comp->{key} || $comp->{name};
-            my $peak = $test->{compare}{peak_rate}{$key};
-            if (defined $peak && defined $peak->{rate}) {
-                $html .= sprintf qq{    <td class="bench_rate">%.0f/s</td>\n}, $peak->{rate};
+        if ($opt->{'show-rates'}) {
+            $show_test_name->($test, 'bench_time_row');
+            for my $comp (@comps) {
+                my $key  = $comp->{key} || $comp->{name};
+                my $peak = $test->{compare}{peak_rate}{$key};
+                if (defined $peak && defined $peak->{rate}) {
+                    $html .= sprintf qq{    <td class="bench_rate">%.0f/s</td>\n}, $peak->{rate};
+                }
+                else {
+                    $html .= qq{    <td class="bench_no_time">--</td>\n};
+                }
             }
-            else {
-                $html .= qq{    <td class="bench_no_time">--</td>\n};
-            }
+            $html .= "</tr>\n";
         }
-        $html .= "</tr>\n";
 
-        next unless $opt->{compare};
-
-        $html .= qq{<tr class="bench_compare_row"><td></td>\n};
-        for my $comp (@comps) {
-            my $key  = $comp->{key} || $comp->{name};
-            my $peak = $test->{compare}{peak_rate}{$key};
-            my $rel  = $peak->{relative_to_max};
-            if ($rel) {
-                $rel =  1 / $rel;
-                my $class = $rel <  2 ? 'bench_good' :
-                            $rel < 10 ? 'bench_bad'  :
-                                        'bench_ugly' ;
-                $html .= sprintf qq{    <td class="$class">%.1fx</td>\n}, $rel;
+        if ($opt->{'show-relative'}) {
+            $show_test_name->($test, 'bench_compare_row');
+            for my $comp (@comps) {
+                my $key  = $comp->{key} || $comp->{name};
+                my $peak = $test->{compare}{peak_rate}{$key};
+                my $rel  = $peak->{relative_to_max};
+                if ($rel) {
+                    $rel =  1 / $rel;
+                    my $class = $rel <  2 ? 'bench_good' :
+                                $rel < 10 ? 'bench_bad'  :
+                                            'bench_ugly' ;
+                    $html .= sprintf qq{    <td class="$class">%.1fx</td>\n}, $rel;
+                }
+                else {
+                    # XXXX: May have to make this based on key instead of name
+                    my $conf    =  $test->{conf};
+                    my $is_skip =  !defined $conf->{$comp->{group}}
+                                || (grep { $_ eq $comp->{name} } @{$conf->{skip} || []})
+                                || (exists $conf->{skip} && !defined $conf->{skip});
+                    my $class   = $is_skip ? 'bench_skip' : 'bench_fail';
+                    my $message = $is_skip ? 'SKIP'       : 'FAIL';
+                    $html .= qq{    <td class="$class">$message</td>\n};
+                }
             }
-            else {
-                # XXXX: May have to make this based on key instead of name
-                my $conf    =  $test->{conf};
-                my $is_skip =  !defined $conf->{$comp->{group}}
-                            || (grep { $_ eq $comp->{name} } @{$conf->{skip} || []})
-                            || (exists $conf->{skip} && !defined $conf->{skip});
-                my $class   = $is_skip ? 'bench_skip' : 'bench_fail';
-                my $message = $is_skip ? 'SKIP'       : 'FAIL';
-                $html .= qq{    <td class="$class">$message</td>\n};
-            }
+            $html .= "</tr>\n";
         }
-        $html .= qq{</tr>\n<tr class="bench_spacer_row"></tr>\n};
+
+        $html .= qq{<tr class="bench_spacer_row"></tr>\n}
+             if $double_space;
     }
 
 
