@@ -38,7 +38,7 @@ my %DIAGNOSIS_ICON = (
     OUTPUT_MISMATCH => '≠',
     unknown         => '?',
     mixed           => '⦻',
-    ''              => '+',
+    ''              => '.',
     );
 
 
