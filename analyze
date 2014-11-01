@@ -683,6 +683,7 @@ sub summarize_results_html {
     print $out_fh <<'HEADER';
 <html>
 <head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
 <title>Perl Bench Summary</title>
 </head>
 
