@@ -462,6 +462,12 @@ sub summarize_results_text {
     my $row_height = grep $_, @$opt{qw( show-rates show-failures compare )};
     my $double_space = !$style && $row_height > 1;
 
+    my $icon_set = sub {
+        my @icons = map {    $DIAGNOSIS_ICON{$_}
+                          // $DIAGNOSIS_ICON{unknown} } @_;
+        join '' => @icons;
+    };
+
     for my $test (@{$data->{times}}) {
         $output .= "\n" if $double_space;
 
@@ -507,31 +513,51 @@ sub summarize_results_text {
         }
 
         if ($opt->{'show-failures'}) {
-            $show_test_name->($test);
-            my $len  = $longest_comp + 2;
+            my $len = $longest_comp + 2;
+
+            my %icon_sets;
             for my $comp (@comps) {
                 my $key   = $comp->{key} || $comp->{name};
                 my $diags = $test->{diagnoses}{$key};
+
+                my @icon_sets;
                 if ($opt->{verbose}) {
                     my $by_scale = $diags->{by_scale};
                     my @scales   = sort { $a <=> $b } keys %$by_scale;
-                    my @out;
                     for my $scale (@scales) {
                         my $diag = $by_scale->{$scale};
-                        my @icons = map {    $DIAGNOSIS_ICON{$_}
-                                          // $DIAGNOSIS_ICON{unknown} } @$diag;
-                        push @out, join '' => @icons;
+                        push @icon_sets, $icon_set->(@$diag);
                     }
-                    $output .= sprintf "$spacer%${len}s", join ',' => @out;
                 }
                 else {
-                    my $diag  = $diags->{sorted};
-                    my @icons = map {    $DIAGNOSIS_ICON{$_}
-                                      // $DIAGNOSIS_ICON{unknown} } @$diag;
-                    $output .= sprintf "$spacer%${len}s", join '' => @icons;
+                    my $diag = $diags->{sorted};
+                    push @icon_sets, $icon_set->(@$diag);
+                }
+
+                $icon_sets{$key} = \@icon_sets;
+            }
+
+            if ($opt->{verbose} && $opt->{compare}) {
+                my $max = max map { scalar @$_ } values %icon_sets;
+                for my $i (0 .. $max - 1) {
+                    $show_test_name->($test);
+                    for my $comp (@comps) {
+                        my $key   = $comp->{key} || $comp->{name};
+                        my $icons = $icon_sets{$key}[$i] || '';
+                        $output .= sprintf "$spacer%${len}s", $icons;
+                    }
+                    $output .= "\n";
                 }
             }
-            $output .= "\n";
+            else {
+                $show_test_name->($test);
+                for my $comp (@comps) {
+                    my $key = $comp->{key} || $comp->{name};
+                    $output .= sprintf "$spacer%${len}s",
+                                       join ',' => @{$icon_sets{$key}};
+                }
+                $output .= "\n";
+            }
         }
     }
 
