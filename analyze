@@ -30,6 +30,7 @@ my %FORMATTER = (
 my %DIAGNOSIS_ICON = (
     SEGFAULT        => '☠',
     SPAWN_FAILED    => '⛔',
+    TIMED_OUT       => '⏲',  # Or ⏰ or ⏱
     RECEIVED_SIGNAL => '⚡',
     RECEIVED_SIGINT => '⎊',
     NONZERO_EXIT    => 'Ø',
