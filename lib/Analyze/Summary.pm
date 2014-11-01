@@ -72,12 +72,14 @@ sub init {
     $s->{lang_count} = \%lang_count;
     $s->{langs}      = \@langs;
 
-    my   @showing = ('PEAK RATE (/s)');
-    push @showing, 'TIMES SLOWER THAN FASTEST (x)' if $o->{compare};
-    if ($d->{score}) {
+    my   @showing;
+    push @showing, 'PEAK RATE (/s)'                if $o->{'show-rates'};
+    push @showing, 'TIMES SLOWER THAN FASTEST (x)' if $o->{'show-relative'};
+    if ($d->{score} && $o->{'show-relative'}) {
         my $skip = $o->{'skip-incomplete'} ? ' (skipping incomplete data)' : '';
         push @showing, "SUMMARY SCORES$skip";
     }
+    push @showing, 'FAILURE DIAGNOSES' if $o->{'show-failures'};
     $s->{showing} = \@showing;
 
     return $s;
