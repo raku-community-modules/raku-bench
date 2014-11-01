@@ -229,11 +229,12 @@ sub diagnose_runs {
     my %diagnoses;
 
     while (my ($comp, $runs) = each %$run_info) {
-        my %by_scale;
+        my (%by_scale, %details);
         for my $run (@$runs) {
             my $scale     = $run->{scale};
-            my $diagnosis = $run->{diagnosis} // 'unknown';
+            my $diagnosis = $run->{diagnosis} //= 'unknown';
             push @{$by_scale{$scale} ||= []}, $diagnosis;
+            push @{$details{$scale}  ||= []}, $run;
         }
 
         my %summary;
@@ -242,12 +243,16 @@ sub diagnose_runs {
             $summary{$scale} = @diagnoses > 1 ? 'mixed' : $diagnoses[0];
         }
 
-        my @sorted = map { $summary{$_} }
-                         sort { $a <=> $b } keys %summary;
+        my @sorted  = map { $summary{$_} }
+                          sort { $a <=> $b } keys %summary;
+
+        my @details = map { $details{$_} }
+                          sort { $a <=> $b } keys %details;
 
         $diagnoses{$comp} = {
             by_scale => \%by_scale,
             summary  => \%summary,
+            details  => \@details,
             sorted   => \@sorted,
         };
     }
@@ -767,8 +772,21 @@ CSS
     };
 
     my $icon_set = sub {
-        my @icons = map {    $DIAGNOSIS_ICON{$_}
-                          // $DIAGNOSIS_ICON{unknown} } @_;
+        my @icons = map { my $icon = $DIAGNOSIS_ICON{$_}
+                                  // $DIAGNOSIS_ICON{unknown};
+                          qq{<span title="$_">$icon</span>}; } @_;
+        join '' => @icons;
+    };
+
+    my $detailed_icons = sub {
+        my @icons;
+        for my $run (@_) {
+            my $diag  = $run->{diagnosis};
+            my $icon  = $DIAGNOSIS_ICON{$diag}
+                     // $DIAGNOSIS_ICON{unknown};
+            my $hover = $diag ? "$diag: $run->{reason}" : 'ok';
+            push @icons, qq{<span title="$hover">$icon</span>};
+        }
         join '' => @icons;
     };
 
@@ -825,12 +843,10 @@ CSS
 
                 my (@icon_sets, $icons);
                 if ($opt->{verbose}) {
-                    my $by_scale = $diags->{by_scale};
-                    my @scales   = sort { $a <=> $b } keys %$by_scale;
+                    my $details = $diags->{details};
                     my @icon_sets;
-                    for my $scale (@scales) {
-                        my $diag = $by_scale->{$scale};
-                        push @icon_sets, $icon_set->(@$diag);
+                    for my $run_set (@$details) {
+                        push @icon_sets, $detailed_icons->(@$run_set);
                     }
                     $icons = join '<br>' => @icon_sets;
                 }
