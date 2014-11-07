@@ -17,7 +17,9 @@ TABLE OF CONTENTS
 REALLY QUICK START
 ------------------
 1. Make sure you'll have a net connection and idle CPUs for the next few hours
-2. Run: `./bench quickstart`
+2. Run a quickstart:
+   a. If your primary goal is performance testing run: `./bench quickstart`
+   b. If your primary goal is stress testing run:      `./bench quickstress`
 3. Profit!
 
 
@@ -92,9 +94,9 @@ PREREQUISITES
 -------------
 You will need at least perl5 5.10.x, with the following modules installed:
 
-    Capture::Tiny
     Data::Alias
     DateTime
+    IPC::Run
     JSON
     JSON::XS (best) or JSON::PP (slower)
     List::MoreUtils
