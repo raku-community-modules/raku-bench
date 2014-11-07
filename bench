@@ -383,11 +383,13 @@ multi MAIN ('build', *@components) {
 
 #| Run timing benchmarks on (variants of) built components
 multi MAIN ('time', *@components, :$variants?, :$tests?, :$tests-tagged?,
-                                  :$runs?, :$enough-time?, :$min-scaling-points?,
+                                  :$runs?, :$enough-time?, :$timeout?,
+                                  :$min-scaling-points?,
                                   Bool :$verbose?) {
     needs-setup('benchmark Perls');
 
-    my @options = as-options(:$tests, :$tests-tagged, :$runs, :$enough-time, :$min-scaling-points, :$verbose);
+    my @options = as-options(:$tests, :$tests-tagged, :$runs, :$enough-time,
+                             :$timeout, :$min-scaling-points, :$verbose);
 
     for-checkouts @components, -> $comp, $name, $checkout {
         chdir "$COMPONENTS_DIR/$name/$checkout";
@@ -445,13 +447,15 @@ multi MAIN ('history', *@timings, :$format?, :$style?, :$outfile?,
 multi MAIN ('stress', *@components, :$variants?, :$tests?,
                                     :$tests-tagged = 'stress',
                                     :$runs = 10, :$enough-time?,
+                                    :$timeout?,
                                     :$max-failures = Int($runs / 2 + .5),
                                     :$min-scaling-points?,
                                     Bool :$verbose?) {
     needs-setup('stress test Perls');
 
     my @options = as-options(:$tests, :$tests-tagged, :$runs, :$enough-time,
-                             :$max-failures, :$min-scaling-points, :$verbose);
+                             :$timeout, :$max-failures, :$min-scaling-points,
+                             :$verbose);
 
     for-checkouts @components, -> $comp, $name, $checkout {
         chdir "$COMPONENTS_DIR/$name/$checkout";
