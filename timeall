@@ -11,7 +11,7 @@ use Time::HiRes     'time';
 use File::Temp      'tempfile';
 use List::Util      'min', 'max';
 use List::MoreUtils 'uniq';
-use Capture::Tiny   'capture';
+use IPC::Run        'harness', 'run', 'timeout';
 use DateTime;
 use File::Basename;
 use IO::File;
@@ -21,8 +21,10 @@ use Cwd;
 
 my %DEFAULT = (
                TEST_RUNS          => 2,   # times to run each test, taking best time
+               MAX_FAILURES       => 5,   # maximum number of failed runs by a given compiler at a given SCALE to still continue that test
                MIN_STARTUP_RUNS   => 10,  # minimum times to run startup time test
                ENOUGH_TIME        => 1.0, # minimum run time (seconds) to give clean timing data for scalable tests
+               TIMEOUT            => 30,  # maximum time (seconds) before a run times out
                MIN_SCALING_POINTS => 3,   # minimum different points to test on each scaling curve
               );
 my @GROUPS    = qw( perl5 nqp perl6 );
@@ -176,7 +178,8 @@ sub known_tags {
 sub process_options_and_arguments {
     my %opt;
     GetOptions(\%opt, 'help|h|?!', 'man!', 'verbose!', 'format=s', 'outfile=s',
-                      'runs=i', 'enough-time=f', 'min-scaling-points=i',
+                      'runs=i', 'max-failures=i', 'timeout=i',
+                      'enough-time=f', 'min-scaling-points=i',
                       'list-variants!', 'list-tests!', 'tests=s',
                       'list-tags!', 'list-tests-tagged=s', 'tests-tagged=s')
         or pod2usage(-verbose => 0);
@@ -314,21 +317,29 @@ sub run_all_tests {
     my $overhead_runs = $startup_runs;
     my $enough_time   = $opt->{'enough-time'} || $DEFAULT{ENOUGH_TIME};
     my $scale_points  = $opt->{'min-scaling-points'} || $DEFAULT{MIN_SCALING_POINTS};
+    my $max_failures  = $opt->{'max-failures'} // $DEFAULT{MAX_FAILURES};
+    my $timeout       = $opt->{timeout} || $DEFAULT{TIMEOUT};
+    my $verbose       = $opt->{verbose};
     my $empty_test    = $TESTS{e}[0];
 
     say "Measuring startup times ...";
-    my $times   = time_all_compilers($empty_test, $startup_runs, 0, $enough_time, 0, $opt->{verbose});
+    # If user aborts now, don't bother catching it; normal testing hasn't begun
+    my $times   = time_all_compilers($empty_test, $startup_runs, 0, 0, 0, 0,
+                                     undef, $verbose);
     my $startup = best_times($times);
     $startup->{$_} = $startup->{$_}{1}{time} for keys %$startup;
 
     my @results;
-    eval { run_tests(\@TESTS, \@results, $startup, $runs, $overhead_runs, $enough_time, $scale_points, $opt->{verbose}) };
+    # Catch user aborts so that results for completed tests can be returned
+    eval { run_tests(\@TESTS, \@results, $startup, $runs, $overhead_runs,
+                     $enough_time, $scale_points, $max_failures, $timeout,
+                     $verbose) };
     warn "\n$@\n" if $@;
     return (\@results, $startup);
 }
 
 sub run_tests {
-    my ($tests, $results, $startup, $runs, $overhead_runs, $enough_time, $min_scaling_points, $verbose) = @_;
+    my ($tests, $results, $startup, $runs, $overhead_runs, $enough_time, $min_scaling_points, $max_failures, $timeout, $verbose) = @_;
 
     my @enabled   = grep { $_->{enabled} } @$tests;
     my $testcount = @enabled;
@@ -338,7 +349,12 @@ sub run_tests {
         my $name = $test->{name};
         say "$testnum/$testcount: Testing $name ...";
 
-        my $raw_times = time_all_compilers($test, $runs, $overhead_runs, $enough_time, $min_scaling_points, $verbose, $startup);
+        # Let user aborts fall out to run_all_tests() so that the last test
+        # timed won't have partial (and possibly misleading) timing data
+        my $raw_times = time_all_compilers($test, $runs, $overhead_runs,
+                                           $enough_time, $min_scaling_points,
+                                           $max_failures, $timeout, $verbose,
+                                           $startup);
         my $best      = best_times($raw_times);
         push @$results, {
                          name    => $name,
@@ -350,7 +366,7 @@ sub run_tests {
 }
 
 sub time_all_compilers {
-    my ($test, $runs, $overhead_runs, $enough_time, $min_scaling_points, $verbose, $startup) = @_;
+    my ($test, $runs, $overhead_runs, $enough_time, $min_scaling_points, $max_failures, $timeout, $verbose, $startup) = @_;
 
     my $test_type = $test->{type};
     my $cwd       = cwd;
@@ -391,7 +407,12 @@ sub time_all_compilers {
             chdir $dir or die "Could not change to $name directory '$dir': $!";
         }
 
+        my $is_code  = ref $test->{expected} eq 'CODE';
+        my $expected = $is_code ?       $test->{expected}
+                                : sub { $test->{expected} };
+
         my  @all_times;
+        my  $startup_time = $startup ? $startup->{$name} || 0 : 0;
         my  $scalable = $test->{scalable} // ((grep /\bSCALE\b/ => @run) ? 1 : 0);
         if ($scalable) {
             my $scale  = $test->{scale} || 1;
@@ -400,20 +421,31 @@ sub time_all_compilers {
 
             # Determine 0-scale time (mostly compile time)
             say '+++ Determining compile time for this test ...' if $verbose;
-            my  $run_times = time_command(\@compile, \@run, $overhead_runs, 0, 0, $verbose);
-            if ($run_times) {
+            my $run_times = time_command(\@compile, \@run, $overhead_runs, 0, 0, $expected->(0), undef, $verbose);
+            push @all_times, @{$run_times || []};
+
+            if (!$run_times
+            || (grep { $_->{failed} } @$run_times) > $max_failures) {
+                warn "Compiler $name is failing at scale=0 for test $test->{name}, aborting remaining runs.\n";
+            }
+            else {
                 say '+++ Running scaled timings for this test ...' if $verbose;
-                push @all_times, @$run_times;
                 my $min_run_time = min(map { $_->{time} } @$run_times);
-                my $startup_time = $startup ? $startup->{$name} || 0 : 0;
                 my $ignore_time  = max($startup_time, $min_run_time);
+                my $timeout_time = $timeout + ($timeout ? $ignore_time : 0);
 
                 # Run scaled timing loop
                 my $scale_points = 0;
                 while ($run_times && ($lowest < $enough_time || $scale_points < $min_scaling_points)) {
-                    $run_times = time_command(\@compile, \@run, $runs, $scale, $work->($scale), $verbose) or last;
-                    push @all_times, @$run_times;
+                    $run_times = time_command(\@compile, \@run, $runs, $scale, $work->($scale), $expected->($scale), $timeout_time, $verbose);
+                    push @all_times, @{$run_times || []};
                     $scale_points++;
+
+                    if (!$run_times
+                    || (grep { $_->{failed} } @$run_times) > $max_failures) {
+                        warn "Compiler $name is failing at scale=$scale for test $test->{name}, aborting remaining runs.\n";
+                        last;
+                    }
 
                     $lowest  = min(map { $_->{time} } @$run_times);
                     $lowest -= $ignore_time;
@@ -423,8 +455,13 @@ sub time_all_compilers {
             }
         }
         else {
-            my $run_times = time_command(\@compile, \@run, $runs, 1, 1, $verbose);
-            push @all_times, @$run_times if $run_times;
+            my $timeout_time = $timeout + ($timeout ? $startup_time : 0);
+            my $run_times = time_command(\@compile, \@run, $runs, 1, 1, $expected->(1), $timeout_time, $verbose);
+            push @all_times, @{$run_times || []};
+            if (!$run_times
+            || (grep { $_->{failed} } @$run_times) > $max_failures) {
+                warn "Compiler $name is failing for test $test->{name}, continuing to next compiler/test.\n";
+            }
         }
 
         $times{$name} = \@all_times;
@@ -435,7 +472,7 @@ sub time_all_compilers {
 }
 
 sub time_command {
-    my ($compile, $run, $count, $scale, $work, $verbose) = @_;
+    my ($compile, $run, $count, $scale, $work, $expected, $timeout, $verbose) = @_;
 
     say "... performing $count run" . ($count == 1 ? '' : 's') . " at scale $scale (work $work)"
         if $verbose;
@@ -447,43 +484,144 @@ sub time_command {
         my @run = @$run;
         s/\bSCALE\b/$scale/g for @run;
 
+        my ($run_in, $run_out, $run_err);
+        my $run_harness = harness \@run, \($run_in, $run_out, $run_err),
+                                  $timeout ? timeout($timeout) : ();
+
+        my ($comp_harness, $comp_in, $comp_out, $comp_err);
+        if (@$compile) {
+            $comp_harness = harness $compile,
+                                    \($comp_in, $comp_out, $comp_err),
+                                    $timeout ? timeout($timeout) : ();
+        }
+
         my $start = time;
 
         if (@$compile) {
-            my ($out, $err, $status) = capture { eval system @$compile };
-            if ($status) {
-                die "Test's compile command terminated by SIGINT.\n" if ($status & 127) == 2;
-                warn "Failed to run compile command: @$compile\n"
-                     . (length $err ? "Error:\n$err\n" : '');
-                return undef;
-            }
-            if ($out =~ /Segmentation/i || $err =~ /Segmentation/i) {
-                warn "Command segfaulted: @$compile";
-                return undef;
+            eval { run $comp_harness };
+            my $eval   = $@;
+            my $status = $comp_harness->full_result;
+            my ($failed, $reason, $diagnosis)
+                = diagnose_capture($comp_out, $comp_err, $eval, $status);
+            if ($failed) {
+                my $run_info = {
+                    run => $i, scale => $scale, work => $work, time => 0,
+                    out => $comp_out, err => $comp_err, status => $status,
+                    failed => $failed, reason => $reason,
+                    diagnosis => $diagnosis,
+                    command => $compile, phase => 'compile',
+                };
+                push @times, $run_info;
+
+                my $msg = "Compile command $reason: @$compile\n";
+
+                # User requested to abort testing
+                if ($failed < 0) {
+                    die $msg;
+                }
+                # Normal failures
+                else {
+                    warn $msg;
+                    last;
+                }
             }
 
             my ($fh, $filename) = tempfile(UNLINK => 1);
-            print $fh $out;
+            print $fh $comp_out;
             close $fh;
             s/\bCOMPILED\b/$filename/g for @run;
         }
 
-        my ($out, $err, $status)  = capture { system @run };
-        my $time = time - $start;
-        if ($out =~ /Segmentation/i || $err =~ /Segmentation/i) {
-            warn "Command segfaulted: @run";
-            return undef;
-        }
+        eval { run $run_harness };
+        my $time   = time - $start;
+        my $eval   = $@;
+        my $status = $run_harness->full_result;
+        my ($failed, $reason, $diagnosis)
+            = diagnose_capture($run_out, $run_err, $eval, $status, $expected);
 
-        push @times, { run => $i, scale => $scale, work => $work, time => $time };
-        if ($status) {
-            die "Test's run command terminated by SIGINT.\n" if ($status & 127) == 2;
-            warn "Failed to run command: @run\n";
-            return undef;
+        my $run_info = {
+            run => $i, scale => $scale, work => $work, time => $time,
+            out => $run_out, err => $run_err, status => $status,
+            failed => $failed, reason => $reason, diagnosis => $diagnosis,
+            command => \@run, phase => 'run',
+        };
+        push @times, $run_info;
+
+        if ($failed) {
+            my $msg = "Run command $reason: @run\n";
+
+            # User requested to abort testing
+            if ($failed < 0) {
+                die $msg;
+            }
+            # Normal failures
+            else {
+                warn $msg;
+            }
         }
     }
 
     return \@times;
+}
+
+sub diagnose_capture {
+    my ($out, $err, $eval, $status, $expected) = @_;
+
+    my $failed = 0;
+    my $reason = '';
+    my $diagnosis = '';
+
+    if ($eval) {
+        $failed = 1;
+        if ($eval =~ /^IPC::Run: timeout/) {
+            $reason = 'timed out';
+            $diagnosis = 'TIMED_OUT';
+        }
+        else {
+            $reason = 'failed to spawn';
+            $diagnosis = 'SPAWN_FAILED';
+        }
+    }
+    elsif ($out =~ /Segmentation/i || $err =~ /Segmentation/i) {
+        $failed = 1;
+        $reason = 'segfaulted';
+        $diagnosis = 'SEGFAULT';
+    }
+    elsif ($status) {
+        $failed = 1;
+        if ($status < 0) {
+            $reason = 'failed to spawn';
+            $diagnosis = 'SPAWN_FAILED';
+        }
+        elsif (my $signal = $status & 127) {
+            $reason = "received signal $signal";
+            $diagnosis = 'RECEIVED_SIGNAL';
+
+            # Handle SIGINT specially as it indicates user intervention
+            if ($signal == 2) {
+                $failed = -1;
+                $reason = 'terminated by SIGINT';
+                $diagnosis = 'RECEIVED_SIGINT';
+            }
+        }
+        else {
+            my $exit = $status >> 8;
+            $reason = "exited with exit status $exit";
+            $diagnosis = 'NONZERO_EXIT';
+        }
+    }
+    elsif (length $err) {
+        $failed = 1;
+        $reason = 'wrote to STDERR';
+        $diagnosis = 'WROTE_TO_STDERR';
+    }
+    elsif (defined $expected && $expected ne $out) {
+        $failed = 1;
+        $reason = 'did not produce expected output';
+        $diagnosis = 'OUTPUT_MISMATCH';
+    }
+
+    return ($failed, $reason, $diagnosis);
 }
 
 sub min_by(&@) {
@@ -511,8 +649,11 @@ sub best_times {
     while (my ($comp, $times) = each %$raw_times) {
         my %runs_by_scale;
         for my $run (@$times) {
-            push @{$runs_by_scale{$run->{scale}} ||= []}, $run;
+            push @{$runs_by_scale{$run->{scale}} ||= []}, $run
+                unless $run->{failed};
         }
+        # If all runs failed, don't add the compiler to the best times at all
+        next unless %runs_by_scale;
 
         my %best_by_scale;
         while (my ($scale, $runs) = each %runs_by_scale) {
@@ -556,8 +697,8 @@ timeall -- Benchmark Perl-family compilers against each other
 
     timeall [--help|-h|-?] [--man] [--list-variants] [--list-tests]
             [--list-tags] [--list-tests-tagged=required-tag,-forbidden-tag]
-    timeall [--verbose] [--runs=2] [--enough-time=3.0]
-            [--format=json] [--outfile=path/to/file.ext]
+    timeall [--verbose] [--runs=2] [--max-failures=0] [--enough-time=1.0]
+            [--timeout=30] [--format=json] [--outfile=path/to/file.ext]
             [--tests=list,of,tests] [--tests-tagged=required,-forbidden]
             [<enabled compiler variants>]
 
@@ -652,11 +793,24 @@ reaches diminishing returns.  Many times it's more effective to just turn off
 as many background processes (such as email clients) as possible while
 benchmarking.
 
+=item --max-failures=0
+
+The maximum number of failed runs that can occur at a given SCALE for a
+given compiler before that compiler is assumed over-stressed and testing
+continues with the next compiler or next test.
+
 =item --enough-time=1.0
 
-Set the amount of time a scalable test must run (not including startup and
-compile time) before the timing data is considered "good enough", causing
-F<timeall> to stop scaling up that test and go on to the next one.
+Set the amount of time in seconds a scalable test must run (not including
+startup and compile time) before the timing data is considered "good enough",
+causing F<timeall> to stop scaling up that test and go on to the next one.
+
+=item --timeout=30
+
+Set the maximum time in seconds that a test can run before it times out and
+is recorded as a failure.  Startup/compile time is excluded from this, so
+the maximum wall clock time to complete a test will be somewhat higher,
+depending on the compiler.
 
 =item --min-scaling-points=3
 
@@ -688,7 +842,7 @@ Enable only a subset of the available tests (instead of the default of all
 known tests), using a comma separated list of the test names.  To see the
 list of known test names, use the C<--list-tests> option.
 
-=item --list-tests-tagged=required-tag,-forbidden-tag
+=item --tests-tagged=required-tag,-forbidden-tag
 
 Enable only tests that match a tag query specifying which tags a test is
 required to have and which tags it must B<not> have.  Tags should be

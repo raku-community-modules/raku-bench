@@ -106,4 +106,16 @@
   perl6 => [qw( BENCH/perl6/string-escape SCALE )],
   nqp   => undef,
  },
+ {
+  name  => 'divide-and-conquer',
+  skip  => [qw( )],
+  tags  => [qw( stress threads )],
+  scale => 0,
+  scaling => 'linear',
+  work  => sub { 1 << $_[0] },
+  expected => "1\n",
+  perl5 => undef,
+  perl6 => [qw( BENCH/perl6/divide-and-conquer SCALE )],
+  nqp   => undef,
+ },
 ]

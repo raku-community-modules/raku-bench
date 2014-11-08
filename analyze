@@ -27,6 +27,20 @@ my %FORMATTER = (
                  html_plot    => \&summarize_results_html_plot,
                 );
 
+my %DIAGNOSIS_ICON = (
+    SEGFAULT        => '☠',
+    SPAWN_FAILED    => '⛔',
+    TIMED_OUT       => '⏲',  # Or ⏰ or ⏱
+    RECEIVED_SIGNAL => '⚡',
+    RECEIVED_SIGINT => '⎊',
+    NONZERO_EXIT    => 'Ø',
+    WROTE_TO_STDERR => 'E',
+    OUTPUT_MISMATCH => '≠',
+    unknown         => '?',
+    mixed           => '⦻',
+    ''              => '.',
+    );
+
 
 MAIN();
 
@@ -46,16 +60,21 @@ sub MAIN {
 sub process_options_and_arguments {
     my %opt;
     GetOptions(\%opt, 'help|h|?!', 'man!', 'format=s', 'style=s', 'outfile=s',
-                      'min-time|min_time|mintime=f',
+                      'verbose!', 'min-time|min_time|mintime=f',
                       'ignore-startup|ignore_startup|ignorestartup!',
                       'ignore-compile|ignore_compile|ignorecompile!',
                       'skip-incomplete|skip_incomplete|skipincomplete!',
+                      'show-failures|show_failures|showfailures!',
+                      'show-relative|show_relative|showrelative!',
+                      'show-rates|show_rates|showrates!',
                       'compare!', 'history!')
         or pod2usage(-verbose => 0);
     pod2usage(-verbose => 1) if $opt{help};
     pod2usage(-verbose => 2) if $opt{man};
 
-    $opt{'min-time'} //= 1e-2;
+    $opt{'min-time'}      //= 1e-2;
+    $opt{'show-rates'}    //= 1;
+    $opt{'show-relative'} //= $opt{compare};
 
     $opt{outfile} //= '-';
     my $suffix      = (fileparse($opt{outfile}, qr/\.[^.]+$/))[2] || '.';
@@ -90,6 +109,7 @@ sub analyze_timings_files {
         my $startup = $data->{run}{startup} || {};
 
         for my $test (@{$data->{times}}) {
+            $test->{diagnoses} = diagnose_runs($test->{raw});
             $test->{compare}
                 = compare_scaled_times($test->{best}, $startup, $min_time,
                                        $ignore_startup, $ignore_compile);
@@ -204,6 +224,55 @@ sub load_timing_file {
     return $decoder->decode($json);
 }
 
+sub diagnose_runs {
+    my ($run_info) = @_;
+    my %diagnoses;
+
+    while (my ($comp, $runs) = each %$run_info) {
+        my (%by_scale, %details);
+        for my $run (@$runs) {
+            my $scale     = $run->{scale};
+            my $diagnosis = $run->{diagnosis} //= 'unknown';
+            push @{$by_scale{$scale} ||= []}, $diagnosis;
+            push @{$details{$scale}  ||= []}, $run;
+        }
+
+        my %summary;
+        while (my ($scale, $diagnoses) = each %by_scale) {
+            my @diagnoses = uniq @$diagnoses;
+            $summary{$scale} = @diagnoses > 1 ? 'mixed' : $diagnoses[0];
+        }
+
+        my @sorted  = map { $summary{$_} }
+                          sort { $a <=> $b } keys %summary;
+
+        my @details = map { $details{$_} }
+                          sort { $a <=> $b } keys %details;
+
+        $diagnoses{$comp} = {
+            by_scale => \%by_scale,
+            summary  => \%summary,
+            details  => \@details,
+            sorted   => \@sorted,
+        };
+    }
+
+    return \%diagnoses;
+}
+
+sub most_diagnoses {
+    my ($tests) = @_;
+
+    my @test_maxes;
+
+    for my $test (@$tests) {
+        my @diagnoses = values %{$test->{diagnoses}};
+        push @test_maxes, max map { scalar @{$_->{sorted}} } @diagnoses;
+    }
+
+    return max @test_maxes;
+}
+
 sub compare_scaled_times {
     my ($times, $startup, $min_time, $ignore_startup, $ignore_compile) = @_;
     my $max_rate = 0;
@@ -276,7 +345,8 @@ sub compute_scores {
     my ($data, $skip_incomplete) = @_;
     my $tests = $data->{times};
 
-    my @compilers = map { $_->{key} } @{$data->{config}{compilers}};
+    my @compilers = map { $_->{key} || $_->{name} }
+                        @{$data->{config}{compilers}};
     my $standard  = $compilers[0];
 
     my %score;
@@ -361,6 +431,9 @@ sub summarize_results_text {
     my $longest_comp = max 8,  map { length } @{$s->{run_names}},
         @{$s->{lang_names}}, @{$s->{comp_names}}, @{$s->{vm_names}};
 
+    my $most_diagnoses = most_diagnoses($data->{times});
+    $longest_comp = max $longest_comp, $most_diagnoses;
+
     my $spacer_length = 3;
     my $spacer = ' ' x $spacer_length;
 
@@ -385,50 +458,117 @@ sub summarize_results_text {
     $output   .= sprintf "$format\n", 'TEST', @{$s->{vm_names}};
     $output   .= ' ' x $longest_test . $spacer . '-' x length($titles) . "\n";
 
+    my $row_height = grep $_, @$opt{qw( show-rates show-failures compare )};
+    my $double_space = !$style && $row_height > 1;
+
+    my %test_name_shown;
+    my $show_test_name = sub {
+        my $test = shift;
+        my $name = $test_name_shown{$test->{name}}++ ? '' : $test->{name};
+        $output .= sprintf "%-${longest_test}s", $name;
+    };
+
+    my $icon_set = sub {
+        my @icons = map {    $DIAGNOSIS_ICON{$_}
+                          // $DIAGNOSIS_ICON{unknown} } @_;
+        join '' => @icons;
+    };
+
     for my $test (@{$data->{times}}) {
-        $output .= "\n" unless $style;
-        $output .= sprintf "%-${longest_test}s", $test->{name};
-        for my $comp (@comps) {
-            my $key  = $comp->{key} || $comp->{name};
-            my $peak = $test->{compare}{peak_rate}{$key};
-            if (defined $peak && defined $peak->{rate}) {
-                $output .= sprintf "$spacer%${longest_comp}.0f/s", $peak->{rate};
+        $output .= "\n" if $double_space;
+
+        if ($opt->{'show-rates'}) {
+            $show_test_name->($test);
+            for my $comp (@comps) {
+                my $key  = $comp->{key} || $comp->{name};
+                my $peak = $test->{compare}{peak_rate}{$key};
+                if (defined $peak && defined $peak->{rate}) {
+                    $output .= sprintf "$spacer%${longest_comp}.0f/s", $peak->{rate};
+                }
+                else {
+                    $output .= sprintf "$spacer%${longest_comp}s  ", '-- ';
+                }
+            }
+            $output .= "\n";
+        }
+
+        if ($opt->{'show-relative'}) {
+            $show_test_name->($test);
+            for my $comp (@comps) {
+                my $key  = $comp->{key} || $comp->{name};
+                my $peak = $test->{compare}{peak_rate}{$key};
+                my $rel  = $peak->{relative_to_max};
+                if ($rel) {
+                    $rel =  1 / $rel;
+                    my $color = $rel <  2 ? $GREEN  :
+                                $rel < 10 ? $YELLOW :
+                                            $RED    ;
+                    $output .= sprintf "$spacer$color%${longest_comp}.1fx $CLEAR", $rel;
+                }
+                else {
+                    # XXXX: May have to make this based on key instead of name
+                    my $conf    =  $test->{conf};
+                    my $is_skip =  !defined $conf->{$comp->{group}}
+                                || (grep { $_ eq $comp->{name} } @{$conf->{skip} || []})
+                                || (exists $conf->{skip} && !defined $conf->{skip});
+                    $output .= sprintf "$spacer$RED%${longest_comp}s  $CLEAR",
+                           $is_skip ? 'SKIP' : 'FAIL';
+                }
+            }
+            $output .= "\n";
+        }
+
+        if ($opt->{'show-failures'}) {
+            my $len = $longest_comp + 2;
+
+            my %icon_sets;
+            for my $comp (@comps) {
+                my $key   = $comp->{key} || $comp->{name};
+                my $diags = $test->{diagnoses}{$key};
+
+                my @icon_sets;
+                if ($opt->{verbose}) {
+                    my $by_scale = $diags->{by_scale};
+                    my @scales   = sort { $a <=> $b } keys %$by_scale;
+                    for my $scale (@scales) {
+                        my $diag = $by_scale->{$scale};
+                        push @icon_sets, $icon_set->(@$diag);
+                    }
+                }
+                else {
+                    my $diag = $diags->{sorted};
+                    push @icon_sets, $icon_set->(@$diag);
+                }
+
+                $icon_sets{$key} = \@icon_sets;
+            }
+
+            if ($opt->{verbose} && $opt->{compare}) {
+                my $max = max map { scalar @$_ } values %icon_sets;
+                for my $i (0 .. $max - 1) {
+                    $show_test_name->($test);
+                    for my $comp (@comps) {
+                        my $key   = $comp->{key} || $comp->{name};
+                        my $icons = $icon_sets{$key}[$i] || '';
+                        $output .= sprintf "$spacer%${len}s", $icons;
+                    }
+                    $output .= "\n";
+                }
             }
             else {
-                $output .= sprintf "$spacer%${longest_comp}s  ", '-- ';
+                $show_test_name->($test);
+                for my $comp (@comps) {
+                    my $key = $comp->{key} || $comp->{name};
+                    $output .= sprintf "$spacer%${len}s",
+                                       join ',' => @{$icon_sets{$key}};
+                }
+                $output .= "\n";
             }
         }
-        $output .= "\n";
-
-        next unless $opt->{compare};
-
-        $output .= sprintf "%-${longest_test}s", '';
-        for my $comp (@comps) {
-            my $key  = $comp->{key} || $comp->{name};
-            my $peak = $test->{compare}{peak_rate}{$key};
-            my $rel  = $peak->{relative_to_max};
-            if ($rel) {
-                $rel =  1 / $rel;
-                my $color = $rel <  2 ? $GREEN  :
-                            $rel < 10 ? $YELLOW :
-                                        $RED    ;
-                $output .= sprintf "$spacer$color%${longest_comp}.1fx $CLEAR", $rel;
-            }
-            else {
-                # XXXX: May have to make this based on key instead of name
-                my $conf    =  $test->{conf};
-                my $is_skip =  !defined $conf->{$comp->{group}}
-                            || (grep { $_ eq $comp->{name} } @{$conf->{skip} || []})
-                            || (exists $conf->{skip} && !defined $conf->{skip});
-                $output .= sprintf "$spacer$RED%${longest_comp}s  $CLEAR",
-                       $is_skip ? 'SKIP' : 'FAIL';
-            }
-        }
-        $output .= "\n";
     }
 
     my  $scores = $data->{score};
-    if ($scores) {
+    if ($scores && $opt->{'show-relative'}) {
         $output .= ' ' x $longest_test . $spacer . '=' x length($titles) . "\n";
         $output .= sprintf "%-${longest_test}s", 'SUMMARY SCORE';
         for my $comp (@comps) {
@@ -548,6 +688,7 @@ sub summarize_results_html {
     print $out_fh <<'HEADER';
 <html>
 <head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
 <title>Perl Bench Summary</title>
 </head>
 
@@ -585,10 +726,12 @@ sub summarize_results_html_snippet {
 .bench_vm              { text-align: center; padding-top: .1em; }
 .bench_time_row    td  { }
 .bench_compare_row td  { }
+.bench_diagnoses_row td { vertical-align: top; }
 .bench_spacer_row      { height: .7em; }
 .bench_rate            { text-align: right; font-family: monospace; }
 .bench_time            { text-align: right; font-family: monospace; }
 .bench_no_time         { text-align: right; font-family: monospace; }
+.bench_diagnoses       { text-align: right; font-family: monospace; }
 .bench_good            { text-align: right; font-family: monospace; background-color: #3f7; color: black; }
 .bench_bad             { text-align: right; font-family: monospace; background-color: #ee0; color: black; }
 .bench_ugly            { text-align: right; font-family: monospace; background-color: #f55; color: white; }
@@ -618,52 +761,111 @@ CSS
     $html .= "<tr><th></th>\n"     . join('' => map qq{    <th class="bench_compiler">$_</th>\n} => @{$s->{comp_names}}) . "</tr>\n";
     $html .= "<tr><th>TEST</th>\n" . join('' => map qq{    <th class="bench_vm">$_</th>\n} => @{$s->{vm_names}}) . "</tr>\n";
 
+    my $row_height = grep $_, @$opt{qw( show-rates show-failures compare )};
+    my $double_space = $row_height > 1;
+
+    my %test_name_shown;
+    my $show_test_name = sub {
+        my ($test, $class) = @_;
+        my $name = $test_name_shown{$test->{name}}++ ? '' : $test->{name};
+        $html .= qq{<tr class="$class"><td>$name</td>\n};
+    };
+
+    my $icon_set = sub {
+        my @icons = map { my $icon = $DIAGNOSIS_ICON{$_}
+                                  // $DIAGNOSIS_ICON{unknown};
+                          qq{<span title="$_">$icon</span>}; } @_;
+        join '' => @icons;
+    };
+
+    my $detailed_icons = sub {
+        my @icons;
+        for my $run (@_) {
+            my $diag  = $run->{diagnosis};
+            my $icon  = $DIAGNOSIS_ICON{$diag}
+                     // $DIAGNOSIS_ICON{unknown};
+            my $hover = $diag ? "$diag: $run->{reason}" : 'ok';
+            push @icons, qq{<span title="$hover">$icon</span>};
+        }
+        join '' => @icons;
+    };
+
     my @comps = @{$s->{compilers}};
     for my $test (@{$data->{times}}) {
-        $html .= qq{<tr class="bench_time_row"><td>$test->{name}</td>\n};
-        for my $comp (@comps) {
-            my $key  = $comp->{key} || $comp->{name};
-            my $peak = $test->{compare}{peak_rate}{$key};
-            if (defined $peak && defined $peak->{rate}) {
-                $html .= sprintf qq{    <td class="bench_rate">%.0f/s</td>\n}, $peak->{rate};
+        if ($opt->{'show-rates'}) {
+            $show_test_name->($test, 'bench_time_row');
+            for my $comp (@comps) {
+                my $key  = $comp->{key} || $comp->{name};
+                my $peak = $test->{compare}{peak_rate}{$key};
+                if (defined $peak && defined $peak->{rate}) {
+                    $html .= sprintf qq{    <td class="bench_rate">%.0f/s</td>\n}, $peak->{rate};
+                }
+                else {
+                    $html .= qq{    <td class="bench_no_time">--</td>\n};
+                }
             }
-            else {
-                $html .= qq{    <td class="bench_no_time">--</td>\n};
-            }
+            $html .= "</tr>\n";
         }
-        $html .= "</tr>\n";
 
-        next unless $opt->{compare};
-
-        $html .= qq{<tr class="bench_compare_row"><td></td>\n};
-        for my $comp (@comps) {
-            my $key  = $comp->{key} || $comp->{name};
-            my $peak = $test->{compare}{peak_rate}{$key};
-            my $rel  = $peak->{relative_to_max};
-            if ($rel) {
-                $rel =  1 / $rel;
-                my $class = $rel <  2 ? 'bench_good' :
-                            $rel < 10 ? 'bench_bad'  :
-                                        'bench_ugly' ;
-                $html .= sprintf qq{    <td class="$class">%.1fx</td>\n}, $rel;
+        if ($opt->{'show-relative'}) {
+            $show_test_name->($test, 'bench_compare_row');
+            for my $comp (@comps) {
+                my $key  = $comp->{key} || $comp->{name};
+                my $peak = $test->{compare}{peak_rate}{$key};
+                my $rel  = $peak->{relative_to_max};
+                if ($rel) {
+                    $rel =  1 / $rel;
+                    my $class = $rel <  2 ? 'bench_good' :
+                                $rel < 10 ? 'bench_bad'  :
+                                            'bench_ugly' ;
+                    $html .= sprintf qq{    <td class="$class">%.1fx</td>\n}, $rel;
+                }
+                else {
+                    # XXXX: May have to make this based on key instead of name
+                    my $conf    =  $test->{conf};
+                    my $is_skip =  !defined $conf->{$comp->{group}}
+                                || (grep { $_ eq $comp->{name} } @{$conf->{skip} || []})
+                                || (exists $conf->{skip} && !defined $conf->{skip});
+                    my $class   = $is_skip ? 'bench_skip' : 'bench_fail';
+                    my $message = $is_skip ? 'SKIP'       : 'FAIL';
+                    $html .= qq{    <td class="$class">$message</td>\n};
+                }
             }
-            else {
-                # XXXX: May have to make this based on key instead of name
-                my $conf    =  $test->{conf};
-                my $is_skip =  !defined $conf->{$comp->{group}}
-                            || (grep { $_ eq $comp->{name} } @{$conf->{skip} || []})
-                            || (exists $conf->{skip} && !defined $conf->{skip});
-                my $class   = $is_skip ? 'bench_skip' : 'bench_fail';
-                my $message = $is_skip ? 'SKIP'       : 'FAIL';
-                $html .= qq{    <td class="$class">$message</td>\n};
-            }
+            $html .= "</tr>\n";
         }
-        $html .= qq{</tr>\n<tr class="bench_spacer_row"></tr>\n};
+
+
+        if ($opt->{'show-failures'}) {
+            $show_test_name->($test, 'bench_diagnoses_row');
+            for my $comp (@comps) {
+                my $key   = $comp->{key} || $comp->{name};
+                my $diags = $test->{diagnoses}{$key};
+
+                my (@icon_sets, $icons);
+                if ($opt->{verbose}) {
+                    my $details = $diags->{details};
+                    my @icon_sets;
+                    for my $run_set (@$details) {
+                        push @icon_sets, $detailed_icons->(@$run_set);
+                    }
+                    $icons = join '<br>' => @icon_sets;
+                }
+                else {
+                    my $diag = $diags->{sorted};
+                    $icons = $icon_set->(@$diag);
+                }
+                $html .= qq{    <td class="bench_diagnoses">$icons</td>\n};
+            }
+            $html .= "</tr>\n";
+        }
+
+        $html .= qq{<tr class="bench_spacer_row"></tr>\n}
+             if $double_space;
     }
 
 
     my  $scores = $data->{score};
-    if ($scores) {
+    if ($scores && $opt->{'show-relative'}) {
         $html .= qq{<tr class="bench_spacer_row"></tr>\n};
         $html .= qq{<tr class="bench_compare_row"><th>SUMMARY SCORE</th>\n};
         for my $comp (@comps) {
@@ -1346,6 +1548,7 @@ analyze -- Analyze benchmark data produced by timeall
             [--style=0|1|auto] [--outfile=path/to/file.ext]
             [--min-time=0.01]
             [--ignore-startup] [--ignore-compile] [--skip-incomplete]
+            [--show-rates] [--show-relative] [--show-failures] [--verbose]
             [--compare] [--history]
             path/to/timing_file.json [path/to/second_timing_file.json ...]
 
@@ -1433,6 +1636,29 @@ most common example of this).
 
 When processing multiple timing files, compare times across all timing files
 at once, rather than analyzing each timing file individually.
+
+=item --show-rates
+
+Show actual benchmark processing rates as opposed to normalized scores
+(or if --show-relative is on, in addition to).  Defaults to on; use
+--no-show-rates to turn this off.
+
+=item --show-relative
+
+Show relative benchmark processing rates as opposed to actual values
+(or if --show-rates is on, in addition to).  Defaults to on if --compare
+is set, and off otherwise; use --no-show-rates to turn this off.
+
+=item --show-failures
+
+Show information about test failures.  Used especially when performing
+stress testing, to show the failure modes exhibited by a failing compiler.
+
+=item --verbose
+
+Show more detailed information about test failures, especially useful when
+a compiler has mixed failure modes on a single test (e.g. sometimes giving
+wrong results, sometimes dying with an error, sometimes segfaulting).
 
 =item --history
 
