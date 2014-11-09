@@ -118,6 +118,8 @@ sub add_test_tags {
     $tags{"type:$type"} = 1;
     $tags{"size:$size"} = 1;
 
+    $tags{"has-expected"} = 1 if exists $test->{expected};
+
     for my $lang (@GROUPS) {
         my $code = $test->{$lang};
         if (defined $code) {
