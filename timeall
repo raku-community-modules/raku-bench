@@ -325,7 +325,7 @@ sub run_all_tests {
     say "Measuring startup times ...";
     # If user aborts now, don't bother catching it; normal testing hasn't begun
     my $times   = time_all_compilers($empty_test, $startup_runs, 0, 0, 0, 0,
-                                     undef, $verbose);
+                                     0, $verbose);
     my $startup = best_times($times);
     $startup->{$_} = $startup->{$_}{1}{time} for keys %$startup;
 
