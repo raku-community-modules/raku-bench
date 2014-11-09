@@ -32,9 +32,15 @@
   skip  => [qw( )],
   tags  => [qw( recursion closures )],
   scale => 15,
-  work  => sub { 1 << ($_[0] - 1) },
   scaling => 'linear',
   x_label => 'k Parameter',
+  work  => sub { 1 << ($_[0] - 1) },
+  expected => sub {
+      my @expected = qw( 1 0 -2 0 1 0 1 -1 -10 -30 -67 -138 -291 -642 -1446
+                         -3250 -7244 -16065 -35601 -78985 -175416 -389695
+                         -865609 -1922362 -4268854 -9479595 -21051458 );
+      "$expected[$_[0]]\n";
+  },
   perl5 => [qw( BENCH/perl5/rc-man-or-boy-test SCALE )],
   perl6 => [qw( BENCH/perl6/rc-man-or-boy-test SCALE )],
   nqp   => [qw( BENCH/nqp/rc-man-or-boy-test   SCALE )],
@@ -44,6 +50,14 @@
   skip  => [qw( )],
   tags  => [qw( )],
   scale => 1 << 11,
+  expected => sub {
+      my @known = qw( 1210 2020 21200 3211000 42101000 );
+      my @expected;
+      for (@known) {
+          push @expected, "$_\n" if $_ <= $_[0];
+      }
+      join '' => @expected;
+  },
   perl5 => [qw( BENCH/perl5/rc-self-describing-numbers SCALE )],
   perl6 => [qw( BENCH/perl6/rc-self-describing-numbers SCALE )],
   nqp   => [qw( BENCH/nqp/rc-self-describing-numbers   SCALE )],
@@ -53,9 +67,9 @@
   skip  => [qw( )],
   tags  => [qw( io output )],
   scale => 10,
-  work  => sub { 1 << $_[0] },
   scaling => 'linear',
   x_label => 'Order',
+  work  => sub { 1 << $_[0] },
   perl5 => [qw( BENCH/perl5/rc-dragon-curve SCALE )],
   perl6 => [qw( BENCH/perl6/rc-dragon-curve SCALE )],
   nqp   => [qw( BENCH/nqp/rc-dragon-curve   SCALE )],
