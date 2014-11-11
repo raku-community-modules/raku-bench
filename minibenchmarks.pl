@@ -116,6 +116,7 @@
   skip  => [qw( )],
   tags  => [qw( string escape trans subs )],
   scale => 1 << 13,
+  expected => sub { ($_[0] * 2) . "\n" },
   perl5 => [qw( BENCH/perl5/string-escape SCALE )],
   perl6 => [qw( BENCH/perl6/string-escape SCALE )],
   nqp   => undef,
