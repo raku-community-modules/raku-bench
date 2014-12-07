@@ -125,7 +125,7 @@ multi MAIN ('config') {
 #| Prepare for mass benchmarking
 multi MAIN ('setup') {
     say 'Creating directories ...';
-    mkdir $COMPONENTS_DIR unless $COMPONENTS_DIR.path.d;
+    mkdir $COMPONENTS_DIR unless $COMPONENTS_DIR.IO.d;
 
     say 'Cloning component repos ...';
     for $COMPONENTS.values -> $component {
@@ -133,15 +133,15 @@ multi MAIN ('setup') {
         say "==> $name";
 
         chdir $COMPONENTS_DIR;
-        mkdir $name unless $name.path.d;
+        mkdir $name unless $name.IO.d;
         chdir $name;
 
         my $repo = $component<repo_url>;
         my $bare = "$name.git";
-        say "----> Already cloned." if $bare.path.d && $name.path.d;
-        run < git fetch >           if $bare.path.d && $name.path.d;
-        run < git clone --mirror >, $repo, $bare unless $bare.path.d;
-        run < git clone -l       >, $bare, $name unless $name.path.d;
+        say "----> Already cloned." if $bare.IO.d && $name.IO.d;
+        run < git fetch >           if $bare.IO.d && $name.IO.d;
+        run < git clone --mirror >, $repo, $bare unless $bare.IO.d;
+        run < git clone -l       >, $bare, $name unless $name.IO.d;
     }
 
     say 'Setup complete.';
@@ -155,7 +155,7 @@ multi MAIN ('fetch', *@components) {
         my $comp_dir = "$COMPONENTS_DIR/$name";
         my $bare     = "$name.git";
 
-        unless "$comp_dir/$bare".path.d {
+        unless "$comp_dir/$bare".IO.d {
             say "No bare repository exists for component $name; can't fetch updates.";
             next;
         }
@@ -167,7 +167,7 @@ multi MAIN ('fetch', *@components) {
         say '~~~> FETCHING';
         for $bare, $comp<checkouts>.list -> $dir {
             my $path = "$comp_dir/$dir";
-            next unless $path.path.d;
+            next unless $path.IO.d;
 
             say "----> $dir";
             chdir $path;
@@ -184,7 +184,7 @@ multi MAIN ('fetch', *@components) {
         say '~~~> PULLING';
         for $comp<checkouts>.list -> $dir {
             my $path = "$comp_dir/$dir";
-            next unless "$path/.git".path.d;
+            next unless "$path/.git".IO.d;
             next if $dir eq any(@all-tags);
 
             say "----> $dir";
@@ -205,7 +205,7 @@ multi MAIN ('extract', *@components) {
         chdir "$COMPONENTS_DIR/$name";
 
         my $bare = "$name.git";
-        unless $bare.path.d {
+        unless $bare.IO.d {
             say "No bare repository exists for component $name; can't extract releases.";
             next;
         }
@@ -235,14 +235,14 @@ multi MAIN ('extract', *@components) {
 
         # Work around Rakudo bug #115390 by splitting into multiple loops
         for @revs -> $rev {
-            if $rev.path.d {
+            if $rev.IO.d {
                 say "$rev already cloned.";
                 next;
             }
             run < git clone -l >, $bare, $rev;
         }
         for @revs -> $rev {
-            unless $rev.path.d {
+            unless $rev.IO.d {
                 $*ERR.say: "Unable to extract release '$rev'.";
                 next;
             }
@@ -250,7 +250,7 @@ multi MAIN ('extract', *@components) {
             run < git checkout -q >, $rev;   # > -- Dang syntax highlighting
         }
         for @revs -> $rev {
-            next unless $rev.path.d;
+            next unless $rev.IO.d;
             next if $rev eq any(@all-tags);
 
             chdir $rev; LEAVE chdir '..';
@@ -310,7 +310,7 @@ multi MAIN ('list-branches', *@components) {
         my $comp_dir = "$COMPONENTS_DIR/$name";
         my $bare     = "$name.git";
 
-        unless "$comp_dir/$bare".path.d {
+        unless "$comp_dir/$bare".IO.d {
             say "No bare repository exists for component $name; can't list branches.";
             next;
         }
@@ -341,7 +341,7 @@ sub known-tags(*@components, :$with-dates) {
         my $comp_dir = "$COMPONENTS_DIR/$name";
         my $bare     = "$name.git";
 
-        unless "$comp_dir/$bare".path.d {
+        unless "$comp_dir/$bare".IO.d {
             say "No bare repository exists for component $name; can't list tags.";
             next;
         }
@@ -492,7 +492,7 @@ multi MAIN ('diagnose', *@timings, :$format?, :$style?, :$outfile?,
 
 #| Clean up build trees in $COMPONENTS_DIR, keeping bare clones by default
 multi MAIN ('clean', *@components) {
-    unless $COMPONENTS_DIR.path.d {
+    unless $COMPONENTS_DIR.IO.d {
         say "No 'components' tree exists, so there is nothing to clean.";
         exit;
     }

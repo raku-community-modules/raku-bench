@@ -8,7 +8,7 @@ our sub go_to_bench_dir() is export {
     # Reduce directory insanity a bit by changing to bench root
     # and eliminating hardcoding for generated subdir names
     chdir $PROGRAM_DIR;
-    $PROGRAM_DIR    = cwd;
+    $PROGRAM_DIR    = $*CWD;
     $COMPONENTS_DIR = "$PROGRAM_DIR/components";
     $TIMINGS_DIR    = "$PROGRAM_DIR/timings";
 }
@@ -19,9 +19,9 @@ our sub init_bench_handling() is export {
 
 #| Check whether components dir exists and bail out if not (recommending 'setup' command)
 our sub needs-setup ($action) is export {
-    unless $COMPONENTS_DIR.path.d {
+    unless $COMPONENTS_DIR.IO.d {
         print qq:to/COMPONENTS/;
-            There is no '{ $COMPONENTS_DIR.path.basename }' tree, and thus there are no repos to $action.
+            There is no '{ $COMPONENTS_DIR.IO.basename }' tree, and thus there are no repos to $action.
             Please run: `$*PROGRAM_NAME setup`.
             COMPONENTS
         exit 1;
@@ -30,9 +30,9 @@ our sub needs-setup ($action) is export {
 
 #| Check whether timings dir exists and bail out if not (recommending steps to produce timings)
 our sub needs-timings ($action) is export {
-    unless $TIMINGS_DIR.path.d {
+    unless $TIMINGS_DIR.IO.d {
         print qq:to/TIMINGS/;
-            There is no '{ $TIMINGS_DIR.path.basename }' tree, and thus there are no timings to $action.
+            There is no '{ $TIMINGS_DIR.IO.basename }' tree, and thus there are no timings to $action.
             Please run:
             `$*PROGRAM_NAME setup`   to prepare and clone components,
             `$*PROGRAM_NAME extract` to extract Perls to be benchmarked,
@@ -59,7 +59,7 @@ our sub as-options (*%args) is export {
 
 #| Simulate the behavior of `git clean -dxf`
 our sub rmtree ($dir, :$noisy = True) is export {
-    return unless $dir.path.d;
+    return unless $dir.IO.d;
     say "Removing $dir" if $noisy;
     rm_rf $dir;
 }

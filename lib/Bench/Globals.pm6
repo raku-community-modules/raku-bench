@@ -1,6 +1,6 @@
 module Bench::Globals;
 
-our $PROGRAM_DIR    is export = $*PROGRAM_NAME.path.directory;
+our $PROGRAM_DIR    is export = $*PROGRAM_NAME.IO.dirname;
 our $COMPONENTS_DIR is export = "$PROGRAM_DIR/components";
 our $TIMINGS_DIR    is export = "$PROGRAM_DIR/timings";
 
