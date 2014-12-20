@@ -13,7 +13,7 @@
 # 0.2   FFI struct      LuaJIT 2.0 git HEAD -O+sink
 # 0.2   C++ class       GCC 4.4.3 -O2 (or -O3)
 # 1.2   Java class      JVM/Hotspot 1.7.0_05
-# 83    NQP class       NQP/MoarVM
+# 150    NQP class       NQP/MoarVM
 
 
 class Point {
@@ -32,12 +32,11 @@ class Point {
 
     # multi method version makes it 2x slower
     # but perl6 version with 'multi method add ' is about the same speed.
-    # proto method add($b) { * }
-    # multi method add(num $b) {
-    # }
+    proto method add($b) { * }
+    multi method add(num $b) {
+    }
 
-    # multi method add (Point $b) {
-    method add(Point $b) {
+    multi method add (Point $b) {
         Point.new($!x + $b.x, $!y + $b.y);
     }
 }

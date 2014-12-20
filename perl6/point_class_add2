@@ -20,24 +20,21 @@ use v6;
 class Point {
     has num $.x;
     has num $.y;
-    method new() {
-        nqp::create(self);
+    method new(num $x, num $y) {
+        my Point $self := nqp::create(self);
+        nqp::bindattr_n($self, Point, '$!x', $x);
+        nqp::bindattr_n($self, Point, '$!y', $y);
+
+        $self;
     }
-    method set(num $x, num $y ) {
-        $!x = $x;
-        $!y = $y;
-    }
+
     method add(Point $b) {
-        my Point $a = Point.new();
-        $a.set($!x + $b.x, $!y + $b.y);
-        $a;
+        Point.new($!x + $b.x, $!y + $b.y);
     }
 }
 my int $i = 0;
-my Point $a = Point.new();
-$a.set(1.5e0, 2.5e0);
-my Point $b = Point.new();
-$b.set(3.25e0, 4.75e0);
+my Point $a = Point.new(1.5e0, 2.5e0);
+my Point $b = Point.new(3.25e0, 4.75e0);
 while $i < 100000000 {
     $a = $a.add($b).add($b);
     $i = $i + 1;
