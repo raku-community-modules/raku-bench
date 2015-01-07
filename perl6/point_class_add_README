@@ -1,0 +1,17 @@
+the code is ported from: http://wiki.luajit.org/Allocation-Sinking-Optimization
+
+this benchmark is useful for Allocation Sinking Optimization or Escape Analysis Optimization
+
+Point Class Benchmarks
+
+Here's the runtime for the point class in seconds (YMMV). Lower is better:
+Time  Point object    VM/Compiler
+140   Lua table       Lua 5.1.5
+26.9  Lua table       LuaJIT 2.0 git HEAD -O-sink
+10.9  FFI struct      LuaJIT 2.0 git HEAD -O-sink
+0.2   Lua table       LuaJIT 2.0 git HEAD -O+sink
+0.2   FFI struct      LuaJIT 2.0 git HEAD -O+sink
+0.2   C++ class       GCC 4.4.3 -O2 (or -O3)
+1.2   Java class      JVM/Hotspot 1.7.0_05
+
+NOTE: the above is from Mike Pall.

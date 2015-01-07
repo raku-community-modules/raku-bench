@@ -133,4 +133,14 @@
   perl6 => [qw( BENCH/perl6/divide-and-conquer SCALE )],
   nqp   => undef,
  },
+ {
+  name  => 'point-class-add',
+  skip  => [qw( )],
+  tags  => [qw( stress attribute object-allocation multi-method)],
+  scale => 1 << 3,
+  expected => "650000001.5 950000002.5",
+  perl5 => undef,
+  perl6 => [qw( BENCH/perl6/point-class-add ), qw( BENCH/perl6/point-class-add1 ), qw( BENCH/perl6/point-class-add2 )],
+  nqp   => [qw( BENCH/nqp/point-class-add ),   qw( BENCH/nqp/point-class-add1 ),   qw( BENCH/nqp/point-class-add2 ),   qw( BENCH/nqp/point-class-add2-multi-method )],
+ },
 ]
