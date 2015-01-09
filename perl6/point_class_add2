@@ -12,7 +12,7 @@ class Point {
     has num $.x;
     has num $.y;
     method new(num $x, num $y) {
-        my Point $self = nqp::create(self);
+        my Point $self := nqp::create(self);
         nqp::bindattr_n($self, Point, '$!x', $x);
         nqp::bindattr_n($self, Point, '$!y', $y);
 
