@@ -135,12 +135,13 @@
  },
  {
   name  => 'point-class-add',
+  enabled => 0,
   skip  => [qw( )],
-  tags  => [qw( stress attribute object-allocation multi-method)],
+  tags  => [qw( oo )],
   scale => 1 << 3,
   expected => "650000001.5 950000002.5",
   perl5 => undef,
-  perl6 => [qw( BENCH/perl6/point-class-add ), qw( BENCH/perl6/point-class-add1 ), qw( BENCH/perl6/point-class-add2 )],
-  nqp   => [qw( BENCH/nqp/point-class-add ),   qw( BENCH/nqp/point-class-add1 ),   qw( BENCH/nqp/point-class-add2 ),   qw( BENCH/nqp/point-class-add2-multi-method )],
+  perl6 => [qw( BENCH/perl6/point-class-add )],
+  nqp   => [qw( BENCH/nqp/point-class-add   )],
  },
 ]
