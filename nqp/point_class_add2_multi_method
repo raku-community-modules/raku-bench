@@ -1,0 +1,41 @@
+# Point Class Benchmarks
+
+# Here's the runtime for the point class in seconds (YMMV). Lower is better:
+# 0.22   Lua table      LuaJIT 2.0 git HEAD -O+sink
+# 150    NQP class      NQP/MoarVM
+
+# see perl6/point_class_add_README for more information
+
+class Point {
+    has num $!x;
+    has num $!y;
+    method new(num $x, num $y) {
+        my $self := nqp::create(self);
+        nqp::bindattr_n($self, Point, '$!x', $x);
+        nqp::bindattr_n($self, Point, '$!y', $y);
+
+        $self;
+    }
+
+    method x() { $!x }
+    method y() { $!y }
+
+    # multi method version makes it 2x slower
+    # but perl6 version with 'multi method add ' is about the same speed.
+    proto method add($b) { * }
+    multi method add(num $b) {
+    }
+
+    multi method add (Point $b) {
+        Point.new($!x + $b.x, $!y + $b.y);
+    }
+}
+
+my int $i := 0;
+my $a := Point.new(1.5e0, 2.5e0);
+my $b := Point.new(3.25e0, 4.75e0);
+while $i < 100000000 {
+    $a := $a.add($b).add($b);
+    $i := $i + 1;
+}
+print($a.x, ' ', $a.y);
