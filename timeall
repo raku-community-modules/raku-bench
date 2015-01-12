@@ -319,7 +319,8 @@ sub run_all_tests {
     my $overhead_runs = $startup_runs;
     my $enough_time   = $opt->{'enough-time'} || $DEFAULT{ENOUGH_TIME};
     my $scale_points  = $opt->{'min-scaling-points'} || $DEFAULT{MIN_SCALING_POINTS};
-    my $max_failures  = $opt->{'max-failures'} // $DEFAULT{MAX_FAILURES};
+    my $max_failures  = min($opt->{'max-failures'} // $DEFAULT{MAX_FAILURES},
+                            $runs - 1);
     my $timeout       = $opt->{timeout} || $DEFAULT{TIMEOUT};
     my $verbose       = $opt->{verbose};
     my $empty_test    = $TESTS{e}[0];
