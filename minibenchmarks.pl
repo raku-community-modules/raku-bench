@@ -162,4 +162,12 @@
   perl5    => [qw( BENCH/perl5/merge-sort SCALE)],
   perl6    => [qw( BENCH/perl6/merge-sort SCALE)],
  },    
+ {
+  name     => 'pi_sequential_iteration',
+  skip     => [qw( )],
+  tags     => [qw( math )],
+  scale    => 1 << 10,
+  perl5    => [qw( BENCH/perl5/pi_sequential_iteration)],
+  perl6    => [qw( BENCH/perl6/pi_sequential_iteration)],
+ },    
 ]
