@@ -1,0 +1,50 @@
+use v5;
+use strict;
+
+sub Inf { ~0 }
+
+sub merge {
+    my ( $a, $p, $z, $r ) = @_;
+    my $inv = 0;
+    my $i   = 0;
+    my $j   = 0;
+
+    my @l = @{$a}[ $p .. $z ];
+    my @r = @{$a}[ $z + 1 .. $r ];
+    push @l, Inf;
+    push @r, Inf;
+
+    for my $k ( $p .. $r ) {
+        if ( $l[$i] <= $r[$j] ) {
+            $a->[$k] = $l[$i];
+            $i++;
+        }
+        else {
+            $a->[$k] = $r[$j];
+            $j++;
+        }
+    }
+}
+my $iter = 0;
+
+sub merge_sort {
+    my ( $a, $p, $r ) = @_;
+    $r //= $#{$a};
+    $p //= 0;
+    return 0 unless $p < $r;
+    my $z = int( ( $p + $r ) / 2 );
+    return merge_sort( $a, $p, $z ) +
+      merge_sort( $a, $z + 1, $r ) + merge( $a, $p, $z, $r );
+
+}
+
+my $scale = int shift @ARGV;
+my @a     = ( 0, );
+for ( 0 .. $scale ) {
+    push @a, int( $scale * rand );
+}
+
+merge_sort( \@a );
+
+print $a[0], "\n";
+
