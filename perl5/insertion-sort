@@ -1,0 +1,28 @@
+use v5;
+use strict;
+
+sub insertion_sort {
+    my $a = shift;
+    for my $j ( 1 .. $#{$a} ) {
+        my $key = $a->[$j];
+        my $i   = $j - 1;
+        while ( $i >= 0 && $a->[$i] > $key ) {
+            $a->[ $i + 1 ] = $a->[$i];
+            $i--;
+        }
+        $a->[ $i + 1 ] = $key;
+    }
+}
+
+
+my $scale = int shift @ARGV;
+
+my @ints = (0, );
+for (0 .. $scale ) {
+    push @ints, int($scale * rand);
+}
+
+push @ints, 0;
+
+insertion_sort \@ints;
+print $ints[0], "\n";

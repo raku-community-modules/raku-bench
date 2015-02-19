@@ -144,4 +144,22 @@
   perl6 => [qw( BENCH/perl6/point-class-add )],
   nqp   => [qw( BENCH/nqp/point-class-add   )],
  },
+ {
+  name     => 'insertion-sort',
+  skip     => [qw( )],
+  tags     => [qw( sorting array )],
+  scale    => 0,
+  expected => "0\n",
+  perl5    => [qw( BENCH/perl5/insertion-sort SCALE)],
+  perl6    => [qw( BENCH/perl6/insertion-sort SCALE)],
+ },
+ {
+  name     => 'merge-sort',
+  skip     => [qw( )],
+  tags     => [qw( sorting array )],
+  scale    => 0,
+  expected => "0\n",
+  perl5    => [qw( BENCH/perl5/merge-sort SCALE)],
+  perl6    => [qw( BENCH/perl6/merge-sort SCALE)],
+ },    
 ]
