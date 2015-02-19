@@ -2,12 +2,13 @@
 
 use 5.10.0;
 
-my $n = 100000; 
-my $delta = 1.0 / $n;
+my $SCALE = $ARGV[0];
+
+my $delta = 1.0 / $SCALE;
 my $sum = 0.0;
 my $i = 1;
 
-while ( $i <= $n) {
+while ( $i <= $SCALE) {
   my $x = ( $i - 0.5 ) * $delta;
   $sum += 1.0 / ( 1.0 + $x * $x );
   $i++;
