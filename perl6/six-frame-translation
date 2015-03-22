@@ -1,0 +1,79 @@
+# Six-frame translation copied from BioInfo::Seq::Nucleic with very minor changes
+
+
+my @residues  = ('T','C','A','G');
+
+sub complement($seq,:$reverse) {
+    my $sequence = $seq;
+    my %comp = zip @residues, (@residues[2,3], @residues[0,1]);
+    $sequence = $seq.flip if $reverse;
+    return $sequence.comb.map({%comp{$_}}).join;
+}
+
+#Method to in-frame translate
+sub translate($seq,:$table='standard') {
+
+    my @codons = map *~*~*, (@residues X @residues X @residues);
+
+    #Translation table
+    my %aminos = (standard => <F F L L S S S S
+                               Y Y * * C C * W
+                               L L L L P P P P
+                               H H Q Q R R R R
+                               I I I M T T T T
+                               N N K K S S R R
+                               V V V V A A A A
+                               D D E E G G G G>);
+
+    #Create a map of the codons to amino acids
+    #Anything non translatable like '-' or 'N' get mapped to X amino characters
+    my %codon_table is default('X');
+    %codon_table = zip @codons, %aminos{$table}.list;
+
+    #Take all of the codons mapped to aminos and join them together
+    return %codon_table{map *~*~*, $seq.uc.comb}.join
+}
+
+sub three-frame-translate($seq,:$min-length=1, :$break-on-stop, :$negative) {
+    my @frames;
+    for 0..2 -> $frame {
+        my $sequence;
+        if ($negative) {
+            $sequence = complement($seq, :reverse);
+        } else {
+            $sequence = $seq;
+        }
+        #Start this frame shifted by the frame shift ammount
+        $sequence = $sequence.substr($frame);
+        #Chop off the end until we have whole codon length
+        $sequence = $sequence.chop while $sequence.chars % 3;
+
+        #If breaking on stop codon was requested split this sequence up further into ORFs
+        if ($break-on-stop) {
+            $sequence = translate($sequence);
+            for $sequence.comb(/<-[\*]>+/).kv -> $index, $orf {
+                @frames.push($orf) if $orf.chars >= $min-length;
+            }
+        }
+        #Otherwise just push the whole frame translation
+        else {
+            @frames.push(translate($sequence)) if $sequence.chars >= $min-length;
+        }
+    }
+    return @frames;
+}
+
+sub six-frame-translate($seq,:$min-length=1,:$break-on-stop) {
+    my @frames;
+    push @frames, three-frame-translate($seq, min-length=>$min-length) :break-on-stop($break-on-stop);
+    push @frames, three-frame-translate($seq, min-length=>$min-length) :break-on-stop($break-on-stop) :negative;
+    @frames;
+}
+
+
+sub MAIN($count) {
+    my $dna = 'ATGGAAGACCCGTTGATTGGTAGAGATAGTCTTGGTGGTGGTGGTACGGATCGGGTTCGTCGATCAGAAGCTATCACGCATGGTACTCCGTTTCAGAAAGCAGCTGCACTCGTTGATCTGGCTGAAGATGGTATTGGTCTTCCTGTGGAAATACTTGATCAGTCGAGTTTCGGGGAGTCTGCTAGGTATTACTTCATCTTCACACGTTTGGATCTGATCTGGTCACTCAACTATTTCGCTCTGCTTTTCCTTAACTTCTTCGAGCAACCATTGTGGTGTGAAAAAAACCCTAAACCGTCTTGCAAAGATAGAGATTACTATTACCTGGGAGAGTTACCGTACTTGACCAATGCAGAATCCATTATCTATGAGGTGATTACCCTGGCTATACTCCTTGTACATACTTTCTTCCCGATATCCTATGAAGGTTCCCGAATCTTTTGGACTAGTCGCCTGAATCTAGTGAAGGTTGCTTGCGTGGTAATTTTGTTTGTTGATGTGCTGGTTGACTTTCTGTATCTGTCTCCACTGGCTTTCGACTTTCTCCCTTTTAGAATCGCCCCATACGTGAGAGTTATCATATTCATCCTCAGCATAAGGGAACTTCGGGACACCCTTGTCCTTCTGTCTGGAATGCTTGGCACATACTTGAATATCTTGGCTCTATGGATGCTGTTCCTTCTATTTGCCAGTTGGATTGCTTTTGTTATGTTTGAGGACACGCAGCAGGGCCTCACGGTCTTCACTTCATATGGTGCAACTCTTTACCAGATGTTTATTTTGTTCACAACATCCAACAATCCTGATGTCTGGATTCCTGCATACAAGTCTTCTCGCTGGTCTTCGGTGTTCTTCGTGCTCTACGTGCTAATTGGCGTCTACTTTGTCACAAACTTGATTCTTGCCGTTGTTTATGACAGTTTCAAAGAACAGCTCGCAAAGCAAGTATCTGGAATGGATCAAATGAAGAGAAGAATGTTGGAGAAAGCCTTTGGTCTTATAGACTCAGACAAAAACGGGGAGATTGATAAGAACCAATGCATTAAGCTCTTTGAACAGTTGACTAATTACAGGACGTTGCCGAAGATATCAAAAGAAGAATTCGGATTGATATTTGATGAGCTTGACGATACTCGTGACTTTAAGATAAACAAGGATGAGTTTGCTGACCTCTGCCAGGCCATTGCTTTAAGATTCCAAAAGGAGGAAGTACCGTCTCTCTTTGAACATTTTCCGCAAATTTACCATTCCGCCTTATCACAACAACTGAGAGCCTTTGTTCGAAGCCCCAACTTTGGCTACGCTATTTCTTTCATCCTCATTATCAATTTCATTGCTGTCGTTGTTGAAACAACGCTTGATATCGAAGAAAGCTCGGCTCAGAAGCCATGGCAGGTTGCCGAGTTTGTCTTTGGTTGGATATATGTGTTGGAGATGGCTCTGAAGATCTATACATATGGATTTGAGAATTATTGGAGAGAGGGTGCTAACCGATTTGATTTTCTAGTCACATGGGTCATAGTTATTGGGGAAACAGCTACCTTCATAACTCCAGACGAGAATACTTTCTTCTCAAATGGAGAATGGATCCGGTACCTTCTCCTGGCGAGAATGTTAAGACTGATAAGGCTTCTTATGAACGTCCAGCGATACCGAGCATTTATTGCGACGTTCATAACTCTTATTCCAAGTTTGATGCCATATTTAGGGACCATTTTCTGCGTGCTGTGTATCTACTGCTCTATTGGCGTACAGGTCTTTGGAGGGCTTGTGAATGCTGGGAACAAAAAGCTCTTTGAAACCGAATTGGCTGAGGATGACTACCTTTTGTTCAACTTCAATGACTACCCCAATGGAATGGTCACACTCTTCAATCTGCTAGTTATGGGTAACTGGCAAGTATGGATGGAGAGCTACAAAGATTTGACGGGCACGTGGTGGAGCATTACATATTTCGTCAGTTTCTATGTCATCACTATTTTACTTCTGTTGAATTTGGTTGTTGCCTTTGTCTTGGAGGCGTTCTTTACTGAGCTGGATCTTGAAGAAGAAGAAAAATGTCAAGGACAGGATTCTCAAGAAAAAAGAAACAGGCGTCGATCTGCAGGGTCGAAGTCTCGGAGTCAGAGAGTTGATACACTTCTTCATCACATGTTGGGTGATGAACTCAGCAAACCAGAGTGTTCCACTTCTGACACATAA';
+    for ^$count {
+        six-frame-translate($dna,:break-on-stop, :min-length(7))
+    }
+}
