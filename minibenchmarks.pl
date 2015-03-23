@@ -170,4 +170,14 @@
   perl5    => [qw( BENCH/perl5/pi_sequential_iteration)],
   perl6    => [qw( BENCH/perl6/pi_sequential_iteration)],
  },    
+ {
+  name  => 'six-frame-translation',
+  skip  => [qw( )],
+  tags  => [qw( array push comb join string flip trans subs bioinformatics )],
+  scale => 1 << 4,
+  expected => "123\n",
+  perl5 => undef,
+  perl6 => [qw( BENCH/perl6/six-frame-translation SCALE )],
+  nqp   => undef,
+ },
 ]
