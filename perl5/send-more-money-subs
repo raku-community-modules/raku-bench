@@ -1,0 +1,56 @@
+use v5.10;
+use strict;
+use warnings;
+
+sub choose {
+    my ($choices_ref, $fn) = @_;
+    my @choices = @$choices_ref;
+    for my $value (@choices) {
+        $fn->($value);
+    }
+}
+ 
+sub guard {
+    my ($condition, $fn) = @_;
+    if ($condition) {
+        $fn->();
+    }
+}
+
+sub minus {
+    my ($set_ref, @remove) = @_;
+    my @set = @$set_ref;
+    my %remove = map { $_ => 1 } @remove;
+    return [grep { !$remove{$_} } @set];
+}
+
+sub base_10 {
+    my (@digits) = @_;
+    my $result = 0;
+    while (@digits) {
+        my $digit = shift @digits;
+        $result *= 10;
+        $result += $digit;
+    }
+    return $result;
+}
+
+my @digits = 0..9;
+
+choose minus(\@digits, 0), sub { my $s = shift;
+choose minus(\@digits, $s), sub { my $e = shift;
+choose minus(\@digits, $s, $e), sub { my $n = shift;
+choose minus(\@digits, $s, $e, $n), sub { my $d = shift;
+my $send = base_10($s, $e, $n, $d);
+ 
+choose minus(\@digits, 0, $s, $e, $n, $d), sub { my $m = shift;
+choose minus(\@digits, $s, $e, $n, $d, $m), sub { my $o = shift;
+choose minus(\@digits, $s, $e, $n, $d, $m, $o), sub { my $r = shift;
+my $more = base_10($m, $o, $r, $e);
+ 
+choose minus(\@digits, $s, $e, $n, $d, $m, $o, $r), sub { my $y = shift;
+my $money = base_10($m, $o, $n, $e, $y);
+ 
+guard $send + $more == $money, sub {
+say "$send + $more == $money";
+}}}}}}}}};

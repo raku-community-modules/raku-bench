@@ -170,4 +170,21 @@
   perl5    => [qw( BENCH/perl5/pi_sequential_iteration)],
   perl6    => [qw( BENCH/perl6/pi_sequential_iteration)],
  },    
+ {
+  name     => 'send-more-money-subs',
+  skip     => [qw( )],
+  tags     => [qw( )],
+  scale    => 1,
+  perl5    => [qw( BENCH/perl5/send-more-money-subs )],
+  perl6    => [qw( BENCH/perl6/send-more-money-subs )],
+ },    
+ {
+  name     => 'send-more-money-loops',
+  skip     => [qw( )],
+  tags     => [qw( )],
+  scale    => 1,
+  perl5    => [qw( BENCH/perl5/send-more-money-loops )],
+  perl6    => [qw( BENCH/perl6/send-more-money-loops )],
+  nqp      => [qw( BENCH/nqp/send-more-money-loops )],
+ },    
 ]

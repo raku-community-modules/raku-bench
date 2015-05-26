@@ -1,0 +1,31 @@
+my @digits = 0..9;
+ 
+choose @digits ∖ 0, -> $s {
+choose @digits ∖ $s, -> $e {
+choose @digits ∖ ($s, $e), -> $n {
+choose @digits ∖ ($s, $e, $n), -> $d {
+my $send = :10[$s, $e, $n, $d];
+ 
+choose @digits ∖ (0, $s, $e, $n, $d), -> $m {
+choose @digits ∖ ($s, $e, $n, $d, $m), -> $o {
+choose @digits ∖ ($s, $e, $n, $d, $m, $o), -> $r {
+my $more = :10[$m, $o, $r, $e];
+ 
+choose @digits ∖ ($s, $e, $n, $d, $m, $o, $r), -> $y {
+my $money = :10[$m, $o, $n, $e, $y];
+ 
+guard $send + $more == $money, {
+say "$send + $more == $money";
+}}}}}}}}};
+ 
+sub choose(Set $choices, &fn) {
+    for @$choices -> $value {
+        &fn($value);
+    }
+}
+ 
+sub guard($condition, &fn) {
+    if $condition {
+        &fn();
+    }
+}
