@@ -1,4 +1,4 @@
-module Bench::Handling;
+unit module Bench::Handling;
 
 use Bench::Globals;
 use JSON::Tiny;
