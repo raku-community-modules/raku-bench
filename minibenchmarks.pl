@@ -112,6 +112,20 @@
   nqp   => [qw( BENCH/nqp/rc-forest-fire-stringify   16 16 SCALE )],
  },
  {
+  name  => 'rc-perfect-shuffle',
+  skip  => [qw( )],
+  tags  => [qw( array map )],
+  scale => 52,
+  expected => sub {
+      my @expected = qw(1 8 51 20 66 36 155 110 164 466 172 114 33
+                        180 121 180 92 882 40 138 519);
+      $expected[$_[0] / 52] . "\n";
+  },
+  perl5 => [qw( BENCH/perl5/rc-perfect-shuffle SCALE )],
+  perl6 => [qw( BENCH/perl6/rc-perfect-shuffle SCALE )],
+  nqp   => undef,
+ },
+ {
   name  => 'string-escape',
   skip  => [qw( )],
   tags  => [qw( string escape trans subs )],

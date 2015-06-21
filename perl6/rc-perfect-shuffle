@@ -1,0 +1,16 @@
+use v6;
+
+sub perfect-shuffle (@deck) {
+    my $mid = +@deck div 2;
+    flat map { @deck[$_, $_ + $mid] }, 0..($mid - 1)
+}
+
+sub shuffles_needed ($decksize) {
+    my @shuffled = my @deck = ^$decksize;
+    my $n;
+    loop { $n++; @shuffled = perfect-shuffle @shuffled;
+           last if @shuffled eqv @deck; }
+    return $n
+}
+
+say shuffles_needed(@*ARGS[0]);

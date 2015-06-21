@@ -1,4 +1,4 @@
-module Bench::Globals;
+unit module Bench::Globals;
 
 our $PROGRAM_DIR    is export = $*PROGRAM_NAME.IO.dirname;
 our $COMPONENTS_DIR is export = "$PROGRAM_DIR/components";
