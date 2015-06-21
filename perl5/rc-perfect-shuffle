@@ -1,0 +1,19 @@
+use 5.010;
+use List::Util qw(all);
+ 
+sub perfect_shuffle {
+    my @deck = @_;
+    my $mid = @deck / 2;
+    map { @deck[$_, $_ + $mid] } 0..($mid - 1);
+}
+
+sub shuffles_needed {
+    my $decksize = shift;
+    my @shuffled = my @deck = 1 .. $decksize;
+    my $n = 0;
+    do { $n++; @shuffled = perfect_shuffle(@shuffled) }
+        until all { $shuffled[$_] == $deck[$_] } 0..$#shuffled;
+    return $n;
+}
+
+say shuffles_needed($ARGV[0]);
