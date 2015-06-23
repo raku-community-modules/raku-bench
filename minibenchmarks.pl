@@ -117,10 +117,12 @@
   tags  => [qw( array map )],
   scale => 52,
   expected => sub {
-      my @expected = qw(1 8 51 20 66 36 155 110 164 466 172 114 33
-                        180 121 180 92 882 40 138 519);
-      $expected[$_[0] / 52] . "\n";
+      my @expected = qw(1 8 51 20 66 36 155 110 164 466 172 114 33 180 121 180);
+      my @expected_exp = qw(8 51 66 164 92 831 1108 2420 504 273);
+      my $i = int($_[0] / 52);
+      ($expected[$i] // $expected_exp[log($i)/log(2)]) . "\n";
   },
+  x_label => 'Deck size',
   perl5 => [qw( BENCH/perl5/rc-perfect-shuffle SCALE )],
   perl6 => [qw( BENCH/perl6/rc-perfect-shuffle SCALE )],
   nqp   => undef,
