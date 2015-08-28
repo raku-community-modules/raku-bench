@@ -12,9 +12,9 @@
   name  => 'zero',
   summarize => 0,
   expected => '',
-  perl5 => '0',
-  perl6 => '0',
-  nqp   => '0',
+  perl5 => 'my $z = 0;',
+  perl6 => 'my $z = 0;',
+  nqp   => 'my $z := 0;',
  },
  {
   name  => 'hello',
