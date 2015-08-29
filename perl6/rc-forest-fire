@@ -21,12 +21,12 @@ class Forest {
     }
 
     method !init-grid {
-        @!grid = [ (Bool.pick ?? Tree !! Empty) xx $!width ] xx $!height;
+        @!grid = [ flat (Bool.pick ?? Tree !! Empty) xx $!width ] xx $!height;
     }
 
     method !init-neighbors {
         @!neighbors = [ [] xx $!width ] xx $!height; # XXX rakudo doesn't autoviv yet
-        for ^$!height X ^$!width -> $i, $j {
+        for flat(^$!height X ^$!width) -> $i, $j {
             my $k = 0;
             for
                     [-1,-1],[+0,-1],[+1,-1],
@@ -42,7 +42,7 @@ class Forest {
     method step {
         my @new;
         @new = [] xx $!height;   # XXX rakudo doesn't autoviv yet
-        for ^$!height X ^$!width -> $i, $j {
+        for flat (^$!height X ^$!width) -> $i, $j {
             given @!grid[$i][$j] {
                 when Empty   { @new[$i][$j] = rand < $!p ?? Tree !! Empty }
                 when Tree    { @new[$i][$j] =
@@ -51,7 +51,7 @@ class Forest {
                 when Burning { @new[$i][$j] = Empty }
             }
         }
-        for ^$!height X ^$!width -> $i, $j {
+        for flat(^$!height X ^$!width) -> $i, $j {
             @!grid[$i][$j] = @new[$i][$j];
         }
     }
