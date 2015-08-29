@@ -114,7 +114,7 @@ our sub explode-components (@component-specs, :$chdir = True, :$default-to-dirs 
             $comp<checkouts>.push: |@checkouts;
         }
         else {
-            @exploded.push: { info => $comp-info, checkouts => @checkouts };
+            @exploded.push: { info => $comp-info, checkouts => @checkouts }.item;
         }
     }
 
