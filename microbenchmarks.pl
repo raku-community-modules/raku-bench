@@ -197,8 +197,9 @@
   tags  => [qw( for )],
   scale => 1 << 10,
   summarize => 0,
-  perl5 => 'for (1 .. SCALE) { }; 1',
-  perl6 => 'for (1 .. SCALE) { }; 1',
+  expected => sub { $_[0] . "\n" },
+  perl5 => 'for (1 .. SCALE) { }; say SCALE;',
+  perl6 => 'for (1 .. SCALE) { }; say SCALE;',
   nqp   => undef,
  },
  {
