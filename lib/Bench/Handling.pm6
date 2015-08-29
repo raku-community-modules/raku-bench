@@ -7,14 +7,14 @@ use Shell::Command;
 our sub go_to_bench_dir() is export {
     # Reduce directory insanity a bit by changing to bench root
     # and eliminating hardcoding for generated subdir names
-    chdir $PROGRAM_DIR;
-    $PROGRAM_DIR    = $*CWD;
-    $COMPONENTS_DIR = "$PROGRAM_DIR/components";
-    $TIMINGS_DIR    = "$PROGRAM_DIR/timings";
+    chdir $PROGRAM-DIR;
+    $PROGRAM-DIR    = $*CWD;
+    $COMPONENTS_DIR = "$PROGRAM-DIR/components";
+    $TIMINGS_DIR    = "$PROGRAM-DIR/timings";
 }
 
 our sub init_bench_handling() is export {
-    $COMPONENTS = from-json(slurp "$PROGRAM_DIR/components.json");
+    $COMPONENTS = from-json(slurp "$PROGRAM-DIR/components.json");
 }
 
 #| Check whether components dir exists and bail out if not (recommending 'setup' command)
@@ -22,7 +22,7 @@ our sub needs-setup ($action) is export {
     unless $COMPONENTS_DIR.IO.d {
         print qq:to/COMPONENTS/;
             There is no '{ $COMPONENTS_DIR.IO.basename }' tree, and thus there are no repos to $action.
-            Please run: `$*PROGRAM_NAME setup`.
+            Please run: `$*PROGRAM-NAME setup`.
             COMPONENTS
         exit 1;
     }
@@ -34,10 +34,10 @@ our sub needs-timings ($action) is export {
         print qq:to/TIMINGS/;
             There is no '{ $TIMINGS_DIR.IO.basename }' tree, and thus there are no timings to $action.
             Please run:
-            `$*PROGRAM_NAME setup`   to prepare and clone components,
-            `$*PROGRAM_NAME extract` to extract Perls to be benchmarked,
-            `$*PROGRAM_NAME build`   to build the Perls and their components, and
-            `$*PROGRAM_NAME time`    to benchmark the built Perls and generate timings.
+            `$*PROGRAM-NAME setup`   to prepare and clone components,
+            `$*PROGRAM-NAME extract` to extract Perls to be benchmarked,
+            `$*PROGRAM-NAME build`   to build the Perls and their components, and
+            `$*PROGRAM-NAME time`    to benchmark the built Perls and generate timings.
             TIMINGS
         exit 1;
     }
