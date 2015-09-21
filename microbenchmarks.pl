@@ -443,6 +443,16 @@
   nqp   => 'my $k := 0; sub mk2d($h, $w) { my $x := 1; my $y := 1; sub () { return () if $y > $h; my @c := ($y, $x); if ++$x > $w { $x := 1; ++$y; }; @c } }; my $it := mk2d(SCALE, SCALE); while $it() -> @c { $k := @c[0] + @c[1] }; say($k);',
  },
  {
+  name  => 'visit_2d_indices_cross_unpack',
+  tags  => [qw( for cross )],
+  scale => 1 << 7,
+  work  => sub { $_[0] * $_[0] },
+  expected => sub { ($_[0] * 2) . "\n" },
+  perl5 => undef,
+  perl6 => 'my $k = 0; for (1 .. SCALE X 1 .. SCALE) -> ($i, $j) { $k = $i + $j }; say $k;',
+  nqp   => undef,
+ },
+ {
   name  => 'create_and_copy_2d_grid_cross',
   tags  => [qw( for cross array forest-fire )],
   scale => 1 << 7,
@@ -451,6 +461,16 @@
   perl5 => 'sub mk2d { my ($h, $w) = @_; my $x = 1; my $y = 1; sub { return if $y > $h; my @c = ($y, $x); if (++$x > $w) { $x = 1; ++$y; }; @c } }; my (@src, @dst); $dst[0][0] = 0; my $it = mk2d(SCALE, SCALE); while (my ($i, $j) = $it->()) { $src[$i][$j] = $i + $j }; $it = mk2d(SCALE, SCALE); while (my ($i, $j) = $it->()) { $dst[$i][$j] = $src[$i][$j] }; say $dst[SCALE][SCALE];',
   perl6 => 'my (@src, @dst); @dst[0][0] = 0; for flat(1 .. SCALE X 1 ..SCALE) -> $i, $j { @src[$i][$j] = $i + $j }; for flat(1 .. SCALE X 1 .. SCALE) -> $i, $j { @dst[$i][$j] = @src[$i][$j] }; say @dst[SCALE][SCALE];',
   nqp   => 'sub mk2d($h, $w) { my $x := 1; my $y := 1; sub () { return () if $y > $h; my @c := ($y, $x); if ++$x > $w { $x := 1; ++$y; }; @c } }; my @src; my @dst; @dst[0][0] := 0; my $it := mk2d(SCALE, SCALE); while $it() -> @c { @src[@c[0]] := [] unless @src[@c[0]]; @src[@c[0]][@c[1]] := @c[0] + @c[1] }; $it := mk2d(SCALE, SCALE); while $it() -> @c { @dst[@c[0]] := [] unless @dst[@c[0]]; @dst[@c[0]][@c[1]] := @src[@c[0]][@c[1]] }; say(@dst[SCALE][SCALE]);',
+ },
+ {
+  name  => 'create_and_copy_2d_grid_cross_unpack',
+  tags  => [qw( for cross array forest-fire )],
+  scale => 1 << 7,
+  work  => sub { $_[0] * $_[0] },
+  expected => sub { ($_[0] * 2) . "\n" },
+  perl5 => undef,
+  perl6 => 'my (@src, @dst); @dst[0][0] = 0; for (1 .. SCALE X 1 ..SCALE) -> ($i, $j) { @src[$i][$j] = $i + $j }; for (1 .. SCALE X 1 .. SCALE) -> ($i, $j) { @dst[$i][$j] = @src[$i][$j] }; say @dst[SCALE][SCALE];',
+  nqp   => undef,
  },
  {
   name => 'create_and_iterate_hash_kv',
