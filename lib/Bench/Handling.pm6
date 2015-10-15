@@ -87,6 +87,8 @@ our sub for-checkouts (@components, &code, :$quiet) is export {
 
 #| Expand a partially-specified list of components and checkouts
 our sub explode-components (@component-specs, :$chdir = True, :$default-to-dirs = True) is export {
+    my $COMPONENTS_DIR = OUTER::('$COMPONENTS_DIR');
+
     chdir $COMPONENTS_DIR if $chdir;
     @component-specs ||= dir($COMPONENTS_DIR).sort if $default-to-dirs;
 
