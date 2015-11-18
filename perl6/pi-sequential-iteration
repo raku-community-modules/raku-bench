@@ -2,7 +2,7 @@
 
 use v6;
 
-my \SCALE = @*ARGS[0];
+my \SCALE = @*ARGS[0].Int;
 
 my $delta = 1.0 / SCALE;
 my $sum = 0.0;
