@@ -63,7 +63,7 @@ class Forest {
     }
 }
 
-sub MAIN ($w, $h, $steps) {
+sub MAIN (Int $w, Int $h, Int $steps) {
     my Forest $f .= new($h, $w);
     print "\e[2J$CLEAR";      # ANSI clear screen
 

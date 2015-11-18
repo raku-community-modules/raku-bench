@@ -1,5 +1,5 @@
 use v6;
-my $d = "\n" x @*ARGS[0];
+my $d = "\n" x @*ARGS[0].Int;
 my $s = $d.trans(   ['"',  '\\',   "\b", "\f", "\n", "\r", "\t"]
                  => ['\"', '\\\\', '\b', '\f', '\n', '\r', '\t']);
 say $s.chars;

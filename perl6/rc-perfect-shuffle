@@ -13,4 +13,4 @@ sub shuffles_needed ($decksize) {
     return $n
 }
 
-say shuffles_needed(@*ARGS[0]);
+say shuffles_needed(@*ARGS[0].Int);

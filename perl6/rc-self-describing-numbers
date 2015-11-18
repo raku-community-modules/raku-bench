@@ -12,4 +12,4 @@ sub is_selfdesc($n) {
 }
 
 # check all numbers from 0 to SCALE
-.say if is_selfdesc($_) for 0 .. @*ARGS[0];
+.say if is_selfdesc($_) for 0 .. @*ARGS[0].Int;

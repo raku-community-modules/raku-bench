@@ -1,6 +1,6 @@
 constant SQUISH = 1.5;
 
-sub MAIN($w = 31, $max_iterations = 50) {
+sub MAIN(Int $w = 31, Int $max_iterations = 50) {
     my $h = round($w / SQUISH);
 
     my ($re_min, $re_max) = (-2,   1/2);

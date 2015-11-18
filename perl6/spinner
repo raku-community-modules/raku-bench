@@ -1,4 +1,4 @@
-sub MAIN($h = 64, $w = 64, $spins = 64) {
+sub MAIN(Int $h = 64, Int $w = 64, Int $spins = 64) {
     my @spinner = < | / - \\ >;
 
     for ^$h {

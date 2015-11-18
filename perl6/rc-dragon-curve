@@ -4,7 +4,7 @@ say "<?xml version='1.0' encoding='utf-8' standalone='no'?>
 <svg width='100%' height='100%' version='1.1'
 xmlns='http://www.w3.org/2000/svg'>";
 
-my $order = @*ARGS[0]; # akin to number of recursion steps
+my $order = @*ARGS[0].Int; # akin to number of recursion steps
 my $d_size = 1000; # size in pixels
 my $turn_angle = pi/2; # turn angle of each segment, 90 degrees for the canonical dragon
 

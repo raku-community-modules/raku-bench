@@ -39,10 +39,12 @@ sub from-json($text) {
     JSON::Tiny::Grammar.parse($text);
 }
 
-sub MAIN($json-file, $count) {
+sub MAIN($json-file, Int $count) {
     my $json := slurp($json-file);
+    my Int $i = 0;
 
-    for ^$count {
+    while $i < $count {
+        $i++;
         my $data := from-json($json);  #OK
     }
 }

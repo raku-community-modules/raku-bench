@@ -1,4 +1,4 @@
-my \SCALE = @*ARGS[0];
+my \SCALE = @*ARGS[0].Int;
 my \FANOUT = 2;
 
 sub divide-and-conquer($n, $depth) {
