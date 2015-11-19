@@ -1,38 +1,35 @@
 use v6;
 
-sub merge(@a is rw, \p, \z, \r) {
-    my @l = @a[p   .. z], Inf;
-    my @r = @a[z+1 .. r], Inf;
+sub merge(@a, \p, \z, \r) {
+    my @l = @a[p   .. z].Slip, Inf;
+    my @r = @a[z+1 .. r].Slip, Inf;
     my $i = 0;
     my $j = 0;
 
     for p..r -> \k {
-	if @l[$i] <= @r[$j] {
-	    @a[k] = @l[$i];
-	    $i++;
-	} else {
-	    @a[k] = @r[$j] ;
-	    $j++;
-	}
+        if @l[$i] <= @r[$j] {
+            @a[k] = @l[$i];
+            $i++;
+        } else {
+            @a[k] = @r[$j] ;
+            $j++;
+        }
     }
-    
+
 }
 
 
-sub merge-sort(@a is rw, \p = 0, \r = @a.end) {
+sub merge-sort(@a, \p = 0, \r = @a.end) {
     if p < r {
-	my \z = (p + r) div 2;
-	merge-sort(@a, p, z);
-	merge-sort(@a, z+1, r);
-	merge(@a, p, z, r);
+        my \z = (p + r) div 2;
+        merge-sort(@a, p, z);
+        merge-sort(@a, z+1, r);
+        merge(@a, p, z, r);
     }
 }
 
 sub MAIN(Int $scale) {
-    my @a = 0;
-    for ^$scale {
-	@a <== (rand * $scale).Int
-    }	
+    my @a = ($scale.rand).Int xx $scale;
     merge-sort @a;
     say @a[0];
 }

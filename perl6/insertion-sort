@@ -1,24 +1,22 @@
 use v6;
 
-sub insertion-sort(@a is rw) {
+sub insertion-sort(@a) {
     for 1 .. @a.end -> $j {
-	my $key = @a[$j];
+        my $key = @a[$j];
         # Insert @a[$j] into the sorted sequence @a[0..$j-1]
-	my $i   = $j - 1;
-	while $i >= 0 && @a[$i] > $key  {
-	    @a[$i+1] = @a[$i];
-	    $i-=1;	  
-	}
-	@a[$i+1] = $key;
+        my $i   = $j - 1;
+        while $i >= 0 && @a[$i] > $key  {
+            @a[$i+1] = @a[$i];
+            $i-=1;
+        }
+        @a[$i+1] = $key;
     }
 }
 
 
 sub MAIN(Int $scale) {
     my @ints = 0; # in case SCALE == 0
-    for ^$scale {
-	@ints <== (rand * $scale).Int;
-    }
+    @ints = ($scale.rand).Int xx $scale;
     insertion-sort @ints;
     say @ints[0];
 }
