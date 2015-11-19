@@ -19,7 +19,7 @@ say "$send + $more == $money";
 }}}}}}}}};
  
 sub choose(Set $choices, &fn) {
-    for @$choices -> $value {
+    for $choices.keys -> $value {
         &fn($value);
     }
 }
