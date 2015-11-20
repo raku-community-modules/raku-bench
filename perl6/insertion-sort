@@ -15,8 +15,9 @@ sub insertion-sort(@a) {
 
 
 sub MAIN(Int $scale) {
-    my @ints = 0; # in case SCALE == 0
+    my @ints;
     @ints = ($scale.rand).Int xx $scale;
+    @ints = 0 unless $scale;
     insertion-sort @ints;
     say @ints[0];
 }

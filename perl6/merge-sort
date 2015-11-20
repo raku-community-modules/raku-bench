@@ -30,6 +30,7 @@ sub merge-sort(@a, \p = 0, \r = @a.end) {
 
 sub MAIN(Int $scale) {
     my @a = ($scale.rand).Int xx $scale;
+    @a = 0 unless $scale;
     merge-sort @a;
     say @a[0];
 }

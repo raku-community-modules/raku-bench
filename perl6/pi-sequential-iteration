@@ -4,6 +4,11 @@ use v6;
 
 my \SCALE = @*ARGS[0].Int;
 
+if SCALE == 0 {
+    say "0";
+    exit 0;
+}
+
 my $delta = 1.0 / SCALE;
 my $sum = 0.0;
 my Int $i = 1;
