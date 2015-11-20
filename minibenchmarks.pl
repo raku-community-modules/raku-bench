@@ -177,12 +177,12 @@
   perl6    => [qw( BENCH/perl6/merge-sort SCALE)],
  },    
  {
-  name     => 'pi_sequential_iteration',
+  name     => 'pi-sequential-iteration',
   skip     => [qw( )],
   tags     => [qw( math )],
   scale    => 1 << 10,
-  perl5    => [qw( BENCH/perl5/pi_sequential_iteration SCALE)],
-  perl6    => [qw( BENCH/perl6/pi_sequential_iteration SCALE)],
+  perl5    => [qw( BENCH/perl5/pi-sequential-iteration SCALE)],
+  perl6    => [qw( BENCH/perl6/pi-sequential-iteration SCALE)],
  },    
  {
   name     => 'send-more-money-subs',
