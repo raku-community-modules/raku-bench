@@ -417,7 +417,7 @@ multi MAIN ('compare', *@timings, :$format?, :$style?, :$outfile?,
 
     my @timings-files;
     for explode-timings(@timings, :!chdir).kv -> $component, @files {
-        @timings-files.push: @files.map: "$TIMINGS_DIR/$component/" ~ *;
+        @timings-files.append: @files.map: "$TIMINGS_DIR/$component/" ~ *;
     }
 
     run "perl", "$PROGRAM-DIR/analyze", @options, @timings-files;
