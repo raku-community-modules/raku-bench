@@ -352,7 +352,7 @@
   scale => 1 << 7,
   work  => sub { $_[0] * $_[0] },
   expected => sub { $_[0] . "\n" },
-  perl5 => 'my $s = join ", " => 1 .. SCALE; my $i; my @s = split ", " => $s while ++$i <= SCALE; say scalar @s;',
+  perl5 => 'my $s = join ", " => 1 .. SCALE; my $i; my @s; @s = split ", " => $s while ++$i <= SCALE; say scalar @s;',
   perl6 => 'my $s = (1 .. SCALE).join: ", "; my $i; my @s = $s.split(", ") while ++$i <= SCALE; say +@s;',
   nqp   => 'my @i; my $i := 0; while ($i := $i + 1) <= SCALE { nqp::push(@i, ~$i); }; my $s := nqp::join(", ", @i); $i := 0; my @s; while ($i := $i + 1) <= SCALE { @s := nqp::split(", ", $s) }; say(+@s);',
  },
