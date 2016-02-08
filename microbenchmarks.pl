@@ -306,7 +306,7 @@
   tags  => [qw( for hash )],
   scale => 1 << 10,
   expected => sub { $_[0] . "\n" },
-  perl5 => 'my %h; $h{ $_ } = $_ for 0 .. SCALE; say %h<SCALE>;',
+  perl5 => 'my %h; $h{ $_ } = $_ for 0 .. SCALE; say $h{SCALE};',
   perl6 => 'my %h; %h{ $_ } = $_ for 0 .. SCALE; say %h<SCALE>;',
   nqp   => undef,
  },
