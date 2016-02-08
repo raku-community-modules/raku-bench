@@ -1,4 +1,4 @@
-my @todo = [1];
+my @todo = $[1];
 my @sums = 0;
 sub nextrow($n) {
     for +@todo .. $n -> $l {
