@@ -486,7 +486,7 @@
   tags  => [qw( for rat )],
   scale => 1 << 10,
   expected => sub { "1/" . ($_[0] + 1) . "\n" },
-  perl5 => 'use Math::BigRat; my $r = Math::BigRat->new(1); for (1 .. SCALE) { $r *= $_; $r /= $_ + 1 }; say $r.numerator . "/" . $r.denominator;',
+  perl5 => 'use Math::BigRat; my $r = Math::BigRat->new(1); for (1 .. SCALE) { $r *= $_; $r /= $_ + 1 }; say $r->numerator . "/" . $r->denominator;',
   perl6 => 'my $r = 1.0; for 1 .. SCALE { $r *= $_; $r /= $_ + 1 }; say $r.numerator ~ "/" ~ $r.denominator;',
   nqp   => undef,
  },
