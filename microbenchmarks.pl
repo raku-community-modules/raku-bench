@@ -429,7 +429,7 @@
   work  => sub { $_[0] * $_[0] },
   expected => sub { ($_[0] * 2) . "\n" },
   perl5 => 'my $k = 0; for my $i (1 .. SCALE) { for my $j (1 .. SCALE) { $k = $i + $j }; 1 }; say $k;',
-  perl6 => 'my $k = 0; for 1 .. SCALE -> $i { for 1 .. SCALE -> $j { $k = $i + $j }; 1 }; say $k;',
+  perl6 => 'my $k = 0; for 1 .. SCALE -> $i { for 1 .. SCALE -> $j { $k = $i + $j }; Nil }; say $k;',
   nqp   => undef,
  },
  {
