@@ -523,4 +523,13 @@
   perl6 => '$_ = "0" x 100 ~ "foo bar baz"; my $s = "foo bar baz"; loop (my $i = 0; $i < SCALE; $i++) { /$s/ }',
   nqp   => undef,
  },
+{
+  name  => 'for_param_sigil',
+  tags  => [qw( for Parameter sigil )],
+  scale => 1 << 10,
+  expected => "\\",
+  perl5 => undef,
+  perl6 => 'sub a(\) {}; my $p = &a.signature.params[0]; my $a; for ^SCALE { $a = $p.sigil }; say $a',
+  nqp   => undef,
+ },
 ]
