@@ -523,7 +523,7 @@
   perl6 => '$_ = "0" x 100 ~ "foo bar baz"; my $s = "foo bar baz"; loop (my $i = 0; $i < SCALE; $i++) { /$s/ }',
   nqp   => undef,
  },
-{
+ {
   name  => 'for_param_sigil',
   tags  => [qw( for Parameter sigil )],
   scale => 1 << 10,
@@ -532,4 +532,13 @@
   perl6 => 'sub a(\) {}; my $p = &a.signature.params[0]; my $a; for ^SCALE { $a = $p.sigil }; say $a',
   nqp   => undef,
  },
+ {
+  name  => 'loop_object_accessor',
+  tags  => [qw( object accessor )],
+  scale => 1 << 10,
+  expected => "42",
+  perl5 => undef,
+  perl6 => 'class A { has $.x; }; my $a = A.new(x => 42); my $y; loop (my int $i = 0; $i < SCALE; $i++) { $y = $a.x; }; say $y;',
+  nqp   => undef,
+ }
 ]
