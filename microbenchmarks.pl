@@ -131,7 +131,7 @@
   work  => sub { 1 << $_[0] },
   expected => sub { (1 << $_[0]) . "\n" },
   perl5 => 'my @a; push @a, 42; my $i = 0; while (++$i <= SCALE) { push @a, @a }; say scalar @a;',
-  perl6 => 'my @a; @a.push(42); my $i = 0; while (++$i <= SCALE) { @a.push(@a) }; say +@a;',
+  perl6 => 'my @a; @a.push(42); my $i = 0; while (++$i <= SCALE) { @a.append(@a) }; say +@a;',
   nqp   => 'my @a; nqp::push(@a, 42); my $i := 0; while ($i := $i + 1) <= SCALE { my $elems := nqp::elems(@a); my $j := 0; while $j < $elems { nqp::push(@a, @a[$j]); $j++; } }; say(+@a);',
  },
  {
