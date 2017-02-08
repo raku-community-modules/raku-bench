@@ -363,7 +363,7 @@
   work  => sub { $_[0] * $_[0] },
   expected => sub { $_[0] . "\n" },
   perl5 => 'my $s = join ", " => 1 .. SCALE; my @s = split /\s*,\s*/ => $s for 1 .. SCALE; say scalar @s;',
-  perl6 => 'my $s = (1 .. SCALE).join: ", "; my @s = $s.split(/\s*\,\s*/) for 1 .. SCALE; say +@s;',
+  perl6 => 'my $s = (1 .. SCALE).join: ", "; my @s; @s = $s.split(/\s*\,\s*/) for 1 .. SCALE; say +@s;',
   nqp   => undef,
  },
  {
