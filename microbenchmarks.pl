@@ -478,7 +478,7 @@
   scale => 1 << 3,
   expected => sub { $_[0] . "\n" },
   perl5 => 'my %h; my $m = 0; for (0 .. (SCALE - 1)) { %h{$_} = $_ }; while (my ($k, $v) = each %h) { $m += $k == $v }; say $m',
-  perl6 => 'my %h; my $m = 0; for ^SCALE { %h{$_} = $_ }; for %h.kv -> $k, $v { $m += $k == $v }; say $m;',
+  perl6 => 'my %h; my $m = 0; for ^SCALE { $h{$_} = $_ }; for %h.kv -> $k, $v { $m += $k == $v }; say $m;',
   nqp   => undef,
  },
  {
