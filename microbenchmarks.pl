@@ -536,7 +536,7 @@
   name  => 'loop_object_accessor',
   tags  => [qw( object accessor )],
   scale => 1 << 10,
-  expected => "42",
+  expected => "42\n",
   perl5 => undef,
   perl6 => 'class A { has $.x; }; my $a = A.new(x => 42); my $y; loop (my int $i = 0; $i < SCALE; $i++) { $y = $a.x; }; say $y;',
   nqp   => undef,
