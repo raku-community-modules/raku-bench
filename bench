@@ -71,7 +71,7 @@ sub guess-checkouts(:@compilers, :@extras, :&good-tag) {
     my %tags := known-tags(@compilers);
 
     my %default;
-    %default{$_} = %tags{$_}.grep(&good-tag) for @compilers;
+    %default{$_} = %tags{$_}.grep(&good-tag).cache for @compilers;
 
     sort gather {
         for %default.kv -> $compiler, @defaults {
