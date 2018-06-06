@@ -400,7 +400,7 @@
   expected => sub { ($_[0] * 2) . "\n" },
   perl5 => 'use integer; my $k = 0; my $i = 1; while ($i <= SCALE) { my $j = 1; while ($j <= SCALE) { $k = $i + $j; ++$j }; ++$i }; say $k',
   perl6 => 'my int $k = 0; my int $i = 1; while ($i <= SCALE) { my int $j = 1; while ($j <= SCALE) { $k = $i + $j; $j = $j + 1 }; $i = $i + 1 }; say $k',
-  nqp   => 'my int $k := 0; my int $i := 1; while ($i <= SCALE) { my int $j := 1; while ($j <= SCALE) { $k += $i + $j; $j := $j + 1 }; $i := $i + 1 }; say($k)',
+  nqp   => 'my int $k := 0; my int $i := 1; while ($i <= SCALE) { my int $j := 1; while ($j <= SCALE) { $k := $i + $j; $j := $j + 1 }; $i := $i + 1 }; say($k)',
  },
  {
   name  => 'visit_2d_indices_loop',
