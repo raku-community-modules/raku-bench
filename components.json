@@ -43,7 +43,7 @@
     },
     "perl5": {
         "name":         "perl5",
-        "repo_url":     "git://github.com:Perl/perl5.git",
+        "repo_url":     "git://github.com/Perl/perl5.git",
         "build_steps":  [
             [ "make", "clean" ],
             [ "git", "clean", "-dxf" ],
