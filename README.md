@@ -35,7 +35,7 @@ compilers is as follows:
     ./bench setup
 
     # Benchmark several different compilers' May 2013 releases
-    export CHECKOUTS='perl5/v5.18.0 nqp/2013.05 nqp-jvm/2013.05 rakudo/2013.05 niecza/v24'
+    export CHECKOUTS='perl5/v5.18.0 nqp/2013.05 nqp-jvm/2013.05 rakudo/2013.05'
     ./bench extract $CHECKOUTS
     ./bench build   $CHECKOUTS
     ./bench time    $CHECKOUTS
@@ -64,14 +64,6 @@ can do this with `./bench fetch`, which takes care to only update the bare
 mirrors across the network -- not requiring nearly as much bandwidth as the
 original setup since only new commits and tags are pulled -- and then update
 all extracted checkouts locally from those mirrors.
-
-NOTE: There is one exception to this magic -- Niecza's build process needs
-to download a ZIP of an older release in order to build a new one.
-Unfortunately, because these are changed quite often, it would waste quite a
-bit of bandwidth to download all the ZIPs at once during setup if the user
-doesn't plan to benchmark *every* Niecza release.  For this reason, if you
-plan to benchmark Niecza when you are not on a fast network, you should at
-least *build* the Niecza releases you want to test while still well-connected.
 
 
 BENCHMARKING TIPS
@@ -115,34 +107,21 @@ Your Raku compiler will need the following modules installed:
 If you have `zef` installed, you should already have these, as they are
 installed during the `zef` boostrap procedure.
 
-You may also need to have some extra items in your PATH, such as a recent
-version of `mono`/`mono-sgen` for Niecza and `node`/`d8` for Perlito*/JS.
-YMMV.
-
 Paths to the proper working directory of compilers not yet handled by the
 `./bench extract` mechanism can be set in the %COMPILERS hash at the top
 of the `timeall` script.  The default directories are assumed to be created
 by extract, or in parallel checkouts at the same directory level as the
-raku-bench checkout.  For example, Perlito's directory is currently assumed
-to be `../Perlito/` relative to the raku-bench directory; eventually it will
-be clonable and extractable in the same way as nqp, niecza, and rakudo.
+raku-bench checkout.
 
 Compilers tested so far:
 
     Perl
-        perl5
-        perlito5.pl
-        perlito5.js/node
-        perlito5.js/d8
+        perl
     Raku
         rakudo
-        niecza
-        perlito6.pl
-        perlito6.js/d8
     NQP
-        nqp    (github perl6/nqp)
+        nqp
         rakudo
-        niecza (no pir:: or nqp:: support)
 
 Enjoy!
 
