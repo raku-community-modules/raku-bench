@@ -1,24 +1,7 @@
 {
-    "arane": {
-        "name":         "arane",
-        "repo_url":     "git://github.com/BizarreCake/Arane.git",
-        "build_steps":  [
-            [ "cmake", "-G", "Unix Makefiles" ],
-            [ "make" ]
-        ]
-    },
     "moarvm": {
         "name":         "moarvm",
         "repo_url":     "git://github.com/MoarVM/MoarVM.git"
-    },
-    "niecza": {
-        "name":         "niecza",
-        "repo_url":     "git://github.com/sorear/niecza.git",
-        "release_tags": "^v\\d+$",
-        "build_steps":  [
-            [ "make", "realclean" ],
-            [ "make" ]
-        ]
     },
     "nqp-moar": {
         "name":         "nqp-moar",
@@ -33,25 +16,20 @@
             [ "make", "install" ]
         ]
     },
-    "nqp-parrot": {
-        "name":         "nqp-parrot",
+    "nqp-js": {
+        "name":         "nqp-js",
         "repo_url":     "git://github.com/perl6/nqp.git",
         "release_tags": "^ 20\\d\\d \\D \\d\\d [\\.\\d+]? $",
         "build_steps":  [
             [ "make", "realclean" ],
-            [ "git", "clean", "-dxf" ],
-            [ "rm", "-rf", "install", "parrot" ],
-            [ "git", "clone", "-l", "../../parrot/parrot.git" ],
-            [ "perl", "Configure.pl", "--backends=parrot", "--gen-parrot" ],
+            [ "rm", "-rf", "install", "MoarVM" ],
+            [ "git", "clone", "-l", "../../moarvm/moarvm.git", "MoarVM" ],
+            [ "perl", "Configure.pl", "--backends=moar,js", "--gen-moar" ],
             [ "make" ],
             [ "make", "install" ]
         ]
     },
-    "nqp-js": {
-        "name":         "nqp-js",
-        "repo_url":     "git://github.com/pmurias/rakudo-js.git"
-    },
-    "nqp-jvm":    {
+    "nqp-jvm": {
         "name":         "nqp-jvm",
         "repo_url":     "git://github.com/perl6/nqp.git",
         "build_steps":  [
@@ -63,41 +41,14 @@
             [ "make", "install" ]
         ]
     },
-    "parrot": {
-        "name":         "parrot",
-        "repo_url":     "git://github.com/parrot/parrot.git"
-    },
     "perl5": {
         "name":         "perl5",
-        "repo_url":     "git://perl5.git.perl.org/perl.git",
+        "repo_url":     "git://github.com:Perl/perl5.git",
         "build_steps":  [
             [ "make", "clean" ],
             [ "git", "clean", "-dxf" ],
             [ "rm", "-rf", "install" ],
             "./Configure -des -Dprefix=`pwd`/install",
-            [ "make" ],
-            [ "make", "install" ]
-        ]
-    },
-    "perlito": {
-        "name":         "perlito",
-        "repo_url":     "git://github.com/fglock/Perlito.git",
-        "build_steps":  [
-            "perl -Isrc5/lib perlito5.pl -Cjs src5/util/perlito5.pl > perlito5.js",
-            "perl -Ilib5     perlito6.pl -Cjs src6/util/perlito6.pl > perlito6.js"
-        ]
-    },
-    "rakudo-parrot": {
-        "name":         "rakudo-parrot",
-        "repo_url":     "git://github.com/rakudo/rakudo.git",
-        "release_tags": "^ 20\\d\\d \\D \\d\\d [\\.\\d+]? $",
-        "build_steps":  [
-            [ "make", "realclean" ],
-            [ "git", "clean", "-dxf" ],
-            [ "rm", "-rf", "install", "nqp", "parrot" ],
-            [ "git", "clone", "-l", "../../parrot/parrot.git" ],
-            [ "git", "clone", "-l", "../../nqp-parrot/nqp-parrot.git", "nqp" ],
-            [ "perl", "Configure.pl", "--backends=parrot", "--gen-parrot" ],
             [ "make" ],
             [ "make", "install" ]
         ]
@@ -113,6 +64,20 @@
             [ "git", "clone", "-l", "../../nqp-moar/nqp-moar.git", "nqp" ],
             [ "git", "clone", "-l", "../../moarvm/moarvm.git", "nqp/MoarVM" ],
             [ "perl", "Configure.pl", "--backends=moar", "--gen-moar" ],
+            [ "make" ],
+            [ "make", "install" ]
+        ]
+    },
+    "rakudo-js": {
+        "name":         "rakudo-js",
+        "repo_url":     "git://github.com/rakudo/rakudo.git",
+        "release_tags": "^ 20\\d\\d \\D \\d\\d [\\.\\d+]? $",
+        "build_steps":  [
+            [ "make", "realclean" ],
+            [ "git", "clean", "-dxf" ],
+            [ "rm", "-rf", "install-jvm", "nqp" ],
+            [ "git", "clone", "-l", "../../nqp-js/nqp-js.git", "nqp" ],
+            [ "perl", "Configure.pl", "--backends=moar,js", "--gen-nqp" ],
             [ "make" ],
             [ "make", "install" ]
         ]
