@@ -23,10 +23,10 @@ init_bench_handling();
 multi MAIN ('quickstart', Str :$stop-after = '') {
     my sub checkouts() {
         my @compilers = < perl5 nqp-moar rakudo-moar >;
-        my @extras = < nqp-moar/master rakudo-moar/nom >;
+        my @extras = < nqp-moar/master rakudo-moar/master >;
         my sub good-tag($tag) {
-               $tag ~~ /^ \d**4\.\d**2 $/ && $tag ge '2015.05'
-            || $tag ~~ /^ 'v5.'(\d+)\.(\d+) $/ && +$0 >= 18 && +$0 %% 2
+               $tag ~~ /^ \d**4\.\d**2 $/ && $tag ge '2015.12'
+            || $tag ~~ /^ 'v5.'(\d+)\.(\d+) $/ && +$0 >= 18 && +$0 %% 2 && +$1 == 0
         }
 
         guess-checkouts(:@compilers, :@extras, :&good-tag);
@@ -47,9 +47,9 @@ multi MAIN ('quickstart', Str :$stop-after = '') {
 multi MAIN ('quickstress', Str :$stop-after = '') {
     my sub checkouts() {
         my @compilers = < rakudo-moar rakudo-jvm >;
-        my @extras = < rakudo-moar/nom rakudo-jvm/nom >;
+        my @extras = < rakudo-moar/master rakudo-jvm/master >;
         my sub good-tag($tag) {
-            $tag ~~ /^ \d**4\.\d**2 $/ && $tag ge '2014.01'
+            $tag ~~ /^ \d**4\.\d**2 $/ && $tag ge '2015.12'
         }
 
         guess-checkouts(:@compilers, :@extras, :&good-tag);
