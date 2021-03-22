@@ -1,4 +1,4 @@
-% perl6-bench: Tools to benchmark and compare Perl family language implementations
+%raku-bench: Tools to benchmark and compare Perl family language implementations
 
 <!--
 
@@ -44,7 +44,7 @@ compilers is as follows:
 
 NETWORK TRAFFIC
 ---------------
-perl6-bench tries to front-load as much of the network traffic as possible,
+raku-bench tries to front-load as much of the network traffic as possible,
 so that you can run `./bench setup` once on a fast network, then disconnect
 and do benchmarking to your heart's content without touching the network
 again (unless you run `./bench fetch` to bring in new upstream commits).
@@ -101,19 +101,19 @@ You will need at least perl5 5.10.x, with the following modules installed:
     JSON::XS (best) or JSON::PP (slower)
     List::MoreUtils
 
-You will need a Perl 6 compiler to run the `bench` interface (though you can
+You will need a Raku compiler to run the `bench` interface (though you can
 benchmark the tests "manually" using the raw `timeall` and `analyze` Perl 5
 scripts in a pinch).  The author generally uses bleeding-edge Rakudo, but any
 Rakudo as of 2013.04 or later should do.  Patches welcomed to make `bench`
-work well with other Perl 6 compilers.
+work well with other Raku compilers.
 
-Your Perl 6 compiler will need the following modules installed:
+Your Raku compiler will need the following modules installed:
 
     JSON::Tiny
     Shell::Command
 
-If you have `panda` installed, you should already have these, as they are
-installed during the `panda` boostrap procedure.
+If you have `zef` installed, you should already have these, as they are
+installed during the `zef` boostrap procedure.
 
 You may also need to have some extra items in your PATH, such as a recent
 version of `mono`/`mono-sgen` for Niecza and `node`/`d8` for Perlito*/JS.
@@ -123,18 +123,18 @@ Paths to the proper working directory of compilers not yet handled by the
 `./bench extract` mechanism can be set in the %COMPILERS hash at the top
 of the `timeall` script.  The default directories are assumed to be created
 by extract, or in parallel checkouts at the same directory level as the
-perl6-bench checkout.  For example, Perlito's directory is currently assumed
-to be `../Perlito/` relative to the perl6-bench directory; eventually it will
+raku-bench checkout.  For example, Perlito's directory is currently assumed
+to be `../Perlito/` relative to the raku-bench directory; eventually it will
 be clonable and extractable in the same way as nqp, niecza, and rakudo.
 
 Compilers tested so far:
 
-    Perl 5
+    Perl
         perl5
         perlito5.pl
         perlito5.js/node
         perlito5.js/d8
-    Perl 6
+    Raku
         rakudo
         niecza
         perlito6.pl
@@ -150,7 +150,7 @@ Enjoy!
 COPYRIGHT
 ---------
 
-perl6-bench is Copyright 2012-2014, Geoffrey Broadwell.  This project is
+raku-bench is Copyright 2012-2014, Geoffrey Broadwell.  This project is
 open source, and may be used, copied, modified, distributed, and redistributed
 under the terms of the
 [Artistic License 2.0](http://www.perlfoundation.org/artistic_license_2_0) .
