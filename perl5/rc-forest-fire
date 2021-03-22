@@ -1,5 +1,7 @@
 use 5.10.0;
 
+use experimental 'switch';
+
 my ($w, $h, $steps) = @ARGV;
 my $r = "\033[H";
 my $step = 0;

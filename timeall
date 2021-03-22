@@ -620,7 +620,7 @@ sub diagnose_capture {
     }
     elsif (defined $expected && $expected ne $out) {
         $failed = 1;
-        $reason = 'did not produce expected output';
+        $reason = "did not produce expected output '$expected', instead got '$out'";
         $diagnosis = 'OUTPUT_MISMATCH';
     }
 
