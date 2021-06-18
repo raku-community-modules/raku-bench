@@ -201,4 +201,14 @@
   perl6    => [qw( BENCH/perl6/send-more-money-loops )],
   nqp      => [qw( BENCH/nqp/send-more-money-loops )],
  },    
+ {
+  name  => 'six-frame-translation',
+  skip  => [qw( )],
+  tags  => [qw( array push comb join string flip trans subs bioinformatics )],
+  scale => 1 << 4,
+  expected => "123\n",
+  perl5 => undef,
+  perl6 => [qw( BENCH/perl6/six-frame-translation SCALE )],
+  nqp   => undef,
+ },
 ]
